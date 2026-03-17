@@ -21,3 +21,5 @@ def get_posts(request):
             return response.Response(serializer.data)
 
         return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+posts = Post.objects.all().order_by('-created_at')
