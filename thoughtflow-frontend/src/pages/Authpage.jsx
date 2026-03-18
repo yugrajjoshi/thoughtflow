@@ -2,12 +2,6 @@ import React from 'react';
 
 function AuthPage() {
 
-
-    function handleSubmit(event) {
-        event.preventDefault();
-        // Handle form submission logic here
-    }
-
   return( <>
   <body className="flex items-center justify-center min-h-screen bg-black">
 
