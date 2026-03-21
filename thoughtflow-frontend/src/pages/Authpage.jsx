@@ -23,6 +23,7 @@ function AuthPage() {
           // Redirect to the dashboard or home page
           window.location.href = "/home";
         }
+        else{ console.error("Login failed: ", data); }
       });
   }
 
