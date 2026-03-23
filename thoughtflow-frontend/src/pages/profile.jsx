@@ -93,6 +93,7 @@ return (
                         <h3 className=" text-zinc-500 " >{username}</h3>
                         <p className="text-lg text-gray-400">A person who drains the energy of the front one better stay better after an intraction.</p>
                     </div>
+                    <div></div>
                 </div>
             </div>
          </div> 
