@@ -31,6 +31,7 @@ function Home() {
     window.location.href = "/";
   }
 
+  const [username,setActivebu] = useState("For You");
 
   return (
     <main className="bg-black w-full h-screen ">
@@ -76,8 +77,22 @@ function Home() {
            </button>
       </nav>
       <div className="ml-[20%] flex h-screen w-[80%] overflow-y-auto">
-        <div className="flex min-h-screen w-2/3 text-white border-white border-l border-r">
-          feed
+        <div className="flex flex-col min-h-screen w-2/3 text-white border-white border-l border-r">
+        <div className= "flex w-full h-[8%]  " >
+          <button className= {`text-zinc-400 transition-all duration-200 hover:text-white w-[50%] ${activeButton === " For You" ?"bg-linear-to-r from-zinc-950 to-zinc-900":"bg-black"}`} 
+           onClick={() => setActiveButton(" For You")}> For You</button>
+          <button className= {`text-zinc-400 transition-all duration-200 hover:text-white  w-[50%] ${activeButton === "Following" ?"bg-linear-to-l from-zinc-950 to-zinc-900":"bg-black "}`} 
+           onClick={() => setActiveButton("Following")}>
+            Following
+          </button>
+        </div>
+        <div className=" flex  w-full h-auto border border-zinc-900 p-3 ">
+          <div className="flex flex-row gap-10">
+            <div className= "flex felx-row w-15 border-black h-15 rounded-full ">
+              <img src="src/assets/killuaubasi.png" alt="Profile Image" className="w-full h-full object-cover rounded-full"></img>
+              </div>
+          </div>
+            </div>
         </div>
         <div className="flex min-h-screen w-1/3 text-white bg-black border">
           search

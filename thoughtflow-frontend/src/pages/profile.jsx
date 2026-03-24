@@ -1,5 +1,5 @@
 import React, { use } from "react";
-import { House, UserRound, Search, Mail, LogOut, ArrowLeft } from "lucide-react";
+import { House, UserRound, Search, Mail, LogOut, ArrowLeft, CalendarClockIcon } from "lucide-react";
 import { useState,useEffect } from "react";
 
 function Profile() {
@@ -92,6 +92,9 @@ return (
                         <h1 className="text-3xl font-bold">Yugraj</h1>
                         <h3 className=" text-zinc-500 " >{username}</h3>
                         <p className="text-lg text-gray-400">A person who drains the energy of the front one better stay better after an intraction.</p>
+                        <div className="flex fel-row gap-40"><h3 className=" text-zinc-500 pt-10" ><CalendarClockIcon className="w-5 h-5 inline mr-2" />  join date</h3>
+                             <h3 className="text-zinc-500 pt-10 " >Birthday :{} </h3>
+                        </div>
                     </div>
                     <div></div>
                 </div>
