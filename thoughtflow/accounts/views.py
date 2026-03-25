@@ -1,10 +1,12 @@
 from django.contrib.auth.models import User
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
 from .serializers import RegisterSerializer
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
+from rest_framework.decorators import  permission_classes
+from rest_framework.permissions import IsAuthenticated
 
 @api_view(['POST'])
 def register_user(request):
@@ -29,3 +31,14 @@ def login_user(request):
         return Response({'token': token.key})
     
     return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user(request):
+    user = request.user
+    return Response({
+        "username": user.username,
+        "email": user.email,
+    })

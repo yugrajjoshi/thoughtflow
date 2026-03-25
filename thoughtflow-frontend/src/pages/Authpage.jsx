@@ -95,7 +95,7 @@ function AuthPage() {
               </form>
               <br />
               <div className="text-center">
-                Dont have an account ? <a href="#" className="text-blue-500 hover:underline">Sign up</a>
+                Dont have an account ? <a href="/signup" className="text-blue-500 hover:underline">Sign up</a>
               </div>
               <button className="bg-black hover:bg-gray-800 transition duration-200 rounded-4xl w-[70%] mt-7 text-white font-bold p-4 mx-auto block">
                 Sign in with Google

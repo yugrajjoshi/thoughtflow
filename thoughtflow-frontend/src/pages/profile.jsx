@@ -1,4 +1,4 @@
-import React, { use } from "react";
+import React from "react";
 import { House, UserRound, Search, Mail, LogOut, ArrowLeft, CalendarClockIcon } from "lucide-react";
 import { useState,useEffect } from "react";
 
@@ -22,16 +22,29 @@ function Profile() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    fetch("http://127.0.0.1:8000/admin/auth/user/", { 
-      headers: {
-        "Authorization": "Token" + token
-      }
-    })
-    .then(response => response.json())
-    .then(data => {
-      setUsername(data.username);
-    });
-  }, []);
+        if (!token) {
+            return;
+        }
+
+        fetch("http://127.0.0.1:8000/api/user/", {
+            method: "GET",
+            headers: {
+                "Authorization": "Token " + token
+            }
+        })
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error(`Request failed with status ${response.status}`);
+                }
+                return response.json();
+            })
+            .then((data) => {
+                setUsername(data.username || "");
+            })
+            .catch((error) => {
+                console.error("Failed to fetch user profile:", error);
+            });
+    }, []);
 
 return (
     <main className="bg-black w-full h-screen">
@@ -85,13 +98,13 @@ return (
                     <img src = "src/assets/killuaubasi.png " className= "w-full h-full object-cover" ></img>
                 </div>
                 <div className="border-4 rounded-full absolute left-10 top-47 border-black w-45 h-45 z-10">
-                    <img src="src/assets/killuaubasi.png" alt="Profile Image" className="w-full h-full object-cover rounded-full"></img>
+                    <img src="src/assets/ladybug.webp" alt="Profile Image" className="w-full h-full object-cover rounded-full"></img>
                 </div>
                 <div className="border-b border-white w-full h-[80%] border-0.5">
                     <div className="flex flex-col w-full h-full mt-20 pl-5 pt-5 gap-2">
-                        <h1 className="text-3xl font-bold">Yugraj</h1>
+                        <h1 className="text-3xl font-bold">Siri</h1>
                         <h3 className=" text-zinc-500 " >{username}</h3>
-                        <p className="text-lg text-gray-400">A person who drains the energy of the front one better stay better after an intraction.</p>
+                        <p className="text-lg text-gray-400">miraculous ladybug.</p>
                         <div className="flex fel-row gap-40"><h3 className=" text-zinc-500 pt-10" ><CalendarClockIcon className="w-5 h-5 inline mr-2" />  join date</h3>
                              <h3 className="text-zinc-500 pt-10 " >Birthday :{} </h3>
                         </div>
