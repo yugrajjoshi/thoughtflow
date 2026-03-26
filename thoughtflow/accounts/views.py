@@ -7,6 +7,7 @@ from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import  permission_classes
 from rest_framework.permissions import IsAuthenticated
+from .models import Profile
 
 @api_view(['POST'])
 def register_user(request):
@@ -41,4 +42,19 @@ def get_user(request):
     return Response({
         "username": user.username,
         "email": user.email,
+    })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_Profile(request):
+    profile = Profile.objects.get(user=request.user)
+    
+    return Response({
+        "username": profile.user.username,
+        "name": profile.name,
+        "bio":profile.bio,
+        "profile_image": profile.profile_image.url if profile.profile_image else None,
+        "banner_image": profile.banner_image.url if profile.banner_image else None,
+        "dob": profile.dob,
+        "created_at": profile.created_at,
     })

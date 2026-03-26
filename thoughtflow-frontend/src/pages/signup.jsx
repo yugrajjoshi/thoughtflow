@@ -17,7 +17,7 @@ function Signup(){
             // Handle the response from the API
             console.log("Signup successful: ", data);
             // Redirect to the login page or another appropriate page
-            window.location.href = "/";
+            window.location.href = "/profilesetup";
         })
         .catch((error) => {
             console.error("Error during registration: ", error);
@@ -36,7 +36,13 @@ function Signup(){
 
     return(
         <main className="bg-black w-full h-screen flex felx-row items-center justify-center">
-            <div className=" bg-white border border-zinc-500 w-[90%] h-[90%] rounded-2xl  ">
+            <div className=" flex items-center justify-around bg-black rounded-lg -mt-10 w-full h-screen">
+        <img
+          src="src/assets/logo.svg"
+          alt="Logo Image"
+          className="w-[30%] h-[50%] object-cover rounded-lg"
+        /></div>
+            <div className=" bg-white border mr-20 border-zinc-500 w-[50%] h-[90%] rounded-2xl  ">   
                 <div>
                     <h1 className="text-3xl font-bold text-center mt-10">Create an account</h1>
                     <form className="flex flex-col gap-3 mt-10 w-[70%] mx-auto"  onSubmit={ (e) => {

@@ -3,6 +3,7 @@ import AuthPage from "./pages/Authpage";
 import Home from "./pages/Home";
 import Profile from "./pages/profile";
 import Signup from "./pages/signup";
+import Profilesetup from "./pages/profilesetup";
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/profilesetup" element={<Profilesetup />} />
       </Routes>
     </Router>
   );
