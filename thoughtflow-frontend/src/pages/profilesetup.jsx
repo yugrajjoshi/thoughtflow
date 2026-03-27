@@ -6,43 +6,50 @@ function Profilesetup() {
     const [bio, setBio] = useState("");
     const [dob, setDob] = useState(""); 
     const [name, setName] = useState("");
-    function handleSubmit(event) {
-        event.preventDefault();
-        const token = localStorage.getItem("token");
-        if (!token) return;
+   function handleSubmit(event) {
+    event.preventDefault();
 
-        const formData = new FormData();
-        if (profilePicture) formData.append("profilePicture", profilePicture);
-        formData.append("bio", bio);
+    // 1️⃣ Get token
+    const token = localStorage.getItem("token");
+    if (!token) return;
 
-        fetch("http://localhost:5000/api/user", {
-            method: "PUT",
-            headers: {
-                "Authorization": `Bearer ${token}`
-            },
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => console.log("Profile updated:", data))
-        .catch(error => console.error("Error:", error));
+    // 2️⃣ Create FormData
+    const formData = new FormData();
+       formData.append("name", name);
+       formData.append("bio", bio);
+       formData.append("dob", dob);
+
+    // 4️⃣ Append file (only if exists)
+    if (profilePicture) {
+        formData.append("profile_image", profilePicture);
     }
 
-    useEffect(() => {
-        const token = localStorage.getItem("token");
-        if (token) {
-            fetch("http://localhost:5000/api/user", {
-                headers: {
-                    "Authorization": `Bearer ${token}`
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                setUserData(data);
-                setBio(data.bio || "");
-            })
-            .catch(error => console.error("Error:", error));
-        }
-    }, []);
+    // 5️⃣ Fetch request
+    fetch("http://127.0.0.1:8000/api/profile/update/", {
+        method: "PUT",
+        headers: {
+            "Authorization": `Token ${token}`
+        },
+        body: formData
+    })
+
+    // 6️⃣ Convert response
+    .then(response => response.json())
+
+    // 7️⃣ Handle success
+    .then(data => {
+        // console log
+        console.log(data);
+        console.log("Profile updated successfully!");
+        // redirect to home
+        window.location.href = "/home";
+    })
+
+    // 8️⃣ Handle error
+    .catch(error => {
+        console.error(error);
+    });
+}
 
     return (
         <main className="fixed bgiblack w-full h-screen flex flex-row items-center justify-center">
@@ -72,19 +79,21 @@ function Profilesetup() {
                             </div>
                             <div className="flex flex-col w-full h-[75%] mt-5 rounded-2xl bg-linear-to-br from-zinc-800 to-zinc-400 justify-center shadow-2xl p-5 text-bold " >
                             <div className="self-start  border-b"> 
-                                <input type="text" placeholder="Name" className="bg-transparent text-white placeholder:text-zinc-500 outline-none"  value={name} onChange={(e) => setName(e.target.value)} /></div>
+                                <label className="text-zinc-400"></label>
+                                <input type="text" placeholder="Name" className="bg-transparent text-white placeholder:text-zinc-500 outline-none"  value={name} onChange={(e) => setName(e.target.value)} required /><span className="text-black">*</span></div>
                             <div className=" mt-10" >
+                                <label className="text-zinc-400"><span className="text-black">*</span> Date of Birth</label>
                                 <input
                                   type="date"
                                     placeholder="DOB"
-                                    className=" bg-transparent text-white  border-zinc-500 outline-none "
+                                    className=" bg-transparent text-zinc-400  border-zinc-500 outline-none "
                                     value={dob}
                                     onChange={(e) => setDob(e.target.value)}
                                     max={new Date().toISOString().split('T')[0]}
+                                    required
                                 />
                             </div>
                             </div>
-                            
                             </div>
                      <div className="relative flex flex-row w-full h-[50%] bg-linear-to-br from-zinc-800 to-zinc-400 rounded-2xl justify-start items-start shadow-2xl text-bold p-5 overflow-hidden" >
                                 <textarea
@@ -98,7 +107,7 @@ function Profilesetup() {
                                     {bio.length}/200
                                 </div>
                          </div>
-                            <button type="submit" className="px-6 py-2 bg-zinc-600 text-white rounded-lg">Save Profile</button>
+                            <button type="submit" className="px-6 py-2 rounded-4xl shadow-2xl  bg-zinc-600 text-white ">Save Profile</button>
                         </form>
                     </div>
                 </div>
