@@ -12,10 +12,19 @@ function Signup(){
             },
             body: JSON.stringify({ username, email, password })
         })
-        .then((response) => response.json())
+        .then(async (response) => {
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data?.error || "Registration failed");
+            }
+            return data;
+        })
         .then((data) => {
             // Handle the response from the API
             console.log("Signup successful: ", data);
+            if (data.token) {
+                localStorage.setItem("token", data.token);
+            }
             // Redirect to the login page or another appropriate page
             window.location.href = "/profilesetup";
         })

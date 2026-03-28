@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import register_user , login_user ,update_profile
+from .views import profile_info, profile_by_username, register_user, login_user, update_profile
 from .views import get_user, get_Profile
 urlpatterns = [
     path('register/', register_user),
@@ -7,4 +7,7 @@ urlpatterns = [
     path('user/', get_user),
     path('profile/', get_Profile),
     path('profile/update/', update_profile),
+    path('profile/profile_info/', profile_info),
+    path('profile/<str:username>/', profile_by_username),
+
 ]

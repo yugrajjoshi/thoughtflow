@@ -18,3 +18,11 @@ class Profile(models.Model):
 
     def __str__(self):
         return self.user.username
+    
+class Media(models.Model):
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    image = models.ImageField(upload_to='media/')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'Media for {self.profile.user.username}'
