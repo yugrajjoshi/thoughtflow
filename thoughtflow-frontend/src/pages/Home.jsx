@@ -6,7 +6,9 @@ import  { House , UserRound, Search, Mail, LogOut } from "lucide-react";
 
 function Home() {
   const [loginStatus, setLoginStatus] = useState(() => Boolean(localStorage.getItem("token")));
-
+  const[ProfilePicture, setProfilePicture] = useState(null);  
+  const[username, setUsername] = useState("");
+  const[name, setName] = useState("");
   useEffect(() => {
     const token = localStorage.getItem("token");
     setLoginStatus(Boolean(token));
@@ -14,13 +16,37 @@ function Home() {
     if (!token) {
       window.location.href = "/";
     }
-  }, []);
+  }, [loginStatus]);
 
   if (!loginStatus) {
     return null;
   }
 
-  // buttons controls
+  useEffect(() => {
+    const rawToken = localStorage.getItem("token");
+    const token = rawToken ? rawToken.replace(/^"|"$/g, "").trim() : "";
+    fetch("http://127.0.0.1:8000/api/profile/", {
+      method: "GET",
+      headers: {
+        Authorization: "Token " + token,
+      },
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((data) => {
+        setProfilePicture(data.profile_image);
+        setUsername(data.username);
+        setName(data.name);
+      })
+      .catch((error) => {
+        console.error("Failed to fetch user profile:", error);
+      });
+  }, []);
+
   const[activeButton, setActiveButton] = useState("home");
 
   const handleButtonClick = (buttonName) => {
@@ -30,8 +56,6 @@ function Home() {
     localStorage.removeItem("token");
     window.location.href = "/";
   }
-
-  const [username,setActivebu] = useState("For You");
 
   return (
     <main className="bg-black w-full h-screen ">
@@ -87,10 +111,16 @@ function Home() {
           </button>
         </div>
         <div className=" flex  w-full h-auto border border-zinc-900 p-3 ">
-          <div className="flex flex-row gap-10">
-            <div className= "flex felx-row w-15 border-black h-15 rounded-full ">
-              <img src="src/assets/killuaubasi.png" alt="Profile Image" className="w-full h-full object-cover rounded-full"></img>
+          <div className="flex flex-col w-full h-auto gap-10">
+            <div className= "flex felx-row w-15 border-black border h-15 rounded-full ">
+              <img src={ProfilePicture || ""} alt="Profile Image" className="w-full h-full object-cover rounded-full"></img>
+              <div className=" flex justify-center items-center p-4  rounded-3xl  w-auto h-[75%] "><h3 className=" font-bold text-zinc-400  " >{name}</h3></div>
               </div>
+              <form type="post" >
+              <div className=" flex -mt-7 w-full" >
+                <textarea placeholder="What's happening?" className="bg-black w-full h-auto  text-white placeholder:text-zinc-500 focus:outline-none" />
+              </div>
+              </form>
           </div>
             </div>
         </div>

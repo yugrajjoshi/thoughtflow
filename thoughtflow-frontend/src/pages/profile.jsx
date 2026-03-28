@@ -161,7 +161,7 @@ function Profile() {
 
 return (
     <main className="bg-black w-full h-screen">
-        <nav className="fixed top-0 left-0 h-screen w-[20%] bg-black border-r overflow-hidden">
+        <nav className="fixed top-0 left-0 h-screen w-[20%] bg-black border-r border-zinc-600 overflow-hidden">
                 <div className="flex top-0 self-center w-[35%]">
                     <img
                         src="src/assets/logo.svg"
@@ -200,7 +200,7 @@ return (
                 </button>
         </nav>
         <div className="ml-[20%] flex h-screen w-[80%] overflow-y-auto">
-            <div className="flex flex-col min-h-screen w-2/3 text-white border-l-[0.5px] border-r-[0.5px] relative">
+            <div className="flex flex-col min-h-screen w-2/3 text-white border-zinc-500 border-l-[0.5px] border-r-[0.5px] relative">
                 <div className="flex w-full h-[8%]  bg-linear-to-r from-black-500 to-zinc-800 text-white items-center p-4">
                     <ArrowLeft className="w-6 h-6" onClick={() => (window.location.href = "/home")} /> 
                     <h1 className="text-2xl font-bold ml-4">Profile</h1>
