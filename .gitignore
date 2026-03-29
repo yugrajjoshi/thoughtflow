@@ -25,6 +25,7 @@ thoughtflow/.env
 htmlcov/
 
 # IDE/editor files
+node_modules/
 .vscode/
 .idea/
 *.swp
