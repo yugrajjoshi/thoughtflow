@@ -227,6 +227,20 @@ function Profile() {
                         )}
                     </section>
                 </article>
+
+                <aside className="w-1/3 h-screen text-white border-r border-zinc-900 bg-black overflow-hidden">
+                    <header className="h-[8%] px-4 flex items-center border-b border-zinc-900">
+                        <h2 className="text-lg font-semibold">Chats</h2>
+                    </header>
+
+                    <section className="h-[72%] p-4 border-b border-zinc-900">
+                        <article className="h-full w-full rounded-lg border border-zinc-900" />
+                    </section>
+
+                    <footer className="h-[20%] p-4">
+                        <section className="h-full w-full rounded-lg border border-zinc-900" />
+                    </footer>
+                </aside>
             </section>
 {isEditOpen && (
                 <ProfileEditCard
@@ -235,6 +249,7 @@ function Profile() {
                     onProfileUpdated={handleProfileUpdated}
                 />
             )}
+        
         </main>
     );
 }
