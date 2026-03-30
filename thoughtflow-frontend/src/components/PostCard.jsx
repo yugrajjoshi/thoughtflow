@@ -30,8 +30,10 @@ function PostCard({ post }) {
                 </div>
                 <div className="flex-1">
                     <div className="flex gap-2 items-center">
-                        <p className="font-semibold text-white">{post?.display_name || post?.username || "User"}</p>
-                        <p className="text-zinc-400 text-sm">@{post?.username || "unknown"}</p>
+                        <a href={`/profile/${post?.username}`} className="font-semibold text-white">
+                            {post?.display_name || post?.username || "User"}
+                        </a>
+                        <a href={`/profile/${post?.username}`} className="text-zinc-400 text-sm">@{post?.username || "unknown"}</a>
                         {createdAt && <p className="text-zinc-500 text-xs">{createdAt}</p>}
                     </div>
                     <p className="text-zinc-200 mt-1 whitespace-pre-wrap">{post?.content}</p>

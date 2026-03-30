@@ -33,5 +33,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             'dob',
             'created_at',
             'date_joined',
+            'followers',
+            'following',
         ]
         read_only_fields = ['created_at']
