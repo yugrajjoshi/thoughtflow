@@ -4,6 +4,7 @@ import Home from "./pages/Home";
 import Profile from "./pages/profile";
 import Signup from "./pages/signup";
 import Profilesetup from "./pages/profilesetup";
+import Bookmarks from "./components/Bookmarks";
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/profilesetup" element={<Profilesetup />} />
+        <Route path="/bookmarks" element={<Bookmarks />} />
       </Routes>
     </Router>
   );

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { House, UserRound, Search, Mail, LogOut } from "lucide-react";
+import { House, UserRound, Search, Mail, LogOut,Bookmark } from "lucide-react";
 import CreatePost from "../components/Createpost";
 import PostCard from '../components/PostCard';
+import Bookmarks from '../components/Bookmarks';
 
 const API_BASE = "http://127.0.0.1:8000";
 
@@ -139,6 +140,11 @@ function Home() {
              onClick={() => handleButtonClick("chats")}
            >
              <Mail className="w-9 h-9" />Chats
+           </button>
+           <button
+           onClick={()=>handleButtonClick("bookmarks")}
+             className={`text-white gap-6 text-2xl font-bold p-3 transition duration-300 ml-6 w-[70%] ${activeButton === "bookmarks" ? "bg-zinc-800/30 " : "hover:bg-zinc-800/30 "} rounded-4xl flex items-center`}>
+              <Bookmark className="w-9 h-9" />Bookmarks
            </button>
          </section>
            <button className = "text-white gap-6 text-1xl font-bold p-3 transition duration-300 ml-6 w-[70%] hover:bg-zinc-800/30 hover:shadow-md  rounded-4xl  flex items-center" onClick={handleLogout}>

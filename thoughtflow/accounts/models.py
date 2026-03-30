@@ -16,6 +16,7 @@ class Profile(models.Model):
     dob = models.DateField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+
     def __str__(self):
         return self.user.username
     

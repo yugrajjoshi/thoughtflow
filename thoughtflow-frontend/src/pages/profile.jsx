@@ -3,19 +3,23 @@ import { useEffect, useState } from "react";
 import ProfileEditCard from "../components/profileeditcard";
 import PostCard from "../components/PostCard";
 
+// Backend API root used for profile and posts requests.
 const API_BASE = "http://127.0.0.1:8000";
 
+// Reads auth token from localStorage and removes accidental wrapping quotes.
 const getCleanToken = () => {
     const raw = localStorage.getItem("token");
     if (!raw) return "";
     return raw.replace(/^"|"$/g, "").trim();
 };
 
+// Converts relative media paths from backend into absolute browser URLs.
 const toMediaUrl = (value) => {
     if (!value) return "";
     return value.startsWith("http") ? value : `${API_BASE}${value}`;
 };
 
+// Safely formats any date-like value for display in the profile UI.
 const formatDate = (value) => {
     if (!value) return "";
     const date = new Date(value);
@@ -24,23 +28,28 @@ const formatDate = (value) => {
 };
 
 function Profile() {
+    // UI and data state for profile page.
     const [activeButton, setActiveButton] = useState("profile");
     const [profilePicture, setProfilePicture] = useState("");
     const [bannerPicture, setBannerPicture] = useState("");
     const [userData, setUserData] = useState(null);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [userPosts, setUserPosts] = useState([]);
+    const [following, setFollowing] = useState(false);
 
+    // Normalizes profile payload into local UI state.
     const applyProfileData = (data) => {
         setUserData(data);
         setProfilePicture(toMediaUrl(data.profile_image));
         setBannerPicture(toMediaUrl(data.banner_image));
     };
 
+    // Small redirect helper for navigation buttons.
     const goTo = (path) => {
         window.location.href = path;
     };
 
+    // Fetches current user profile, then loads posts for that user.
     const loadProfile = async () => {
         const token = getCleanToken();
         if (!token) return;
@@ -65,6 +74,7 @@ function Profile() {
         }
     };
 
+    // Fetches all posts and keeps only those created by the current profile user.
     const loadUserPosts = async (username) => {
         const token = getCleanToken();
         if (!token || !username) return;
@@ -89,15 +99,24 @@ function Profile() {
         }
     };
 
+     //follow and unfollow handler (toggles state, no backend integration yet)
+     const toggleFollow = () => {
+        setFollowing((prev) => !prev);
+    };
+
+
+    // Sidebar button state handler (for visual active styles).
     const handleButtonClick = (buttonName) => {
         setActiveButton(buttonName);
     };
 
+    // Clears auth token and returns to auth page.
     const handleLogout = () => {
         localStorage.removeItem("token");
         goTo("/");
     };
 
+    // Guard route: if token is missing, push user back to login.
     useEffect(() => {
         const token = getCleanToken();
         if (!token) {
@@ -105,14 +124,17 @@ function Profile() {
         }
     }, []);
 
+    // Initial page load: fetch profile and user-specific posts.
     useEffect(() => {
         loadProfile();
     }, []);
 
+    // Opens profile edit modal.
     const openEdit = () => {
         setIsEditOpen(true);
     };
 
+    // Syncs page state after successful profile edit.
     const handleProfileUpdated = (data) => {
         applyProfileData(data);
         loadUserPosts(data.username);
@@ -190,13 +212,19 @@ function Profile() {
                             )}
                         </div>
 
-                        <section className="border-b border-zinc-500 w-full h-[80%] border-0.5">
+                        <section className="border border-zinc-500 w-full h-[80%] border-0.5">
                             <div className="flex flex-col w-full h-full mt-20 pl-5 pr-5 pt-5 gap-2">
                                 <div className="flex items-start justify-between w-full">
                                     <div>
                                         <h1 className="text-3xl font-bold">{userData?.name}</h1>
                                         <h3 className=" text-zinc-500 ">@{userData?.username}</h3>
                                     </div>
+                                    <button 
+                                    className={`px-4 py-2 -ml-75 rounded-3xl bg-black border border-zinc-600 font-extrabold hover:text-white text-zinc-400  transition duration-300 ${following ? ' text-zinc-400 border-none' : ''}`}
+                                    onClick={toggleFollow}
+                                    >
+                                        {following ? 'following' : 'Follow'}
+                                    </button>
                                     <button
                                         className="px-4 py-2 rounded-3xl bg-black border border-zinc-600  hover:text-white text-zinc-400 hover:bg-zinc-800/30 transition duration-300"
                                         onClick={openEdit}
@@ -226,6 +254,7 @@ function Profile() {
                             <p className="px-5 py-6 text-zinc-500">No posts yet.</p>
                         )}
                     </section>
+                    <div><PostCard /></div>
                 </article>
 
                 <aside className="w-1/3 h-screen text-white border-r border-zinc-900 bg-black overflow-hidden">
