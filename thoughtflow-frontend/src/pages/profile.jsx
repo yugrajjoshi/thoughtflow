@@ -237,8 +237,8 @@ function Profile() {
                                     <h3 className="text-zinc-500 pt-10 "><Balloon className="w-5 h-5 inline mr-2" />Born on :{formatDate(userData?.dob)} </h3>
                                 </div>
                                 <div className=" p-1  gap-20 flex pt-2 " >
-                                    <a className="text-zinc-400 font-bold " >Following {userData?.following.length}</a>
-                                    <a className="text-zinc-400 font-bold " > Folowers {userData?.followers.length}</a>
+                                    <a href="#" className="text-zinc-400 font-bold " >Following {userData?.following.length}</a>
+                                    <a href="#" className="text-zinc-400 font-bold " > Folowers {userData?.followers.length}</a>
                                 </div>
                             </div>
                         </section>

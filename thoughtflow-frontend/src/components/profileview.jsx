@@ -33,6 +33,11 @@ const formatDate = (value) => {
     return date.toLocaleDateString();
 };
 
+const makeCountArray = (count) => {
+    const safeCount = Number.isFinite(Number(count)) ? Math.max(0, Number(count)) : 0;
+    return Array.from({ length: safeCount }, (_, index) => index);
+};
+
 export default function ProfileView() {
     const { username } = useParams();
 
@@ -42,6 +47,8 @@ export default function ProfileView() {
     const [userData, setUserData] = useState(null);
     const [userPosts, setUserPosts] = useState([]);
     const [following, setFollowing] = useState(false);
+    const [currentUsername, setCurrentUsername] = useState("");
+    const [ isFollowLoading, setIsFollowLoading] = useState(false);
 
     const applyProfileData = (data) => {
         setUserData(data);
@@ -95,19 +102,58 @@ export default function ProfileView() {
 
             const data = await response.json();
             applyProfileData(data);
+            setFollowing(Boolean(data.is_following));
             await loadUserPosts(data.username);
         } catch (error) {
             console.error("Failed to fetch visited user profile:", error);
         }
     };
+ 
+    // Placeholder follow/unfollow logic
 
-    const toggleFollow = () => {
-        setFollowing((prev) => !prev);
-    };
 
-    const handleButtonClick = (buttonName) => {
+    const handleFollowAction = async () => {
+    if (!username) return;
+
+    setIsFollowLoading(true);
+    try {
+        const token = getCleanToken();
+
+        // choose endpoint based on current state
+        const endpoint = following
+            ? `${API_BASE}/api/profile/unfollow/${username}/`
+            : `${API_BASE}/api/profile/follow/${username}/`;
+
+        const response = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+                Authorization: "Token " + token,
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to update follow status");
+        }
+
+        const data = await response.json();
+        setFollowing(Boolean(data.followed));
+        setUserData((prev) => {
+            if (!prev) return prev;
+            return {
+                ...prev,
+                followers: makeCountArray(data.followers_count),
+            };
+        });
+    } catch (error) {
+        console.error("Failed to update follow state:", error);
+    } finally {
+        setIsFollowLoading(false);
+    }
+};
+
+    function handleButtonClick(buttonName) {
         setActiveButton(buttonName);
-    };
+    }
 
     const handleLogout = () => {
         localStorage.removeItem("token");
@@ -119,6 +165,34 @@ export default function ProfileView() {
         if (!token) {
             goTo("/");
         }
+    }, []);
+
+    useEffect(() => {
+        const token = getCleanToken();
+        if (!token) return;
+
+        const loadCurrentUser = async () => {
+            try {
+                const response = await fetch(`${API_BASE}/api/user/`, {
+                    method: "GET",
+                    headers: {
+                        Authorization: "Token " + token,
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Request failed with status ${response.status}`);
+                }
+
+                const data = await response.json();
+                setCurrentUsername(data.username || "");
+            } catch (error) {
+                console.error("Failed to load current user:", error);
+                setCurrentUsername("");
+            }
+        };
+
+        loadCurrentUser();
     }, []);
 
     useEffect(() => {
@@ -208,12 +282,15 @@ export default function ProfileView() {
                                         <h1 className="text-3xl font-bold">{userData?.name}</h1>
                                         <h3 className="text-zinc-500">@{userData?.username}</h3>
                                     </div>
-                                    <button
-                                        className={`px-4 py-2 rounded-3xl bg-black border border-zinc-600 font-extrabold hover:text-white text-zinc-400 transition duration-300 ${following ? "text-zinc-400 border-none" : ""}`}
-                                        onClick={toggleFollow}
-                                    >
-                                        {following ? "following" : "Follow"}
-                                    </button>
+                                    {userData?.username !== currentUsername && (
+                                        <button
+                                            className={`px-4 py-2 rounded-3xl bg-black border border-zinc-600 font-extrabold hover:text-white text-zinc-400 transition duration-300 ${following ? "text-zinc-400 border-none" : ""}`}
+                                            onClick={handleFollowAction}
+                                            disabled={isFollowLoading}
+                                        >
+                                            {isFollowLoading ? "Loading..." : following ? "Following" : "Follow"}
+                                        </button>
+                                    )}
                                 </div>
                                 <p className="text-lg text-gray-400">{userData?.bio}</p>
                                 <div className="flex fel-row gap-10">
@@ -224,8 +301,8 @@ export default function ProfileView() {
                                     <h3 className="text-zinc-500 pt-10"><Balloon className="w-5 h-5 inline mr-2" />Born on :{formatDate(userData?.dob)}</h3>
                                 </div>
                                  <div className=" p-1  gap-20 flex pt-2 " >
-                                    <a href="#" className="text-zinc-400 font-bold " >Following {userData?.following.length}</a>
-                                    <a href="#" className="text-zinc-400 font-bold " > Folowers {userData?.followers.length}</a>
+                                    <a href="#" className="text-zinc-400 font-bold " >Following {userData?.following?.length ?? 0}</a>
+                                    <a href="#" className="text-zinc-400 font-bold " > Folowers {userData?.followers?.length ?? 0}</a>
                                 </div>
                             </div>
                         </section>

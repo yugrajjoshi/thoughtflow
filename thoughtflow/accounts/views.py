@@ -97,5 +97,62 @@ def profile_info(request):
 def profile_by_username(request, username):
     profile = get_object_or_404(Profile, user__username=username)
     serializer = ProfileSerializer(profile, context={'request': request})
-    return Response(serializer.data)
 
+    data = serializer.data
+
+    if request.user.is_authenticated:
+        my_profile, _ = Profile.objects.get_or_create(user=request.user)
+        data['is_following'] = my_profile.following.filter(id=profile.id).exists()
+
+    else: 
+        data['is_following'] = False
+
+    return Response(data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def follow_user(request, username):
+    target_profile = get_object_or_404(Profile, user__username=username)
+
+    my_profile, _ = Profile.objects.get_or_create(user=request.user)
+
+    if target_profile == my_profile:
+        return Response({'error':'you cannot follow yourself'}, status= status.HTTP_400_BAD_REQUEST) 
+
+    if my_profile.following.filter(id=target_profile.id).exists():
+        return Response({
+            'followed': True,
+            'followers_count': target_profile.followers.count(),
+            'following_count': my_profile.following.count(),
+        }, status=status.HTTP_200_OK)
+   
+    my_profile.following.add(target_profile)
+    target_profile.followers.add(my_profile)
+    
+    return Response({
+        'followed': True,
+        'followers_count': target_profile.followers.count(),
+        'following_count': my_profile.following.count(),
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def unfollow_user(request, username):
+    target_profile = get_object_or_404(Profile, user__username=username)
+
+    my_profile, _ = Profile.objects.get_or_create(user=request.user)
+
+    if target_profile.user == request.user:
+        return Response({'error':'you cannot unfollow yourself'}, status = status.HTTP_400_BAD_REQUEST)
+    
+    my_profile.following.remove(target_profile)
+    target_profile.followers.remove(my_profile)
+    
+    return Response({
+        'followed':False,
+        'followers_count':target_profile.followers.count(),
+        'following_count': my_profile.following.count(),
+
+    }, status=status.HTTP_200_OK)
