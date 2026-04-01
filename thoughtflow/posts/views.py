@@ -23,3 +23,58 @@ def get_posts(request):
             return response.Response(serializer.data, status=status.HTTP_201_CREATED)
 
         return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+#counts and interactions
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def like_post(request, post_id):
+    try:
+        post = Post.objects.get(id=post_id)
+    except Post.DoesNotExist:
+        return response.Response(
+            {'error': 'Post not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    if request.user in post.likes.all():
+        post.likes.remove(request.user)
+        liked = False
+    else:
+        post.likes.add(request.user)
+        liked = True
+
+    post.likes_count = post.likes.count()
+    post.save(update_fields=['likes_count'])
+
+    return response.Response(
+        {
+            'post_id': post.id,
+            'liked': liked,
+            'likes_count': post.likes_count,
+        },
+        status=status.HTTP_200_OK
+    )
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def comments_count(request, post_id):
+    try:
+        post = Post.objects.get(id=post_id)
+    except Post.DoesNotExist:
+        return response.Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    post.comments_count = post.comments.count()
+    post.save()
+    return response.Response({'message': 'Comments count updated'}, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_likes(request, post_id):
+    try:
+        post = Post.objects.get(id=post_id)
+    except Post.DoesNotExist:
+        return response.Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    likes = post.likes.all()
+    serializer = PostSerializer(likes, many=True, context={'request': request})
+    return response.Response(serializer.data)

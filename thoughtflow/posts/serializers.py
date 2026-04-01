@@ -5,6 +5,8 @@ class PostSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
     display_name = serializers.SerializerMethodField()
     profile_image = serializers.SerializerMethodField()
+    views = serializers.IntegerField(source='views_counts', read_only=True)
+    
 
     def get_display_name(self, obj):
         profile = getattr(obj.user, 'profile', None)
@@ -33,6 +35,16 @@ class PostSerializer(serializers.ModelSerializer):
             'image',
             'video',
             'created_at',
+            'views',
+            'likes',
+            'comments',
+            'bookmarks',
+            'reposts',
+            'views_counts',
+            'likes_count',
+            'comments_count',
+            'reposts_count'
+
         ]
         read_only_fields = ['id', 'user', 'username', 'display_name', 'profile_image', 'created_at']
 

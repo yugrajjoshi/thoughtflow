@@ -35,7 +35,7 @@ function Profile() {
     const [userData, setUserData] = useState(null);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [userPosts, setUserPosts] = useState([]);
-    const [following, setFollowing] = useState(false);
+
 
     // Normalizes profile payload into local UI state.
     const applyProfileData = (data) => {
@@ -99,10 +99,6 @@ function Profile() {
         }
     };
 
-     //follow and unfollow handler (toggles state, no backend integration yet)
-     const toggleFollow = () => {
-        setFollowing((prev) => !prev);
-    };
 
 
     // Sidebar button state handler (for visual active styles).

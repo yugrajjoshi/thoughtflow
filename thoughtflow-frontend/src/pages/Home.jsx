@@ -16,13 +16,15 @@ function Home() {
   const [profilePicture, setProfilePicture] = useState(null);
   const [posts, setPosts] = useState([]);
   const [activeButton, setActiveButton] = useState("home");
+  const [isLoadingPosts, setIsLoadingPosts] = useState(true);
+  const [feedError, setFeedError] = useState("");
 
   const goTo = (path) => {
     window.location.href = path;
   };
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = getCleanToken();
     setLoginStatus(Boolean(token));
 
     if (!token) {
@@ -57,7 +59,15 @@ function Home() {
 
   const fetchPosts = async () => {
     try {
+      setIsLoadingPosts(true);
+      setFeedError("");
       const token = getCleanToken();
+
+      if (!token) {
+        setFeedError("Your session expired. Please log in again.");
+        setPosts([]);
+        return;
+      }
 
       const response = await fetch(`${API_BASE}/api/posts/`, {
         method: "GET",
@@ -67,13 +77,30 @@ function Home() {
       });
 
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem("token");
+          setLoginStatus(false);
+          goTo("/");
+          return;
+        }
         throw new Error(`Request failed with status ${response.status}`);
       }
 
       const data = await response.json();
-      setPosts(data);
+      if (Array.isArray(data)) {
+        setPosts(data);
+      } else if (Array.isArray(data?.results)) {
+        setPosts(data.results);
+      } else {
+        setFeedError("Unexpected posts response format from API.");
+        setPosts([]);
+      }
     } catch (error) {
       console.error("Failed to fetch posts:", error);
+      setFeedError("Failed to load posts. Make sure backend is running and you are logged in.");
+      setPosts([]);
+    } finally {
+      setIsLoadingPosts(false);
     }
   };
 
@@ -95,12 +122,12 @@ function Home() {
     setActiveButton("For You");
   }, []);
 
-  //search functionality
   const [searchQuery, setSearchQuery] = useState("");
 
-  const handleSearchChange = (e) => {
-    setSearchQuery(event.target.value);
-  };
+  const filteredPosts = posts.filter((post) => {
+    const content = typeof post?.content === "string" ? post.content : "";
+    return content.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
 
   return (
@@ -169,9 +196,15 @@ function Home() {
           />
         </section>
         <section className="flex-1 overflow-y-auto posts-scrollbar">
-          {posts.filter((post) => post.content.includes(searchQuery)).map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
+          {isLoadingPosts ? (
+            <div className="text-zinc-500 p-6 text-center">Loading posts...</div>
+          ) : feedError ? (
+            <div className="text-red-400 p-6 text-center">{feedError}</div>
+          ) : filteredPosts.length > 0 ? (
+            filteredPosts.map((post) => <PostCard key={post.id} post={post} />)
+          ) : (
+            <div className="text-zinc-500 p-6 text-center">No posts yet. Be the first to post.</div>
+          )}
         </section>
         </article>
         <aside className="flex border  h-screen w-1/3 text-white bg-black ">

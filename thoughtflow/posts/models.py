@@ -15,7 +15,11 @@ class Post(models.Model):
     comments = models.TextField(max_length=200, blank=True)
     bookmarks = models.ManyToManyField(User, related_name='bookmarked_posts', blank=True)
     reposts = models.ManyToManyField('self', symmetrical=False, related_name='reposted_by', blank=True)
-    views = models.PositiveIntegerField(default=0)
+    views_counts = models.PositiveIntegerField(default=0)
+    likes_count = models.PositiveIntegerField(default=0)
+    comments_count = models.PositiveIntegerField(default=0)
+    reposts_count = models.PositiveIntegerField(default=0)
+
 
     def __str__(self):
         return f"{self.user.username} - {self.created_at}"
