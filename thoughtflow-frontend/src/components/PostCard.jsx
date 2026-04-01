@@ -1,5 +1,5 @@
 import React from "react";
-import { Heart, MessageCircle, Bookmark, Share2, Kanban,Repeat2 } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Share2, Kanban,Repeat2, Ellipsis } from "lucide-react";
 import { useState } from "react";
 
 
@@ -44,27 +44,33 @@ function PostCard({ post }) {
                         alt="Profile"
                         className="w-full h-full object-cover"
                     />
-                </div>
-                <div className="flex-1">
-                    <div className="flex gap-2 items-center">
+                    </div>
+                    <div className="flex-1">
+                    <div className="flex gap-2  items-center">
                         <a href={`/profile/${post?.username}`} className="font-semibold text-white">
                             {post?.display_name || post?.username || "User"}
                         </a>
                         <a href={`/profile/${post?.username}`} className="text-zinc-400 text-sm">@{post?.username || "unknown"}</a>
                         {createdAt && <p className="text-zinc-500 text-xs">{createdAt}</p>}
+                        <button className="ml-auto p-2 mr-3 rounded-full transition-all duration-200 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-300">
+                            <Ellipsis className="w-7 h-7" />
+                        </button>
                     </div>
                     <p className="text-zinc-200 mt-1 whitespace-pre-wrap">{post?.content}</p>
-                    {post?.image && (
-                        <img src={post.image} alt="Post" className="mt-3 max-h-96 w-full object-cover rounded-lg" />
+                   
+                        {post?.image && (
+                        <img src={post.image} alt="Post" className="mt-3 max-h-96 w-full object-cover rounded-2xl" />
                     )}
                     {post?.video && (
                         <video controls className="mt-3 max-h-96 w-full rounded-lg">
                             <source src={post.video} />
                         </video>
                     )}
-                </div>
-            </div>
-            <div className="flex   ml-18 mt-10 border-zinc-800 justify-between gap-5 pr-5  w-[90%] p-3">
+                    
+               </div>
+               </div>
+               <div 
+                className="flex   ml-18 mt-10 border-zinc-800 justify-between gap-5 pr-5  w-[90%] p-3">
                 <div className="flex gap-2 justify-center items-center" >
                 <button className="text-zinc-400 hover:text-zinc-500">
                     <MessageCircle className="w-5 h-5" />

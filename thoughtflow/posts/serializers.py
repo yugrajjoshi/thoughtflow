@@ -6,7 +6,14 @@ class PostSerializer(serializers.ModelSerializer):
     display_name = serializers.SerializerMethodField()
     profile_image = serializers.SerializerMethodField()
     views = serializers.IntegerField(source='views_counts', read_only=True)
-    
+    is_liked = serializers.SerializerMethodField()
+
+    def get_is_liked(self, obj):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if not user or not user.is_authenticated:
+            return False
+        return obj.likes.filter(id=user.id).exists()
 
     def get_display_name(self, obj):
         profile = getattr(obj.user, 'profile', None)
@@ -43,8 +50,8 @@ class PostSerializer(serializers.ModelSerializer):
             'views_counts',
             'likes_count',
             'comments_count',
-            'reposts_count'
-
+            'reposts_count',
+            'is_liked'
         ]
         read_only_fields = ['id', 'user', 'username', 'display_name', 'profile_image', 'created_at']
 
