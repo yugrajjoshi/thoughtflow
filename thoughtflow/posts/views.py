@@ -57,6 +57,36 @@ def like_post(request, post_id):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+def bookmark_post(request, post_id):
+    try:
+        post = Post.objects.get(id=post_id)
+    except Post.DoesNotExist:
+        return response.Response(
+            {'error': 'Post not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    if request.user in post.bookmarks.all():
+        post.bookmarks.remove(request.user)
+        bookmarked = False
+    else:
+        post.bookmarks.add(request.user)
+        bookmarked = True
+
+    post.bookmarks_count = post.bookmarks.count()
+    post.save(update_fields=['bookmarks_count'])
+
+    return response.Response(
+        {
+            'post_id': post.id,
+            'bookmarked': bookmarked,
+            'bookmarked_count': post.bookmarks.count(),
+        },
+        status=status.HTTP_200_OK
+    )
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def comments_count(request, post_id):
     try:
         post = Post.objects.get(id=post_id)

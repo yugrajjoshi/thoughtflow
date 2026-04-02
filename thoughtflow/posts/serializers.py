@@ -7,6 +7,7 @@ class PostSerializer(serializers.ModelSerializer):
     profile_image = serializers.SerializerMethodField()
     views = serializers.IntegerField(source='views_counts', read_only=True)
     is_liked = serializers.SerializerMethodField()
+    is_bookmarked = serializers.SerializerMethodField()
 
     def get_is_liked(self, obj):
         request = self.context.get('request')
@@ -52,6 +53,8 @@ class PostSerializer(serializers.ModelSerializer):
             'comments_count',
             'reposts_count',
             'is_liked'
+            'bookmarks_count',
+            'is_bookmarked',
         ]
         read_only_fields = ['id', 'user', 'username', 'display_name', 'profile_image', 'created_at']
 

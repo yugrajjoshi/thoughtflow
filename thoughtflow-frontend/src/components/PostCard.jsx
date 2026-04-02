@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Heart, MessageCircle, Bookmark, Share2, Kanban,Repeat2, Ellipsis } from "lucide-react";
 import { useState } from "react";
 
@@ -22,8 +22,7 @@ function PostCard({ post }) {
     const commentsCount = typeof post?.comments_count === "number" ? post.comments_count : 0;
 
 
-  
-    
+
 
     const toggleLike = () => {
         setLiked((prev) => !prev);

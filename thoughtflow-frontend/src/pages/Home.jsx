@@ -18,6 +18,13 @@ function Home() {
   const [activeButton, setActiveButton] = useState("home");
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
   const [feedError, setFeedError] = useState("");
+  const [bookmarksActive, setBookmarksActive] = useState(false);
+
+
+
+  const handleBookMark =()=>{
+    setBookmarksActive(!bookmarksActive);
+  }
 
   const goTo = (path) => {
     window.location.href = path;
@@ -205,11 +212,12 @@ function Home() {
           ) : (
             <div className="text-zinc-500 p-6 text-center">No posts yet. Be the first to post.</div>
           )}
+          {activeButton === "bookmarks" && <Bookmarks />}
         </section>
         </article>
-        <aside className="flex border  h-screen w-1/3 text-white bg-black ">
+        <aside className="flex flex-col border  items-center  h-screen w-1/3 text-white border-zinc-800">
           <button 
-            className=" flex flex-row gap-5 mt-5 justify m-5 items-center w-full h-12 border rounded-4xl ">
+            className=" flex flex-row gap-5 mt-5 justify m-5 items-center w-[90%] h-12 border rounded-4xl ">
             <Search className=" ml-5 w-5 h-5" />
             <input
               type="text"
@@ -218,6 +226,11 @@ function Home() {
               onChange={(e)=> setSearchQuery(e.target.value)}
             />
           </button>
+          <div className="w-[80%] h-[30%] border rounded-lg shadow-lg" ></div>
+          <section className="flex w-full mt-5 flex-col" >
+            <div className="text-lg w-full border-b-[0.5px] border-zinc-800 p-5 font-bold text-left ">Trending</div>
+            <div></div>
+          </section>
       </aside>
       </section>
     </main>

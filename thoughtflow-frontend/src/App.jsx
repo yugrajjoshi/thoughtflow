@@ -16,7 +16,6 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/profilesetup" element={<Profilesetup />} />
         <Route path="/profile/:username" element={<ProfileView />} />
-
       </Routes>
     </Router>
   );
