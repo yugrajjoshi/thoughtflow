@@ -52,7 +52,7 @@ class PostSerializer(serializers.ModelSerializer):
             'likes_count',
             'comments_count',
             'reposts_count',
-            'is_liked'
+            'is_liked',
             'bookmarks_count',
             'is_bookmarked',
         ]
@@ -60,4 +60,4 @@ class PostSerializer(serializers.ModelSerializer):
 
 
 # Backward-compatible alias for earlier typo usage.
-PostSeriealizer = PostSerializer
+PostSerializer = PostSerializer

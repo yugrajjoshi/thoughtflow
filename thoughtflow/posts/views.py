@@ -108,3 +108,27 @@ def get_likes(request, post_id):
     likes = post.likes.all()
     serializer = PostSerializer(likes, many=True, context={'request': request})
     return response.Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_bookmarks(request, post_id):
+    try:
+        post = Post.objects.get(id=post_id)
+    except Post.DoesNotExist:
+        return response.Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    bookmarks = post.bookmarks.all()
+    serializer = PostSerializer(bookmarks, many=True, context={'request': request})
+    return response.Response(serializer.data)
+
+@api_view(['GET'])  
+@permission_classes([IsAuthenticated])
+def get_reposts(request, post_id):
+    try:
+        post = Post.objects.get(id=post_id)
+    except Post.DoesNotExist:
+        return response.Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    reposts = post.reposts.all()
+    serializer = PostSerializer(reposts, many=True, context={'request': request})
+    return response.Response(serializer.data)
