@@ -212,7 +212,9 @@ function Home() {
           ) : (
             <div className="text-zinc-500 p-6 text-center">No posts yet. Be the first to post.</div>
           )}
-          {activeButton === "bookmarks" && <Bookmarks />}
+          {activeButton === "bookmarks" && <Bookmarks /> ? (
+            <Bookmarks />
+          ) : null}
         </section>
         </article>
         <aside className="flex flex-col border  items-center  h-screen w-1/3 text-white border-zinc-800">

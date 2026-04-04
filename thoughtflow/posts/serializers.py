@@ -8,6 +8,7 @@ class PostSerializer(serializers.ModelSerializer):
     views = serializers.IntegerField(source='views_counts', read_only=True)
     is_liked = serializers.SerializerMethodField()
     is_bookmarked = serializers.SerializerMethodField()
+    is_reposted = serializers.SerializerMethodField()
 
     def get_is_liked(self, obj):
         request = self.context.get('request')
@@ -15,6 +16,20 @@ class PostSerializer(serializers.ModelSerializer):
         if not user or not user.is_authenticated:
             return False
         return obj.likes.filter(id=user.id).exists()
+
+    def get_is_reposted(self, obj):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if not user or not user.is_authenticated:
+            return False
+        return Post.objects.filter(user=user, reposts=obj).exists()
+
+    def get_is_bookmarked(self, obj):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if not user or not user.is_authenticated:
+            return False
+        return obj.bookmarks.filter(id=user.id).exists()
 
     def get_display_name(self, obj):
         profile = getattr(obj.user, 'profile', None)
@@ -55,6 +70,7 @@ class PostSerializer(serializers.ModelSerializer):
             'is_liked',
             'bookmarks_count',
             'is_bookmarked',
+            'is_reposted',
         ]
         read_only_fields = ['id', 'user', 'username', 'display_name', 'profile_image', 'created_at']
 

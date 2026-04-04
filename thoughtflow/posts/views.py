@@ -80,7 +80,46 @@ def bookmark_post(request, post_id):
         {
             'post_id': post.id,
             'bookmarked': bookmarked,
-            'bookmarked_count': post.bookmarks.count(),
+            'bookmarks_count': post.bookmarks_count,
+        },
+        status=status.HTTP_200_OK
+    )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def repost_post(request, post_id):
+    try:
+        original_post = Post.objects.get(id=post_id)
+    except Post.DoesNotExist:
+        return response.Response(
+            {'error': 'Post not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    user_repost = Post.objects.filter(user=request.user, reposts=original_post).first()
+
+    if user_repost:
+        user_repost.delete()
+        reposted = False
+    else:
+        repost = Post.objects.create(
+            user=request.user,
+            content=original_post.content,
+            image=original_post.image,
+            video=original_post.video,
+        )
+        repost.reposts.add(original_post)
+        reposted = True
+
+    original_post.reposts_count = Post.objects.filter(reposts=original_post).count()
+    original_post.save(update_fields=['reposts_count'])
+
+    return response.Response(
+        {
+            'post_id': original_post.id,
+            'reposted': reposted,
+            'reposts_count': original_post.reposts_count,
         },
         status=status.HTTP_200_OK
     )

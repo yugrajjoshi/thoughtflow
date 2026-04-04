@@ -2,6 +2,7 @@ import { House, UserRound, Search, Mail, LogOut, ArrowLeft, CalendarClockIcon,Ba
 import { useEffect, useState } from "react";
 import ProfileEditCard from "../components/profileeditcard";
 import PostCard from "../components/PostCard";
+import RepostedPost from "../components/repostedpost";
 
 // Backend API root used for profile and posts requests.
 const API_BASE = "http://127.0.0.1:8000";
@@ -251,6 +252,7 @@ function Profile() {
                         )}
                     </section>
                     <div><PostCard /></div>
+                    <div><RepostedPost /></div>
                     </article>
                 </section>
 

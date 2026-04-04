@@ -1,37 +1,154 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Heart, MessageCircle, Bookmark, Share2, Kanban,Repeat2, Ellipsis } from "lucide-react";
-import { useState } from "react";
 
+const API_BASE = "http://127.0.0.1:8000";
+
+const getCleanToken = () => {
+    const rawToken = localStorage.getItem("token");
+    return rawToken ? rawToken.replace(/^"|"$/g, "").trim() : "";
+};
 
 
 function PostCard({ post }) {
     const createdAt = post?.created_at ? new Date(post.created_at).toLocaleString() : "";
-    const [liked, setLiked] = useState(false);
-    const [reposted, setReposted] = useState(false);
-    const [bookmarked, setBookmarked] = useState(false);
-    const likesCount = typeof post?.likes_count === "number"
-        ? post.likes_count
-        : Array.isArray(post?.likes)
-            ? post.likes.length
-            : 0;
-    const repostsCount = typeof post?.reposts_count === "number"
-        ? post.reposts_count
-        : Array.isArray(post?.reposts)
-            ? post.reposts.length
-            : 0;
+    const [liked, setLiked] = useState(Boolean(post?.is_liked));
+    const [reposted, setReposted] = useState(Boolean(post?.is_reposted));
+    const [bookmarked, setBookmarked] = useState(Boolean(post?.is_bookmarked));
+    const [likesCount, setLikesCount] = useState(
+        typeof post?.likes_count === "number"
+            ? post.likes_count
+            : Array.isArray(post?.likes)
+                ? post.likes.length
+                : 0
+    );
+    const [repostsCount, setRepostsCount] = useState(
+        typeof post?.reposts_count === "number"
+            ? post.reposts_count
+            : Array.isArray(post?.reposts)
+                ? post.reposts.length
+                : 0
+    );
+    const [bookmarksCount, setBookmarksCount] = useState(
+        typeof post?.bookmarks_count === "number"
+            ? post.bookmarks_count
+            : Array.isArray(post?.bookmarks)
+                ? post.bookmarks.length
+                : 0
+    );
     const commentsCount = typeof post?.comments_count === "number" ? post.comments_count : 0;
+    const [likeLoading, setLikeLoading] = useState(false);
+    const [bookmarkLoading, setBookmarkLoading] = useState(false);
+    const [repostLoading, setRepostLoading] = useState(false);
 
+    useEffect(() => {
+        setLiked(Boolean(post?.is_liked));
+        setBookmarked(Boolean(post?.is_bookmarked));
+        setReposted(Boolean(post?.is_reposted));
+        setLikesCount(
+            typeof post?.likes_count === "number"
+                ? post.likes_count
+                : Array.isArray(post?.likes)
+                    ? post.likes.length
+                    : 0
+        );
+        setRepostsCount(
+            typeof post?.reposts_count === "number"
+                ? post.reposts_count
+                : Array.isArray(post?.reposts)
+                    ? post.reposts.length
+                    : 0
+        );
+        setBookmarksCount(
+            typeof post?.bookmarks_count === "number"
+                ? post.bookmarks_count
+                : Array.isArray(post?.bookmarks)
+                    ? post.bookmarks.length
+                    : 0
+        );
+    }, [post]);
 
+    const toggleLike = async () => {
+        if (!post?.id || likeLoading) return;
+        const token = getCleanToken();
+        if (!token) return;
 
+        try {
+            setLikeLoading(true);
+            const response = await fetch(`${API_BASE}/api/posts/${post.id}/like/`, {
+                method: "POST",
+                headers: {
+                    Authorization: "Token " + token,
+                },
+            });
 
-    const toggleLike = () => {
-        setLiked((prev) => !prev);
+            if (!response.ok) {
+                throw new Error(`Like request failed: ${response.status}`);
+            }
+
+            const data = await response.json();
+            setLiked(Boolean(data?.liked));
+            setLikesCount(typeof data?.likes_count === "number" ? data.likes_count : likesCount);
+        } catch (error) {
+            console.error("Failed to toggle like:", error);
+        } finally {
+            setLikeLoading(false);
+        }
     };
-    const toggleRepost = () => {
-        setReposted((prev) => !prev);
+
+    const toggleRepost = async () => {
+        if (!post?.id || repostLoading) return;
+        const token = getCleanToken();
+        if (!token) return;
+
+        try {
+            setRepostLoading(true);
+            const response = await fetch(`${API_BASE}/api/posts/${post.id}/repost/`, {
+                method: "POST",
+                headers: {
+                    Authorization: "Token " + token,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Repost request failed: ${response.status}`);
+            }
+
+            const data = await response.json();
+            setReposted(Boolean(data?.reposted));
+            setRepostsCount(typeof data?.reposts_count === "number" ? data.reposts_count : repostsCount);
+        } catch (error) {
+            console.error("Failed to toggle repost:", error);
+        } finally {
+            setRepostLoading(false);
+        }
     };
-    const toggleBookmark = () => {
-        setBookmarked((prev) => !prev);
+
+    const toggleBookmark = async () => {
+        if (!post?.id || bookmarkLoading) return;
+        const token = getCleanToken();
+        if (!token) return;
+
+        try {
+            setBookmarkLoading(true);
+            const response = await fetch(`${API_BASE}/api/posts/${post.id}/bookmarks/`, {
+                method: "POST",
+                headers: {
+                    Authorization: "Token " + token,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Bookmark request failed: ${response.status}`);
+            }
+
+            const data = await response.json();
+            setBookmarked(Boolean(data?.bookmarked));
+            setBookmarksCount(typeof data?.bookmarks_count === "number" ? data.bookmarks_count : bookmarksCount);
+        } catch (error) {
+            console.error("Failed to toggle bookmark:", error);
+        } finally {
+            setBookmarkLoading(false);
+        }
     };
 
     return (
@@ -79,6 +196,7 @@ function PostCard({ post }) {
                 <div className="flex gap-2 justify-center items-center" >
                 <button 
                 onClick={toggleRepost}
+                disabled={repostLoading}
                 className={`flex gap-2 transition-colors ${reposted ? "text-green-500" : "text-zinc-400 hover:text-zinc-500"}`}>
                     <Repeat2 className={`w-5 h-5 ${reposted ? "fill-current" : ""}`} />
                 </button>
@@ -87,6 +205,7 @@ function PostCard({ post }) {
                 <div className="flex gap-2 justify-center items-center" >
                 <button 
                 onClick={toggleLike}
+                disabled={likeLoading}
                 className={`flex gap-2 transition-colors ${liked ? "text-red-500  " : "text-zinc-400 hover:text-zinc-500"}`}>
                     <Heart className={`w-5 h-5 ${liked ? "fill-current" : ""}`} />
                 </button>
@@ -101,9 +220,11 @@ function PostCard({ post }) {
                 <div className="flex gap-5">
                 <button 
                 onClick={toggleBookmark}
+                disabled={bookmarkLoading}
                 className={`transition-colors ${bookmarked ? "text-blue-500" : "text-zinc-400 hover:text-zinc-500"}`}>
                     <Bookmark className={`w-5 h-5 ${bookmarked ? "fill-current" : ""}`} />
                 </button>
+                <span className="text-zinc-600" >{bookmarksCount}</span>
                 </div>
                 <button className="text-zinc-400  hover:text-zinc-500">
                     <Share2 className="w-5 h-5" />
