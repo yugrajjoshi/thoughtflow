@@ -2,13 +2,36 @@ import React, { useEffect, useState } from 'react';
 import { House, UserRound, Search, Mail, LogOut,Bookmark } from "lucide-react";
 import CreatePost from "../components/Createpost";
 import PostCard from '../components/PostCard';
-import Bookmarks from '../components/Bookmarks';
+import PostView from "../components/postview";
 
 const API_BASE = "http://127.0.0.1:8000";
 
 const getCleanToken = () => {
   const rawToken = localStorage.getItem("token");
   return rawToken ? rawToken.replace(/^"|"$/g, "").trim() : "";
+};
+
+const VIEWED_POSTS_STORAGE_KEY = "thoughtflow_viewed_posts";
+
+const getViewedPostIds = () => {
+  try {
+    const rawValue = sessionStorage.getItem(VIEWED_POSTS_STORAGE_KEY);
+    const parsedValue = rawValue ? JSON.parse(rawValue) : [];
+    return Array.isArray(parsedValue) ? parsedValue.map(String) : [];
+  } catch (error) {
+    console.error("Failed to read viewed post ids:", error);
+    return [];
+  }
+};
+
+const markPostAsViewed = (postId) => {
+  try {
+    const viewedPostIds = new Set(getViewedPostIds());
+    viewedPostIds.add(String(postId));
+    sessionStorage.setItem(VIEWED_POSTS_STORAGE_KEY, JSON.stringify(Array.from(viewedPostIds)));
+  } catch (error) {
+    console.error("Failed to store viewed post id:", error);
+  }
 };
 
 function Home() {
@@ -18,13 +41,7 @@ function Home() {
   const [activeButton, setActiveButton] = useState("home");
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
   const [feedError, setFeedError] = useState("");
-  const [bookmarksActive, setBookmarksActive] = useState(false);
-
-
-
-  const handleBookMark =()=>{
-    setBookmarksActive(!bookmarksActive);
-  }
+  const [selectedPost, setSelectedPost] = useState(null);
 
   const goTo = (path) => {
     window.location.href = path;
@@ -136,6 +153,65 @@ function Home() {
     return content.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
+  const isBookmarksView = activeButton === "bookmarks";
+  const visiblePosts = isBookmarksView
+    ? filteredPosts.filter((post) => Boolean(post?.is_bookmarked))
+    : filteredPosts;
+
+  const handleSelectPost = (post) => {
+    setSelectedPost(post);
+
+    if (!post?.id) {
+      return;
+    }
+
+    if (getViewedPostIds().includes(String(post.id))) {
+      return;
+    }
+
+    const token = getCleanToken();
+    if (!token) {
+      return;
+    }
+
+    fetch(`${API_BASE}/api/posts/${post.id}/views/`, {
+      method: "POST",
+      headers: {
+        Authorization: "Token " + token,
+      },
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+
+        return response.json();
+      })
+      .then((data) => {
+        const nextViews = typeof data?.views === "number" ? data.views : (Number(post?.views) || 0) + 1;
+        markPostAsViewed(post.id);
+
+        setSelectedPost((currentPost) => (
+          currentPost?.id === post.id
+            ? { ...currentPost, views: nextViews }
+            : currentPost
+        ));
+
+        setPosts((currentPosts) => currentPosts.map((currentPost) => (
+          currentPost.id === post.id
+            ? { ...currentPost, views: nextViews }
+            : currentPost
+        )));
+      })
+      .catch((error) => {
+        console.error("Failed to increment post views:", error);
+      });
+  };
+
+  const handleClosePostView = () => {
+    setSelectedPost(null);
+  };
+
 
   return (
     <main className="bg-black w-full h-screen overflow-hidden">
@@ -187,37 +263,52 @@ function Home() {
       </nav>
 
       <section className="ml-[20%] flex h-screen w-[80%] overflow-hidden">
-        <article className="flex flex-col h-screen w-2/3 text-white border-zinc-900 border-l border-r overflow-hidden">
-        <header className= "flex w-full h-[8%]  " >
-          <button className= {`text-zinc-400 transition-all duration-200 hover:text-white w-[50%] ${activeButton === "For You" ?"bg-linear-to-r from-zinc-950 to-zinc-900":"bg-black"}`}
-           onClick={() => setActiveButton("For You")}> For You</button>
-          <button className= {`text-zinc-400 transition-all duration-200 hover:text-white  w-[50%] ${activeButton === "Following" ?"bg-linear-to-l from-zinc-950 to-zinc-900":"bg-black "}`}
-           onClick={() => setActiveButton("Following")}>
-            Following
-          </button>
-        </header>
-        <section className="shrink-0 ">
-          <CreatePost
-            profilePicture={profilePicture}
-            onPostCreated={(createdPost) => setPosts((prevPosts) => [createdPost, ...prevPosts])}
-          />
-        </section>
-        <section className="flex-1 overflow-y-auto posts-scrollbar">
-          {isLoadingPosts ? (
-            <div className="text-zinc-500 p-6 text-center">Loading posts...</div>
-          ) : feedError ? (
-            <div className="text-red-400 p-6 text-center">{feedError}</div>
-          ) : filteredPosts.length > 0 ? (
-            filteredPosts.map((post) => <PostCard key={post.id} post={post} />)
-          ) : (
-            <div className="text-zinc-500 p-6 text-center">No posts yet. Be the first to post.</div>
-          )}
-          {activeButton === "bookmarks" && <Bookmarks /> ? (
-            <Bookmarks />
-          ) : null}
-        </section>
+        <article className="flex flex-col h-screen w-[60%] text-white border-zinc-900 border-l border-r overflow-hidden">
+        {selectedPost ? (
+          <section className="flex-1 overflow-y-auto posts-scrollbar">
+            <PostView post={selectedPost} onBack={handleClosePostView} />
+          </section>
+        ) : (
+          <>
+            {!isBookmarksView ? (
+              <header className="flex w-full h-[8%]">
+                <button
+                  className={`text-zinc-400 transition-all duration-200 hover:text-white w-[50%] ${activeButton === "For You" ? "bg-linear-to-r from-zinc-950 to-zinc-900" : "bg-black"}`}
+                  onClick={() => setActiveButton("For You")}
+                >
+                  For You
+                </button>
+                <button
+                  className={`text-zinc-400 transition-all duration-200 hover:text-white w-[50%] ${activeButton === "Following" ? "bg-linear-to-l from-zinc-950 to-zinc-900" : "bg-black "}`}
+                  onClick={() => setActiveButton("Following")}
+                >
+                  Following
+                </button>
+              </header>
+            ) : null}
+            <section className="flex-1 overflow-y-auto posts-scrollbar">
+              {!isBookmarksView ? (
+                <CreatePost
+                  profilePicture={profilePicture}
+                  onPostCreated={(createdPost) => setPosts((prevPosts) => [createdPost, ...prevPosts])}
+                />
+              ) : null}
+              {isLoadingPosts ? (
+                <div className="text-zinc-500 p-6 text-center">Loading posts...</div>
+              ) : feedError ? (
+                <div className="text-red-400 p-6 text-center">{feedError}</div>
+              ) : visiblePosts.length > 0 ? (
+                visiblePosts.map((post) => <PostCard key={post.id} post={post} onClick={handleSelectPost} />)
+              ) : (
+                <div className="text-zinc-500 p-6 text-center">
+                  {isBookmarksView ? "No bookmarked posts yet." : "No posts yet. Be the first to post."}
+                </div>
+              )}
+            </section>
+          </>
+        )}
         </article>
-        <aside className="flex flex-col border  items-center  h-screen w-1/3 text-white border-zinc-800">
+        <aside className="flex flex-col border items-center w-[40%] h-screen text-white border-zinc-800 overflow-y-auto posts-scrollbar">
           <button 
             className=" flex flex-row gap-5 mt-5 justify m-5 items-center w-[90%] h-12 border rounded-4xl ">
             <Search className=" ml-5 w-5 h-5" />
@@ -231,8 +322,8 @@ function Home() {
           <div className="w-[80%] h-[30%] border rounded-lg shadow-lg" ></div>
           <section className="flex w-full mt-5 flex-col" >
             <div className="text-lg w-full border-b-[0.5px] border-zinc-800 p-5 font-bold text-left ">Trending</div>
-            <div></div>
-          </section>
+        
+         </section>
       </aside>
       </section>
     </main>

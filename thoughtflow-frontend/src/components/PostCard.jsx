@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Heart, MessageCircle, Bookmark, Share2, Kanban,Repeat2, Ellipsis } from "lucide-react";
+import PostSettingHover from "../hoverelements/postsettinghover";
 
 const API_BASE = "http://127.0.0.1:8000";
 
@@ -9,7 +10,7 @@ const getCleanToken = () => {
 };
 
 
-function PostCard({ post }) {
+function PostCard({ post, onClick }) {
     const createdAt = post?.created_at ? new Date(post.created_at).toLocaleString() : "";
     const [liked, setLiked] = useState(Boolean(post?.is_liked));
     const [reposted, setReposted] = useState(Boolean(post?.is_reposted));
@@ -39,6 +40,7 @@ function PostCard({ post }) {
     const [likeLoading, setLikeLoading] = useState(false);
     const [bookmarkLoading, setBookmarkLoading] = useState(false);
     const [repostLoading, setRepostLoading] = useState(false);
+    const [showSettingsHover, setShowSettingsHover] = useState(false);
 
     useEffect(() => {
         setLiked(Boolean(post?.is_liked));
@@ -151,8 +153,21 @@ function PostCard({ post }) {
         }
     };
 
+    const handleCardClick = () => {
+        if (typeof onClick === "function") {
+            onClick(post);
+        }
+    };
+
+    const handleStopPropagation = (event) => {
+        event.stopPropagation();
+    };
+
     return (
-        <section className="w-full mt-2 mb-2 h-auto border border-zinc-800">
+        <section
+            className={`w-full m-1 p-2 h-auto transition-all duration-200 roundeed-lg hover:bg-zinc-950 border-t border-b border-zinc-800 ${onClick ? "cursor-pointer" : ""}`}
+            onClick={handleCardClick}
+        >
             <div className="flex flex-row w-full h-auto gap-4 p-3">
                 <div className="flex w-12 h-12 rounded-full overflow-hidden bg-zinc-900">
                     <img
@@ -163,14 +178,29 @@ function PostCard({ post }) {
                     </div>
                     <div className="flex-1">
                     <div className="flex gap-2  items-center">
-                        <a href={`/profile/${post?.username}`} className="font-semibold text-white">
+                        <a href={`/profile/${post?.username}`} className="font-semibold text-white" onClick={handleStopPropagation}>
                             {post?.display_name || post?.username || "User"}
                         </a>
-                        <a href={`/profile/${post?.username}`} className="text-zinc-400 text-sm">@{post?.username || "unknown"}</a>
+                        <a href={`/profile/${post?.username}`} className="text-zinc-400 text-sm" onClick={handleStopPropagation}>@{post?.username || "unknown"}</a>
                         {createdAt && <p className="text-zinc-500 text-xs">{createdAt}</p>}
-                        <button className="ml-auto p-2 mr-3 rounded-full transition-all duration-200 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-300">
-                            <Ellipsis className="w-7 h-7" />
-                        </button>
+                        <div
+                            className="relative ml-auto mr-3"
+                            onMouseEnter={() => setShowSettingsHover(true)}
+                            onMouseLeave={() => setShowSettingsHover(false)}
+                        >
+                            <button
+                                type="button"
+                                className="p-2 rounded-full transition-all duration-500 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-300"
+                                onClick={handleStopPropagation}
+                            >
+                                <Ellipsis className="w-7 h-7" />
+                            </button>
+                            {showSettingsHover ? (
+                                <div className="absolute right-0 top-full mt-2 z-20" onClick={handleStopPropagation}>
+                                    <PostSettingHover />
+                                </div>
+                            ) : null}
+                        </div>
                     </div>
                     <p className="text-zinc-200 mt-1 whitespace-pre-wrap">{post?.content}</p>
                    
@@ -182,20 +212,22 @@ function PostCard({ post }) {
                             <source src={post.video} />
                         </video>
                     )}
-                    
                </div>
                </div>
                <div 
                 className="flex   ml-18 mt-10 border-zinc-800 justify-between gap-5 pr-5  w-[90%] p-3">
                 <div className="flex gap-2 justify-center items-center" >
-                <button className="text-zinc-400 hover:text-zinc-500">
+                <button className="text-zinc-400 hover:text-zinc-500" onClick={handleStopPropagation}>
                     <MessageCircle className="w-5 h-5" />
                 </button>
                 <span className="text-zinc-600" >{commentsCount}</span>
                 </div>
                 <div className="flex gap-2 justify-center items-center" >
                 <button 
-                onClick={toggleRepost}
+                onClick={(event) => {
+                    event.stopPropagation();
+                    toggleRepost();
+                }}
                 disabled={repostLoading}
                 className={`flex gap-2 transition-colors ${reposted ? "text-green-500" : "text-zinc-400 hover:text-zinc-500"}`}>
                     <Repeat2 className={`w-5 h-5 ${reposted ? "fill-current" : ""}`} />
@@ -204,7 +236,10 @@ function PostCard({ post }) {
                 </div>
                 <div className="flex gap-2 justify-center items-center" >
                 <button 
-                onClick={toggleLike}
+                onClick={(event) => {
+                    event.stopPropagation();
+                    toggleLike();
+                }}
                 disabled={likeLoading}
                 className={`flex gap-2 transition-colors ${liked ? "text-red-500  " : "text-zinc-400 hover:text-zinc-500"}`}>
                     <Heart className={`w-5 h-5 ${liked ? "fill-current" : ""}`} />
@@ -219,14 +254,17 @@ function PostCard({ post }) {
                 <div className="flex gap-2 justify-center items-center" >
                 <div className="flex gap-5">
                 <button 
-                onClick={toggleBookmark}
+                onClick={(event) => {
+                    event.stopPropagation();
+                    toggleBookmark();
+                }}
                 disabled={bookmarkLoading}
                 className={`transition-colors ${bookmarked ? "text-blue-500" : "text-zinc-400 hover:text-zinc-500"}`}>
                     <Bookmark className={`w-5 h-5 ${bookmarked ? "fill-current" : ""}`} />
                 </button>
                 <span className="text-zinc-600" >{bookmarksCount}</span>
                 </div>
-                <button className="text-zinc-400  hover:text-zinc-500">
+                <button className="text-zinc-400  hover:text-zinc-500" onClick={handleStopPropagation}>
                     <Share2 className="w-5 h-5" />
                 </button>
                 </div>

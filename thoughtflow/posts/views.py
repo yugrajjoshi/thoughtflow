@@ -136,6 +136,25 @@ def comments_count(request, post_id):
     post.save()
     return response.Response({'message': 'Comments count updated'}, status=status.HTTP_200_OK)
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def increment_views(request, post_id):
+    try:
+        post = Post.objects.get(id=post_id)
+    except Post.DoesNotExist:
+        return response.Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    post.views_counts = post.views_counts + 1
+    post.save(update_fields=['views_counts'])
+
+    return response.Response(
+        {
+            'post_id': post.id,
+            'views': post.views_counts,
+        },
+        status=status.HTTP_200_OK
+    )
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_likes(request, post_id):
