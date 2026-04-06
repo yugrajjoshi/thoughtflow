@@ -37,11 +37,13 @@ const markPostAsViewed = (postId) => {
 function Home() {
   const [loginStatus, setLoginStatus] = useState(() => Boolean(localStorage.getItem("token")));
   const [profilePicture, setProfilePicture] = useState(null);
+  const [currentUsername, setCurrentUsername] = useState("");
   const [posts, setPosts] = useState([]);
   const [activeButton, setActiveButton] = useState("home");
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
   const [feedError, setFeedError] = useState("");
   const [selectedPost, setSelectedPost] = useState(null);
+  const [deletingPostIds, setDeletingPostIds] = useState([]);
 
   const goTo = (path) => {
     window.location.href = path;
@@ -76,6 +78,7 @@ function Home() {
 
       const data = await response.json();
       setProfilePicture(data.profile_image);
+      setCurrentUsername(data.username || "");
     } catch (error) {
       console.error("Failed to fetch user profile:", error);
     }
@@ -212,6 +215,44 @@ function Home() {
     setSelectedPost(null);
   };
 
+  const handleDeletePost = async (postId) => {
+    if (!postId) {
+      return;
+    }
+
+    const token = getCleanToken();
+    if (!token) {
+      return;
+    }
+
+    const shouldDelete = window.confirm("Delete this post? This action cannot be undone.");
+    if (!shouldDelete) {
+      return;
+    }
+
+    try {
+      setDeletingPostIds((current) => (current.includes(postId) ? current : [...current, postId]));
+
+      const response = await fetch(`${API_BASE}/api/posts/${postId}/`, {
+        method: "DELETE",
+        headers: {
+          Authorization: "Token " + token,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Delete request failed with status ${response.status}`);
+      }
+
+      setPosts((currentPosts) => currentPosts.filter((post) => post.id !== postId));
+      setSelectedPost((currentPost) => (currentPost?.id === postId ? null : currentPost));
+    } catch (error) {
+      console.error("Failed to delete post:", error);
+    } finally {
+      setDeletingPostIds((current) => current.filter((id) => id !== postId));
+    }
+  };
+
 
   return (
     <main className="bg-black w-full h-screen overflow-hidden">
@@ -266,7 +307,13 @@ function Home() {
         <article className="flex flex-col h-screen w-[60%] text-white border-zinc-900 border-l border-r overflow-hidden">
         {selectedPost ? (
           <section className="flex-1 overflow-y-auto posts-scrollbar">
-            <PostView post={selectedPost} onBack={handleClosePostView} />
+            <PostView
+              post={selectedPost}
+              onBack={handleClosePostView}
+              currentUsername={currentUsername}
+              onDeletePost={handleDeletePost}
+              isDeletingPost={deletingPostIds.includes(selectedPost?.id)}
+            />
           </section>
         ) : (
           <>
@@ -298,7 +345,16 @@ function Home() {
               ) : feedError ? (
                 <div className="text-red-400 p-6 text-center">{feedError}</div>
               ) : visiblePosts.length > 0 ? (
-                visiblePosts.map((post) => <PostCard key={post.id} post={post} onClick={handleSelectPost} />)
+                visiblePosts.map((post) => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    onClick={handleSelectPost}
+                    currentUsername={currentUsername}
+                    onDeletePost={handleDeletePost}
+                    isDeletingPost={deletingPostIds.includes(post.id)}
+                  />
+                ))
               ) : (
                 <div className="text-zinc-500 p-6 text-center">
                   {isBookmarksView ? "No bookmarked posts yet." : "No posts yet. Be the first to post."}

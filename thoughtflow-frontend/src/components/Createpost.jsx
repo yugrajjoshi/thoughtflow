@@ -1,9 +1,10 @@
-import React, { useRef, useState } from "react";
-import { ImagePlus } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { ImagePlus, X } from "lucide-react";
 
 function CreatePost({ profilePicture, onPostCreated }) {
   const [postText, setPostText] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -12,12 +13,29 @@ function CreatePost({ profilePicture, onPostCreated }) {
     setSelectedFile(file);
   };
 
+  useEffect(() => {
+    if (!selectedFile) {
+      setPreviewUrl("");
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(selectedFile);
+    setPreviewUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [selectedFile]);
+
+  const removeSelectedFile = () => {
+    setSelectedFile(null);
+    setPreviewUrl("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const resetForm = () => {
     setPostText("");
-    setSelectedFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    removeSelectedFile();
   };
 
   const handleSubmit = async (event) => {
@@ -84,6 +102,33 @@ function CreatePost({ profilePicture, onPostCreated }) {
                   className="bg-black w-full h-auto text-zinc-300 placeholder:text-2xl placeholder:text-zinc-500 focus:outline-none"
                 />
               </div>
+
+              {selectedFile && previewUrl && (
+                <div className="mt-3 relative rounded-xl overflow-hidden border border-zinc-800">
+                  {selectedFile.type.startsWith("video/") ? (
+                    <video
+                      src={previewUrl}
+                      controls
+                      className="w-full max-h-96 object-cover bg-black"
+                    />
+                  ) : (
+                    <img
+                      src={previewUrl}
+                      alt="Selected preview"
+                      className="w-full max-h-96 object-cover"
+                    />
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={removeSelectedFile}
+                    className="absolute top-2 right-2 p-1 rounded-full bg-black/60 hover:bg-black/80"
+                  >
+                    <X className="w-4 h-4 text-white" />
+                  </button>
+                </div>
+              )}
+
               <div className="flex flex-row gap-4 border-t pt-2 border-zinc-900 w-full h-auto mt-2 justify-between items-center">
                 <button
                   type="button"
@@ -92,6 +137,7 @@ function CreatePost({ profilePicture, onPostCreated }) {
                 >
                   <ImagePlus className="w-5 h-5" />
                 </button>
+
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -99,7 +145,9 @@ function CreatePost({ profilePicture, onPostCreated }) {
                   className="hidden"
                   onChange={handleFileChange}
                 />
+
                 {selectedFile && <span className="text-xs text-zinc-400">{selectedFile.name}</span>}
+
                 <button
                   type="submit"
                   disabled={isSubmitting || !postText.trim()}

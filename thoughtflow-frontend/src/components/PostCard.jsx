@@ -10,7 +10,7 @@ const getCleanToken = () => {
 };
 
 
-function PostCard({ post, onClick }) {
+function PostCard({ post, onClick, currentUsername, onDeletePost, isDeletingPost = false }) {
     const createdAt = post?.created_at ? new Date(post.created_at).toLocaleString() : "";
     const [liked, setLiked] = useState(Boolean(post?.is_liked));
     const [reposted, setReposted] = useState(Boolean(post?.is_reposted));
@@ -163,6 +163,15 @@ function PostCard({ post, onClick }) {
         event.stopPropagation();
     };
 
+    const canDeletePost = Boolean(currentUsername) && currentUsername === post?.username;
+
+    const handleDeletePost = (event) => {
+        event.stopPropagation();
+        if (typeof onDeletePost === "function" && post?.id) {
+            onDeletePost(post.id);
+        }
+    };
+
     return (
         <section
             className={`w-full m-1 p-2 h-auto transition-all duration-200 roundeed-lg hover:bg-zinc-950 border-t border-b border-zinc-800 ${onClick ? "cursor-pointer" : ""}`}
@@ -183,7 +192,7 @@ function PostCard({ post, onClick }) {
                         </a>
                         <a href={`/profile/${post?.username}`} className="text-zinc-400 text-sm" onClick={handleStopPropagation}>@{post?.username || "unknown"}</a>
                         {createdAt && <p className="text-zinc-500 text-xs">{createdAt}</p>}
-                        <div
+                        <div    
                             className="relative ml-auto mr-3"
                             onMouseEnter={() => setShowSettingsHover(true)}
                             onMouseLeave={() => setShowSettingsHover(false)}
@@ -197,7 +206,11 @@ function PostCard({ post, onClick }) {
                             </button>
                             {showSettingsHover ? (
                                 <div className="absolute right-0 top-full mt-2 z-20" onClick={handleStopPropagation}>
-                                    <PostSettingHover />
+                                    <PostSettingHover
+                                        canDelete={canDeletePost}
+                                        onDelete={handleDeletePost}
+                                        isDeleting={isDeletingPost}
+                                    />
                                 </div>
                             ) : null}
                         </div>

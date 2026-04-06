@@ -2,7 +2,7 @@ import React from "react";
 import { ArrowLeft, MessageCircle } from "lucide-react";
 import PostCard from "./PostCard";
 
-function PostView({ post, onBack }) {
+function PostView({ post, onBack, currentUsername, onDeletePost, isDeletingPost }) {
 	const commentText = typeof post?.comments === "string" ? post.comments.trim() : "";
     const createdAt = post?.created_at ? new Date(post.created_at).toLocaleString() : "";
 
@@ -21,7 +21,13 @@ function PostView({ post, onBack }) {
 				</div>
 			</div>
 
-			<PostCard post={post} className="w-full " />
+			<PostCard
+				post={post}
+				className="w-full "
+				currentUsername={currentUsername}
+				onDeletePost={onDeletePost}
+				isDeletingPost={isDeletingPost}
+			/>
               {createdAt && <h3 className="text-zinc-400 font-semibold text-md ml-2 -m-3 ">{createdAt}</h3>} 
 			<section className="flex flex-col gap-3 border-t border-zinc-800 pt-4">
 				<div className="flex items-center gap-2 text-zinc-300">

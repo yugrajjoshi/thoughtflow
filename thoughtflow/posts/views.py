@@ -24,6 +24,21 @@ def get_posts(request):
 
         return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_post(request, post_id):
+    try:
+        post = Post.objects.get(id=post_id)
+    except Post.DoesNotExist:
+        return response.Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if post.user_id != request.user.id:
+        return response.Response({'error': 'You can only delete your own posts'}, status=status.HTTP_403_FORBIDDEN)
+
+    post.delete()
+    return response.Response(status=status.HTTP_204_NO_CONTENT)
+
 #counts and interactions
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
