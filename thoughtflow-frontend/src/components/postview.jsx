@@ -1,6 +1,8 @@
 import React from "react";
 import { ArrowLeft, MessageCircle } from "lucide-react";
 import PostCard from "./PostCard";
+import CommentView from "./commentViews";
+import CommentCard from "./commentcard";
 
 function PostView({ post, onBack, currentUsername, onDeletePost, isDeletingPost }) {
 	const commentText = typeof post?.comments === "string" ? post.comments.trim() : "";
@@ -44,6 +46,7 @@ function PostView({ post, onBack, currentUsername, onDeletePost, isDeletingPost 
 						No comments available yet.
 					</div>
 				)}
+              <CommentCard comment={post.comments} />
 			</section>
 		</main>
 	);

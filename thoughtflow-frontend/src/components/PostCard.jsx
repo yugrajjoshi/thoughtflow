@@ -174,7 +174,7 @@ function PostCard({ post, onClick, currentUsername, onDeletePost, isDeletingPost
 
     return (
         <section
-            className={`w-full m-1 p-2 h-auto transition-all duration-200 roundeed-lg hover:bg-zinc-950 border-t border-b border-zinc-800 ${onClick ? "cursor-pointer" : ""}`}
+            className={`w-full mt-1 p-2 h-auto transition-all duration-200 roundeed-lg hover:bg-zinc-950 border-t border-l border-r border-b border-zinc-800 ${onClick ? "cursor-pointer" : ""}`}
             onClick={handleCardClick}
         >
             <div className="flex flex-row w-full h-auto gap-4 p-3">
