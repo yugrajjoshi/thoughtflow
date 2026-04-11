@@ -311,6 +311,7 @@ function Home() {
               post={selectedPost}
               onBack={handleClosePostView}
               currentUsername={currentUsername}
+              currentUserProfilePicture={profilePicture}
               onDeletePost={handleDeletePost}
               isDeletingPost={deletingPostIds.includes(selectedPost?.id)}
             />

@@ -1,6 +1,6 @@
 import React from "react";
 import { useState, useEffect } from "react";
-import {PostCard} from "./PostCard";
+import PostCard from "./PostCard";
 import CommentCard from "./commentcard";
 
 function CommentView({ postId }) {

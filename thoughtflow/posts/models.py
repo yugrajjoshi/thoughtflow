@@ -12,7 +12,6 @@ class Post(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     likes = models.ManyToManyField(User, related_name='liked_posts', blank=True)
-    comments = models.TextField(max_length=200, blank=True)
     bookmarks = models.ManyToManyField(User, related_name='bookmarked_posts', blank=True)
     reposts = models.ManyToManyField('self', symmetrical=False, related_name='reposted_by', blank=True)
     views_counts = models.PositiveIntegerField(default=0)
@@ -21,6 +20,21 @@ class Post(models.Model):
     reposts_count = models.PositiveIntegerField(default=0)
     bookmarks_count = models.PositiveIntegerField(default=0)
 
-
     def __str__(self):
         return f"{self.user.username} - {self.created_at}"
+
+
+class Comment(models.Model):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments_set')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    image = models.ImageField(upload_to='comments/', null=True, blank=True)
+    video = models.FileField(upload_to='comments/videos/', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.content[:50]}"

@@ -1,5 +1,42 @@
 from rest_framework import serializers
-from .models import Post
+from .models import Post, Comment
+
+class CommentSerializer(serializers.ModelSerializer):
+    author_name = serializers.CharField(source='user.username', read_only=True)
+    author_id = serializers.CharField(source='user.id', read_only=True)
+    profile_image = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
+    video_url = serializers.SerializerMethodField()
+
+    def get_profile_image(self, obj):
+        profile = getattr(obj.user, 'profile', None)
+        if profile and profile.profile_image:
+            request = self.context.get('request')
+            if request is not None:
+                return request.build_absolute_uri(profile.profile_image.url)
+            return profile.profile_image.url
+        return None
+
+    def get_image_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request is not None:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
+
+    def get_video_url(self, obj):
+        if obj.video:
+            request = self.context.get('request')
+            if request is not None:
+                return request.build_absolute_uri(obj.video.url)
+            return obj.video.url
+        return None
+
+    class Meta:
+        model = Comment
+        fields = ['id', 'author_name', 'author_id', 'profile_image', 'content', 'image_url', 'video_url', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'author_name', 'author_id', 'profile_image', 'image_url', 'video_url', 'created_at', 'updated_at']
 
 class PostSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
@@ -9,6 +46,7 @@ class PostSerializer(serializers.ModelSerializer):
     is_liked = serializers.SerializerMethodField()
     is_bookmarked = serializers.SerializerMethodField()
     is_reposted = serializers.SerializerMethodField()
+    comments = CommentSerializer(source='comments_set', many=True, read_only=True)
 
     def get_is_liked(self, obj):
         request = self.context.get('request')
@@ -73,7 +111,3 @@ class PostSerializer(serializers.ModelSerializer):
             'is_reposted',
         ]
         read_only_fields = ['id', 'user', 'username', 'display_name', 'profile_image', 'created_at']
-
-
-# Backward-compatible alias for earlier typo usage.
-PostSerializer = PostSerializer

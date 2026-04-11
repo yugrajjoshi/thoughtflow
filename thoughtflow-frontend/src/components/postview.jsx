@@ -1,12 +1,47 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { ArrowLeft, MessageCircle } from "lucide-react";
 import PostCard from "./PostCard";
 import CommentView from "./commentViews";
 import CommentCard from "./commentcard";
+import CreateCommentCard from "./CreateCommentCard";
 
-function PostView({ post, onBack, currentUsername, onDeletePost, isDeletingPost }) {
-	const commentText = typeof post?.comments === "string" ? post.comments.trim() : "";
-    const createdAt = post?.created_at ? new Date(post.created_at).toLocaleString() : "";
+const API_BASE = "http://127.0.0.1:8000";
+
+const getCleanToken = () => {
+    const rawToken = localStorage.getItem("token");
+    return rawToken ? rawToken.replace(/^"|"$/g, "").trim() : "";
+};
+
+function PostView({ post, onBack, currentUsername, currentUserProfilePicture, onDeletePost, isDeletingPost }) {
+	const [comments, setComments] = useState(post?.comments || []);
+	const [postData, setPostData] = useState(post);
+	const createdAt = post?.created_at ? new Date(post.created_at).toLocaleString() : "";
+
+	useEffect(() => {
+		setPostData(post);
+		setComments(post?.comments || []);
+	}, [post]);
+
+	const handleCommentCreated = async (result) => {
+		if (result?.comment) {
+			setComments([result.comment, ...comments]);
+		}
+		// Refresh post data to get updated comments_count
+		if (result?.comments_count !== undefined) {
+			setPostData(prev => ({
+				...prev,
+				comments_count: result.comments_count
+			}));
+		}
+	};
+
+	const handleCommentDeleted = (deletedCommentId) => {
+		setComments(comments.filter(c => c.id !== deletedCommentId));
+		setPostData(prev => ({
+			...prev,
+			comments_count: Math.max(0, (prev.comments_count || 0) - 1)
+		}));
+	};
 
 	return (
 		<main className="w-full h-full flex flex-col gap-4 p-4 text-white">
@@ -24,29 +59,46 @@ function PostView({ post, onBack, currentUsername, onDeletePost, isDeletingPost 
 			</div>
 
 			<PostCard
-				post={post}
+				post={postData}
 				className="w-full "
 				currentUsername={currentUsername}
 				onDeletePost={onDeletePost}
 				isDeletingPost={isDeletingPost}
 			/>
-              {createdAt && <h3 className="text-zinc-400 font-semibold text-md ml-2 -m-3 ">{createdAt}</h3>} 
+              {createdAt && <h3 className="text-zinc-400 font-semibold text-md ml-2 -m-3 ">{createdAt}</h3>}
+
+			<CreateCommentCard 
+				postId={post?.id}
+				profilePicture={currentUserProfilePicture}
+				postOwnerUsername={post?.username}
+				currentUsername={currentUsername}
+				onCommentCreated={handleCommentCreated}
+			/>
+			
 			<section className="flex flex-col gap-3 border-t border-zinc-800 pt-4">
 				<div className="flex items-center gap-2 text-zinc-300">
 					<MessageCircle className="w-5 h-5" />
-					<h3 className="text-base font-semibold">Comments</h3>
+					<h3 className="text-base font-semibold">Replies ({comments.length})</h3>
 				</div>
 
-				{commentText ? (
-					<div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4 text-zinc-200">
-						{commentText}
+				{comments && comments.length > 0 ? (
+					<div className="flex flex-col gap-3">
+						{comments.map((comment) => (
+							<CommentCard 
+								key={comment.id} 
+								comment={comment} 
+								postOwnerUsername={post?.username}
+								currentUsername={currentUsername}
+								postId={post?.id}
+								onCommentDeleted={handleCommentDeleted}
+							/>
+						))}
 					</div>
 				) : (
-					<div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-950 p-4 text-zinc-500">
-						No comments available yet.
+					<div className="rounded-lg border border-dashed border-zinc-800 bg-zinc-950 p-4 text-zinc-500">
+						No replies yet. Be the first to reply!
 					</div>
 				)}
-              <CommentCard comment={post.comments} />
 			</section>
 		</main>
 	);

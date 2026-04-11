@@ -229,7 +229,7 @@ function PostCard({ post, onClick, currentUsername, onDeletePost, isDeletingPost
                </div>
                <div 
                 className="flex   ml-18 mt-10 border-zinc-800 justify-between gap-5 pr-5  w-[90%] p-3">
-                <div className="flex gap-2 justify-center items-center" >
+               <div className="flex gap-2 justify-center items-center" >
                 <button className="text-zinc-400 hover:text-zinc-500" onClick={handleStopPropagation}>
                     <MessageCircle className="w-5 h-5" />
                 </button>
