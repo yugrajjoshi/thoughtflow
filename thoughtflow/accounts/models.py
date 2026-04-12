@@ -28,3 +28,5 @@ class Media(models.Model):
 
     def __str__(self):
         return f'Media for {self.profile.user.username}'
+
+# class Follow(models.Model):
