@@ -156,3 +156,7 @@ def unfollow_user(request, username):
         'following_count': my_profile.following.count(),
 
     }, status=status.HTTP_200_OK)
+@api_view
+@permission_classes([IsAuthenticated])
+def followers(request,username):
+    target_folllowing_list = get 
