@@ -3,6 +3,7 @@ import { House, UserRound, Search, Mail, LogOut,Bookmark } from "lucide-react";
 import CreatePost from "../components/Createpost";
 import PostCard from '../components/PostCard';
 import PostView from "../components/postview";
+import MassangerSection from '../components/massangersection';
 
 const API_BASE = "http://127.0.0.1:8000";
 
@@ -38,12 +39,15 @@ function Home() {
   const [loginStatus, setLoginStatus] = useState(() => Boolean(localStorage.getItem("token")));
   const [profilePicture, setProfilePicture] = useState(null);
   const [currentUsername, setCurrentUsername] = useState("");
+  const [followingIds, setFollowingIds] = useState([]);
   const [posts, setPosts] = useState([]);
   const [activeButton, setActiveButton] = useState("home");
+  const [feedTab, setFeedTab] = useState("For You");
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
   const [feedError, setFeedError] = useState("");
   const [selectedPost, setSelectedPost] = useState(null);
   const [deletingPostIds, setDeletingPostIds] = useState([]);
+  const [massangerOpen, setMassangerOpen] = useState(false);
 
   const goTo = (path) => {
     window.location.href = path;
@@ -79,6 +83,7 @@ function Home() {
       const data = await response.json();
       setProfilePicture(data.profile_image);
       setCurrentUsername(data.username || "");
+      setFollowingIds(Array.isArray(data.following) ? data.following.map(String) : []);
     } catch (error) {
       console.error("Failed to fetch user profile:", error);
     }
@@ -145,21 +150,53 @@ function Home() {
     goTo("/");
   }
 
-  useEffect(() => {
-    setActiveButton("For You");
-  }, []);
-
   const [searchQuery, setSearchQuery] = useState("");
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
 
   const filteredPosts = posts.filter((post) => {
     const content = typeof post?.content === "string" ? post.content : "";
-    return content.toLowerCase().includes(searchQuery.toLowerCase());
+    const username = typeof post?.username === "string" ? post.username : "";
+    const displayName = typeof post?.display_name === "string" ? post.display_name : "";
+    const query = normalizedSearchQuery;
+
+    return (
+      content.toLowerCase().includes(query) ||
+      username.toLowerCase().includes(query) ||
+      displayName.toLowerCase().includes(query)
+    );
   });
 
+  const matchingPeople = Array.from(
+    posts.reduce((peopleMap, post) => {
+      const username = typeof post?.username === "string" ? post.username.trim() : "";
+      if (!username || peopleMap.has(username.toLowerCase())) {
+        return peopleMap;
+      }
+
+      const displayName = typeof post?.display_name === "string" ? post.display_name.trim() : "";
+      const profileImage = typeof post?.profile_image === "string" ? post.profile_image : "";
+      const matchesSearch = !normalizedSearchQuery || [username, displayName].some((value) => value.toLowerCase().includes(normalizedSearchQuery));
+
+      if (matchesSearch) {
+        peopleMap.set(username.toLowerCase(), {
+          username,
+          displayName,
+          profileImage,
+        });
+      }
+
+      return peopleMap;
+    }, new Map()).values()
+  );
+
+  const isFollowingView = feedTab === "Following";
   const isBookmarksView = activeButton === "bookmarks";
+  const isMassangerView = activeButton === "chats";
   const visiblePosts = isBookmarksView
     ? filteredPosts.filter((post) => Boolean(post?.is_bookmarked))
-    : filteredPosts;
+    : isFollowingView
+      ? filteredPosts.filter((post) => followingIds.includes(String(post?.user)))
+      : filteredPosts;
 
   const handleSelectPost = (post) => {
     setSelectedPost(post);
@@ -288,7 +325,10 @@ function Home() {
            </button>
            <button
              className={`text-white gap-6 text-2xl font-bold p-3 transition duration-300 ml-6 w-[70%] ${activeButton === "chats" ? "bg-zinc-800/30 " : "hover:bg-zinc-800/30 "} rounded-4xl flex items-center`}
-             onClick={() => handleButtonClick("chats")}
+             onClick={() => {
+               setSelectedPost(null);
+               handleButtonClick("chats");
+             }}
            >
              <Mail className="w-9 h-9" />Chats
            </button>
@@ -305,7 +345,9 @@ function Home() {
 
       <section className="ml-[20%] flex h-screen w-[80%] overflow-hidden">
         <article className="flex flex-col h-screen w-[60%] text-white border-zinc-900 border-l border-r overflow-hidden">
-        {selectedPost ? (
+        {isMassangerView ? (
+          <MassangerSection />
+        ) : selectedPost ? (
           <section className="flex-1 overflow-y-auto posts-scrollbar">
             <PostView
               post={selectedPost}
@@ -321,14 +363,14 @@ function Home() {
             {!isBookmarksView ? (
               <header className="flex w-full h-[8%]">
                 <button
-                  className={`text-zinc-400 transition-all duration-200 hover:text-white w-[50%] ${activeButton === "For You" ? "bg-linear-to-r from-zinc-950 to-zinc-900" : "bg-black"}`}
-                  onClick={() => setActiveButton("For You")}
+                  className={`text-zinc-400 transition-all duration-200 hover:text-white w-[50%] ${feedTab === "For You" ? "bg-linear-to-r from-zinc-950 to-zinc-900" : "bg-black"}`}
+                  onClick={() => setFeedTab("For You")}
                 >
                   For You
                 </button>
                 <button
-                  className={`text-zinc-400 transition-all duration-200 hover:text-white w-[50%] ${activeButton === "Following" ? "bg-linear-to-l from-zinc-950 to-zinc-900" : "bg-black "}`}
-                  onClick={() => setActiveButton("Following")}
+                  className={`text-zinc-400 transition-all duration-200 hover:text-white w-[50%] ${feedTab === "Following" ? "bg-linear-to-l from-zinc-950 to-zinc-900" : "bg-black "}`}
+                  onClick={() => setFeedTab("Following")}
                 >
                   Following
                 </button>
@@ -367,6 +409,7 @@ function Home() {
         </article>
         <aside className="flex flex-col border items-center w-[40%] h-screen text-white border-zinc-800 overflow-y-auto posts-scrollbar">
           <button 
+            type="button"
             className=" flex flex-row gap-5 mt-5 justify m-5 items-center w-[90%] h-12 border rounded-4xl ">
             <Search className=" ml-5 w-5 h-5" />
             <input
@@ -376,7 +419,44 @@ function Home() {
               onChange={(e)=> setSearchQuery(e.target.value)}
             />
           </button>
-          <div className="w-[80%] h-[30%] border rounded-lg shadow-lg" ></div>
+          {normalizedSearchQuery ? (
+            <section className="w-[90%] rounded-2xl border border-zinc-800 bg-zinc-950/80 shadow-lg overflow-hidden mx-5">
+              <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-white">People</h3>
+                <span className="text-xs text-zinc-500">{matchingPeople.length}</span>
+              </div>
+              <div className="max-h-72 overflow-y-auto">
+                {matchingPeople.length > 0 ? (
+                  matchingPeople.map((person) => (
+                    <button
+                      key={person.username}
+                      type="button"
+                      onClick={() => goTo(`/profile/${person.username}`)}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left border-b border-zinc-900/70 hover:bg-zinc-900/80 transition"
+                    >
+                      <div className="w-11 h-11 rounded-full overflow-hidden bg-zinc-800 shrink-0">
+                        {person.profileImage ? (
+                          <img
+                            src={person.profileImage.startsWith("http") ? person.profileImage : `${API_BASE}${person.profileImage}`}
+                            alt={person.username}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : null}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-white font-medium truncate">
+                          {person.displayName || person.username}
+                        </p>
+                        <p className="text-sm text-zinc-500 truncate">@{person.username}</p>
+                      </div>
+                    </button>
+                  ))
+                ) : (
+                  <p className="px-4 py-6 text-sm text-zinc-500">No people match that username.</p>
+                )}
+              </div>
+            </section>
+          ) : null}
           <section className="flex w-full mt-5 flex-col" >
             <div className="text-lg w-full border-b-[0.5px] border-zinc-800 p-5 font-bold text-left ">Trending</div>
         

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import PostCard from "./PostCard";
 import logo from "../assets/logo.svg";
+import FollowingList from "./followinglist";
 
 const API_BASE = "http://127.0.0.1:8000";
 
@@ -33,11 +34,6 @@ const formatDate = (value) => {
     return date.toLocaleDateString();
 };
 
-const makeCountArray = (count) => {
-    const safeCount = Number.isFinite(Number(count)) ? Math.max(0, Number(count)) : 0;
-    return Array.from({ length: safeCount }, (_, index) => index);
-};
-
 export default function ProfileView() {
     const { username } = useParams();
 
@@ -49,6 +45,10 @@ export default function ProfileView() {
     const [following, setFollowing] = useState(false);
     const [currentUsername, setCurrentUsername] = useState("");
     const [ isFollowLoading, setIsFollowLoading] = useState(false);
+    const [relationshipTab, setRelationshipTab] = useState(null);
+    const [followingPeople, setFollowingPeople] = useState([]);
+    const [followersPeople, setFollowersPeople] = useState([]);
+    const [relationshipLoading, setRelationshipLoading] = useState(false);
 
     const applyProfileData = (data) => {
         setUserData(data);
@@ -84,6 +84,43 @@ export default function ProfileView() {
         }
     };
 
+    const loadRelationshipLists = async (targetUsername) => {
+        const token = getCleanToken();
+        if (!token || !targetUsername) return;
+
+        setRelationshipLoading(true);
+        try {
+            const [followingResponse, followersResponse] = await Promise.all([
+                fetch(`${API_BASE}/api/profile/${targetUsername}/following/`, {
+                    headers: {
+                        Authorization: "Token " + token,
+                    },
+                }),
+                fetch(`${API_BASE}/api/profile/${targetUsername}/followers/`, {
+                    headers: {
+                        Authorization: "Token " + token,
+                    },
+                }),
+            ]);
+
+            if (!followingResponse.ok || !followersResponse.ok) {
+                throw new Error("Failed to load relationship lists");
+            }
+
+            const followingData = await followingResponse.json();
+            const followersData = await followersResponse.json();
+
+            setFollowingPeople(followingData.results || []);
+            setFollowersPeople(followersData.results || []);
+        } catch (error) {
+            console.error("Failed to fetch relationship lists:", error);
+            setFollowingPeople([]);
+            setFollowersPeople([]);
+        } finally {
+            setRelationshipLoading(false);
+        }
+    };
+
     const loadVisitedProfile = async () => {
         const token = getCleanToken();
         if (!token || !username) return;
@@ -104,9 +141,14 @@ export default function ProfileView() {
             applyProfileData(data);
             setFollowing(Boolean(data.is_following));
             await loadUserPosts(data.username);
+            await loadRelationshipLists(data.username);
         } catch (error) {
             console.error("Failed to fetch visited user profile:", error);
         }
+    };
+
+    const toggleRelationshipTab = (tabName) => {
+        setRelationshipTab((currentTab) => (currentTab === tabName ? null : tabName));
     };
  
     // Placeholder follow/unfollow logic
@@ -137,13 +179,7 @@ export default function ProfileView() {
 
         const data = await response.json();
         setFollowing(Boolean(data.followed));
-        setUserData((prev) => {
-            if (!prev) return prev;
-            return {
-                ...prev,
-                followers: makeCountArray(data.followers_count),
-            };
-        });
+        await loadVisitedProfile();
     } catch (error) {
         console.error("Failed to update follow state:", error);
     } finally {
@@ -300,10 +336,38 @@ export default function ProfileView() {
                                     </h3>
                                     <h3 className="text-zinc-500 pt-10"><Balloon className="w-5 h-5 inline mr-2" />Born on :{formatDate(userData?.dob)}</h3>
                                 </div>
-                                 <div className=" p-1  gap-20 flex pt-2 " >
-                                    <a href="#" className="text-zinc-400 font-bold " >Following {userData?.following?.length ?? 0}</a>
-                                    <a href="#" className="text-zinc-400 font-bold " > Folowers {userData?.followers?.length ?? 0}</a>
+                                <div className="p-1 gap-4 flex pt-2 flex-wrap">
+                                    <button
+                                        type="button"
+                                        onClick={() => toggleRelationshipTab("following")}
+                                        className={`text-zinc-400 font-bold px-4 py-2 rounded-full border transition ${relationshipTab === "following" ? "border-zinc-500 bg-zinc-800/60" : "border-zinc-800 hover:border-zinc-600"}`}
+                                    >
+                                        Following {userData?.following?.length ?? 0}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => toggleRelationshipTab("followers")}
+                                        className={`text-zinc-400 font-bold px-4 py-2 rounded-full border transition ${relationshipTab === "followers" ? "border-zinc-500 bg-zinc-800/60" : "border-zinc-800 hover:border-zinc-600"}`}
+                                    >
+                                        Followers {userData?.followers?.length ?? 0}
+                                    </button>
                                 </div>
+                                {relationshipTab ? (
+                                    <div className="pt-4">
+                                        {relationshipLoading ? (
+                                            <p className="text-sm text-zinc-500">Loading people list...</p>
+                                        ) : (
+                                            <FollowingList
+                                                title={relationshipTab === "following" ? "Following" : "Followers"}
+                                                people={relationshipTab === "following" ? followingPeople : followersPeople}
+                                                emptyMessage={relationshipTab === "following" ? `${userData?.name || userData?.username} is not following anyone yet.` : "No followers yet."}
+                                                onPersonClick={(personUsername) => {
+                                                    window.location.href = `/profile/${personUsername}`;
+                                                }}
+                                            />
+                                        )}
+                                    </div>
+                                ) : null}
                             </div>
                         </section>
                     </section>

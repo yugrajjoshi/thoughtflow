@@ -37,3 +37,20 @@ class ProfileSerializer(serializers.ModelSerializer):
             'following',
         ]
         read_only_fields = ['created_at']
+
+
+class ProfileSummarySerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+    is_following = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Profile
+        fields = ['username', 'name', 'bio', 'profile_image', 'banner_image', 'is_following']
+
+    def get_is_following(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+
+        my_profile, _ = Profile.objects.get_or_create(user=request.user)
+        return my_profile.following.filter(id=obj.id).exists()

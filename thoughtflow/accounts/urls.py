@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import profile_info, profile_by_username, register_user, login_user, update_profile,follow_user, unfollow_user
+from .views import profile_info, profile_by_username, register_user, login_user, update_profile,follow_user, unfollow_user, followers, following
 from .views import get_user, get_Profile
 urlpatterns = [
     path('register/', register_user),
@@ -11,5 +11,7 @@ urlpatterns = [
     path('profile/<str:username>/', profile_by_username),
     path('profile/follow/<str:username>/', follow_user),
     path('profile/unfollow/<str:username>/', unfollow_user),
+    path('profile/<str:username>/followers/', followers),
+    path('profile/<str:username>/following/', following),
 
 ]

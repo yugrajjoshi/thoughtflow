@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import ProfileEditCard from "../components/profileeditcard";
 import PostCard from "../components/PostCard";
 import RepostedPost from "../components/repostedpost";
+import FollowingList from "../components/followinglist";
 
 // Backend API root used for profile and posts requests.
 const API_BASE = "http://127.0.0.1:8000";
@@ -36,6 +37,10 @@ function Profile() {
     const [userData, setUserData] = useState(null);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [userPosts, setUserPosts] = useState([]);
+    const [relationshipTab, setRelationshipTab] = useState(null);
+    const [followingPeople, setFollowingPeople] = useState([]);
+    const [followersPeople, setFollowersPeople] = useState([]);
+    const [relationshipLoading, setRelationshipLoading] = useState(false);
 
 
     // Normalizes profile payload into local UI state.
@@ -70,6 +75,7 @@ function Profile() {
             const data = await response.json();
             applyProfileData(data);
             await loadUserPosts(data.username);
+            await loadRelationshipLists(data.username);
         } catch (error) {
             console.error("Failed to fetch user profile:", error);
         }
@@ -97,6 +103,43 @@ function Profile() {
             setUserPosts(onlyUserPosts);
         } catch (error) {
             console.error("Failed to fetch user posts:", error);
+        }
+    };
+
+    const loadRelationshipLists = async (username) => {
+        const token = getCleanToken();
+        if (!token || !username) return;
+
+        setRelationshipLoading(true);
+        try {
+            const [followingResponse, followersResponse] = await Promise.all([
+                fetch(`${API_BASE}/api/profile/${username}/following/`, {
+                    headers: {
+                        Authorization: "Token " + token,
+                    },
+                }),
+                fetch(`${API_BASE}/api/profile/${username}/followers/`, {
+                    headers: {
+                        Authorization: "Token " + token,
+                    },
+                }),
+            ]);
+
+            if (!followingResponse.ok || !followersResponse.ok) {
+                throw new Error("Failed to load relationship lists");
+            }
+
+            const followingData = await followingResponse.json();
+            const followersData = await followersResponse.json();
+
+            setFollowingPeople(followingData.results || []);
+            setFollowersPeople(followersData.results || []);
+        } catch (error) {
+            console.error("Failed to fetch relationship lists:", error);
+            setFollowingPeople([]);
+            setFollowersPeople([]);
+        } finally {
+            setRelationshipLoading(false);
         }
     };
 
@@ -135,6 +178,11 @@ function Profile() {
     const handleProfileUpdated = (data) => {
         applyProfileData(data);
         loadUserPosts(data.username);
+        loadRelationshipLists(data.username);
+    };
+
+    const toggleRelationshipTab = (tabName) => {
+        setRelationshipTab((currentTab) => (currentTab === tabName ? null : tabName));
     };
 
     return (
@@ -233,10 +281,38 @@ function Profile() {
                                     </h3>
                                     <h3 className="text-zinc-500 pt-10 "><Balloon className="w-5 h-5 inline mr-2" />Born on :{formatDate(userData?.dob)} </h3>
                                 </div>
-                                <div className=" p-1  gap-20 flex pt-2 " >
-                                    <a href="#" className="text-zinc-400 font-bold " >Following {userData?.following.length}</a>
-                                    <a href="#" className="text-zinc-400 font-bold " > Folowers {userData?.followers.length}</a>
+                                <div className="p-1 gap-4 flex pt-2 flex-wrap">
+                                    <button
+                                        type="button"
+                                        onClick={() => toggleRelationshipTab("following")}
+                                        className={`text-zinc-400 font-bold px-4 py-2 rounded-full border transition ${relationshipTab === "following" ? "border-zinc-500 bg-zinc-800/60" : "border-zinc-800 hover:border-zinc-600"}`}
+                                    >
+                                        Following {userData?.following?.length ?? 0}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => toggleRelationshipTab("followers")}
+                                        className={`text-zinc-400 font-bold px-4 py-2 rounded-full border transition ${relationshipTab === "followers" ? "border-zinc-500 bg-zinc-800/60" : "border-zinc-800 hover:border-zinc-600"}`}
+                                    >
+                                        Followers {userData?.followers?.length ?? 0}
+                                    </button>
                                 </div>
+                                {relationshipTab ? (
+                                    <div className="pt-4">
+                                        {relationshipLoading ? (
+                                            <p className="text-sm text-zinc-500">Loading people list...</p>
+                                        ) : (
+                                            <FollowingList
+                                                title={relationshipTab === "following" ? "Following" : "Followers"}
+                                                people={relationshipTab === "following" ? followingPeople : followersPeople}
+                                                emptyMessage={relationshipTab === "following" ? "You are not following anyone yet." : "No followers yet."}
+                                                onPersonClick={(personUsername) => {
+                                                    window.location.href = `/profile/${personUsername}`;
+                                                }}
+                                            />
+                                        )}
+                                    </div>
+                                ) : null}
                             </div>
                         </section>
                     </section>

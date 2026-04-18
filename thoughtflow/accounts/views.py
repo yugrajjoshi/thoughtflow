@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import RegisterSerializer, ProfileSerializer
+from .serializers import RegisterSerializer, ProfileSerializer, ProfileSummarySerializer
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
@@ -156,7 +156,35 @@ def unfollow_user(request, username):
         'following_count': my_profile.following.count(),
 
     }, status=status.HTTP_200_OK)
-@api_view
+
+
+@api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def followers(request,username):
-    target_folllowing_list = get 
+def followers(request, username):
+    target_profile = get_object_or_404(Profile, user__username=username)
+    serializer = ProfileSummarySerializer(
+        target_profile.followers.select_related('user').all(),
+        many=True,
+        context={'request': request}
+    )
+    return Response({
+        'username': username,
+        'count': target_profile.followers.count(),
+        'results': serializer.data,
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def following(request, username):
+    target_profile = get_object_or_404(Profile, user__username=username)
+    serializer = ProfileSummarySerializer(
+        target_profile.following.select_related('user').all(),
+        many=True,
+        context={'request': request}
+    )
+    return Response({
+        'username': username,
+        'count': target_profile.following.count(),
+        'results': serializer.data,
+    })
