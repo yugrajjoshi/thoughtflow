@@ -53,3 +53,5 @@ class Message(models.Model):
 
     def __str__(self):
         return f"Message {self.id} in Conversation {self.conversation.id} by {self.sender.username}"
+    
+#commit code
