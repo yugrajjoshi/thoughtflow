@@ -48,6 +48,7 @@ function Home() {
   const [selectedPost, setSelectedPost] = useState(null);
   const [deletingPostIds, setDeletingPostIds] = useState([]);
   const [massangerOpen, setMassangerOpen] = useState(false);
+  const [selectedChatUser, setSelectedChatUser] = useState(null);
 
   const goTo = (path) => {
     window.location.href = path;
@@ -346,7 +347,7 @@ function Home() {
       <section className="ml-[20%] flex h-screen w-[80%] overflow-hidden">
         <article className="flex flex-col h-screen w-[60%] text-white border-zinc-900 border-l border-r overflow-hidden">
         {isMassangerView ? (
-          <MassangerSection />
+          <MassangerSection selectedUser={selectedChatUser} />
         ) : selectedPost ? (
           <section className="flex-1 overflow-y-auto posts-scrollbar">
             <PostView
@@ -431,7 +432,14 @@ function Home() {
                     <button
                       key={person.username}
                       type="button"
-                      onClick={() => goTo(`/profile/${person.username}`)}
+                      onClick={() => {
+                        if (isMassangerView) {
+                          setSelectedChatUser(person);
+                          return;
+                        }
+
+                        goTo(`/profile/${person.username}`);
+                      }}
                       className="w-full flex items-center gap-3 px-4 py-3 text-left border-b border-zinc-900/70 hover:bg-zinc-900/80 transition"
                     >
                       <div className="w-11 h-11 rounded-full overflow-hidden bg-zinc-800 shrink-0">
