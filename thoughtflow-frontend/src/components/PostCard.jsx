@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Heart, MessageCircle, Bookmark, Share2, Kanban,Repeat2, Ellipsis } from "lucide-react";
 import PostSettingHover from "../hoverelements/postsettinghover";
 
@@ -10,7 +11,7 @@ const getCleanToken = () => {
 };
 
 
-function PostCard({ post, onClick, currentUsername, onDeletePost, isDeletingPost = false }) {
+function PostCard({ post, onClick, currentUsername, currentUserId, onDeletePost, onPostUpdated, isDeletingPost = false }) {
     const createdAt = post?.created_at ? new Date(post.created_at).toLocaleString() : "";
     const [liked, setLiked] = useState(Boolean(post?.is_liked));
     const [reposted, setReposted] = useState(Boolean(post?.is_reposted));
@@ -88,8 +89,18 @@ function PostCard({ post, onClick, currentUsername, onDeletePost, isDeletingPost
             }
 
             const data = await response.json();
-            setLiked(Boolean(data?.liked));
-            setLikesCount(typeof data?.likes_count === "number" ? data.likes_count : likesCount);
+            const nextLiked = Boolean(data?.liked);
+            const nextLikesCount = typeof data?.likes_count === "number" ? data.likes_count : likesCount;
+
+            setLiked(nextLiked);
+            setLikesCount(nextLikesCount);
+
+            if (typeof onPostUpdated === "function") {
+                onPostUpdated(post.id, {
+                    is_liked: nextLiked,
+                    likes_count: nextLikesCount,
+                });
+            }
         } catch (error) {
             console.error("Failed to toggle like:", error);
         } finally {
@@ -116,8 +127,27 @@ function PostCard({ post, onClick, currentUsername, onDeletePost, isDeletingPost
             }
 
             const data = await response.json();
-            setReposted(Boolean(data?.reposted));
-            setRepostsCount(typeof data?.reposts_count === "number" ? data.reposts_count : repostsCount);
+            const nextReposted = Boolean(data?.reposted);
+            const nextRepostsCount = typeof data?.reposts_count === "number" ? data.reposts_count : repostsCount;
+            const existingRepostUsers = Array.isArray(post?.repost_users) ? post.repost_users.map(Number) : [];
+            const normalizedCurrentUserId = Number(currentUserId) || null;
+
+            const nextRepostUsers = normalizedCurrentUserId
+                ? (nextReposted
+                    ? Array.from(new Set([...existingRepostUsers, normalizedCurrentUserId]))
+                    : existingRepostUsers.filter((id) => id !== normalizedCurrentUserId))
+                : existingRepostUsers;
+
+            setReposted(nextReposted);
+            setRepostsCount(nextRepostsCount);
+
+            if (typeof onPostUpdated === "function") {
+                onPostUpdated(post.id, {
+                    is_reposted: nextReposted,
+                    reposts_count: nextRepostsCount,
+                    repost_users: nextRepostUsers,
+                });
+            }
         } catch (error) {
             console.error("Failed to toggle repost:", error);
         } finally {
@@ -144,8 +174,18 @@ function PostCard({ post, onClick, currentUsername, onDeletePost, isDeletingPost
             }
 
             const data = await response.json();
-            setBookmarked(Boolean(data?.bookmarked));
-            setBookmarksCount(typeof data?.bookmarks_count === "number" ? data.bookmarks_count : bookmarksCount);
+            const nextBookmarked = Boolean(data?.bookmarked);
+            const nextBookmarksCount = typeof data?.bookmarks_count === "number" ? data.bookmarks_count : bookmarksCount;
+
+            setBookmarked(nextBookmarked);
+            setBookmarksCount(nextBookmarksCount);
+
+            if (typeof onPostUpdated === "function") {
+                onPostUpdated(post.id, {
+                    is_bookmarked: nextBookmarked,
+                    bookmarks_count: nextBookmarksCount,
+                });
+            }
         } catch (error) {
             console.error("Failed to toggle bookmark:", error);
         } finally {
@@ -157,6 +197,11 @@ function PostCard({ post, onClick, currentUsername, onDeletePost, isDeletingPost
         if (typeof onClick === "function") {
             onClick(post);
         }
+    };
+
+    const handleCommentClick = (event) => {
+        event.stopPropagation();
+        handleCardClick();
     };
 
     const handleStopPropagation = (event) => {
@@ -177,6 +222,11 @@ function PostCard({ post, onClick, currentUsername, onDeletePost, isDeletingPost
             className={`w-full  p-2 h-auto transition-all duration-200 roundeed-lg hover:bg-zinc-950 border-t border-l border-r border-b border-zinc-800 ${onClick ? "cursor-pointer" : ""}`}
             onClick={handleCardClick}
         >
+            {post?.reposted_by_label ? (
+                <div className="px-3 pt-2 text-zinc-500 font-bold text-sm">
+                    {post.reposted_by_label} reposted
+                </div>
+            ) : null}
             <div className="flex flex-row w-full h-auto gap-4 p-3">
                 <div className="flex w-12 h-12 rounded-full overflow-hidden bg-zinc-900">
                     <img
@@ -187,10 +237,10 @@ function PostCard({ post, onClick, currentUsername, onDeletePost, isDeletingPost
                     </div>
                     <div className="flex-1">
                     <div className="flex gap-2  items-center">
-                        <a href={`/profile/${post?.username}`} className="font-semibold text-white" onClick={handleStopPropagation}>
+                        <Link to={`/profile/${post?.username}`} className="font-semibold text-white" onClick={handleStopPropagation}>
                             {post?.display_name || post?.username || "User"}
-                        </a>
-                        <a href={`/profile/${post?.username}`} className="text-zinc-400 text-sm" onClick={handleStopPropagation}>@{post?.username || "unknown"}</a>
+                        </Link>
+                        <Link to={`/profile/${post?.username}`} className="text-zinc-400 text-sm" onClick={handleStopPropagation}>@{post?.username || "unknown"}</Link>
                         {createdAt && <p className="text-zinc-500 text-xs">{createdAt}</p>}
                         <div    
                             className="relative ml-auto mr-3"
@@ -230,7 +280,7 @@ function PostCard({ post, onClick, currentUsername, onDeletePost, isDeletingPost
                <div 
                 className="flex   ml-18 mt-10 border-zinc-800 justify-between gap-5 pr-5  w-[90%] p-3">
                <div className="flex gap-2 justify-center items-center" >
-                <button className="text-zinc-400 hover:text-zinc-500" onClick={handleStopPropagation}>
+                <button className="text-zinc-400 hover:text-zinc-500" onClick={handleCommentClick}>
                     <MessageCircle className="w-5 h-5" />
                 </button>
                 <span className="text-zinc-600" >{commentsCount}</span>

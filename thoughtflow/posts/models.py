@@ -13,6 +13,7 @@ class Post(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     likes = models.ManyToManyField(User, related_name='liked_posts', blank=True)
     bookmarks = models.ManyToManyField(User, related_name='bookmarked_posts', blank=True)
+    repost_users = models.ManyToManyField(User, related_name='reposted_posts', blank=True)
     reposts = models.ManyToManyField('self', symmetrical=False, related_name='reposted_by', blank=True)
     views_counts = models.PositiveIntegerField(default=0)
     likes_count = models.PositiveIntegerField(default=0)

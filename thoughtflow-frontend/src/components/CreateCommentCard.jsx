@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { ImagePlus, X } from "lucide-react";
 
 const API_BASE = "http://127.0.0.1:8000";
@@ -102,23 +103,23 @@ function CreateCommentCard({ postId, profilePicture, postOwnerUsername, currentU
                 {postOwnerUsername && (
                     <div className="text-sm text-zinc-400">
                         Replying to{" "}
-                        <a 
-                            href={`/profile/${postOwnerUsername}`}
+                        <Link 
+                            to={`/profile/${postOwnerUsername}`}
                             className="text-blue-400 hover:text-blue-300 cursor-pointer"
                         >
                             @{postOwnerUsername}
-                        </a>
+                        </Link>
                     </div>
                 )}
                 <div className="flex flex-row w-full h-auto gap-4">
                     <div className="flex w-12 h-12 rounded-full overflow-hidden">
-                        <a href={`/profile/${currentUsername}`} className="w-full h-full">
+                        <Link to={`/profile/${currentUsername}`} className="w-full h-full">
                             <img 
                                 src={profilePicture || ""} 
                                 alt="Profile Image" 
                                 className="w-full h-full object-cover rounded-full cursor-pointer hover:opacity-80 transition" 
                             />
-                        </a>
+                        </Link>
                     </div>
                     <div className="flex-1">
                         <form onSubmit={handleSubmit}>

@@ -47,9 +47,23 @@ class Message(models.Model):
         on_delete=models.CASCADE,
         related_name='sent_messages',
     )
+    reply_to = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        related_name='replies',
+        null=True,
+        blank=True,
+    )
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     read_at = models.DateTimeField(null=True, blank=True)
+    deleted_for_everyone = models.BooleanField(default=False)
+    deleted_for_everyone_at = models.DateTimeField(null=True, blank=True)
+    deleted_for = models.ManyToManyField(
+        User,
+        related_name='messages_deleted_for_me',
+        blank=True,
+    )
 
     def __str__(self):
         return f"Message {self.id} in Conversation {self.conversation.id} by {self.sender.username}"

@@ -93,22 +93,14 @@ def repost_post(request, post_id):
     except Post.DoesNotExist:
         return response.Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    user_repost = Post.objects.filter(user=request.user, reposts=original_post).first()
-
-    if user_repost:
-        user_repost.delete()
+    if original_post.repost_users.filter(id=request.user.id).exists():
+        original_post.repost_users.remove(request.user)
         reposted = False
     else:
-        repost = Post.objects.create(
-            user=request.user,
-            content=original_post.content,
-            image=original_post.image,
-            video=original_post.video,
-        )
-        repost.reposts.add(original_post)
+        original_post.repost_users.add(request.user)
         reposted = True
 
-    original_post.reposts_count = Post.objects.filter(reposts=original_post).count()
+    original_post.reposts_count = original_post.repost_users.count()
     original_post.save(update_fields=['reposts_count'])
 
     return response.Response(

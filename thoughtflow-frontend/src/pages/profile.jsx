@@ -222,7 +222,7 @@ function Profile() {
                     </button>
                     <button
                         className={`text-white gap-6 text-2xl font-bold p-3 transition duration-300 ml-6 w-[70%] ${activeButton === "chats" ? "bg-zinc-800/30" : "hover:bg-zinc-800/30"} rounded-4xl flex items-center`}
-                        onClick={() => handleButtonClick("chats")}
+                        onClick={() => {handleButtonClick("chats")}}
                     >
                         <Mail className="w-9 h-9" />Chats
                     </button>

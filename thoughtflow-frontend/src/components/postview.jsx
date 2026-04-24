@@ -12,7 +12,7 @@ const getCleanToken = () => {
     return rawToken ? rawToken.replace(/^"|"$/g, "").trim() : "";
 };
 
-function PostView({ post, onBack, currentUsername, currentUserProfilePicture, onDeletePost, isDeletingPost }) {
+function PostView({ post, onBack, currentUsername, currentUserId, currentUserProfilePicture, onDeletePost, onPostUpdated, isDeletingPost }) {
 	const [comments, setComments] = useState(post?.comments || []);
 	const [postData, setPostData] = useState(post);
 	const createdAt = post?.created_at ? new Date(post.created_at).toLocaleString() : "";
@@ -62,7 +62,14 @@ function PostView({ post, onBack, currentUsername, currentUserProfilePicture, on
 				post={postData}
 				className="w-full "
 				currentUsername={currentUsername}
+				currentUserId={currentUserId}
 				onDeletePost={onDeletePost}
+				onPostUpdated={(postId, changes) => {
+					setPostData((prev) => (prev?.id === postId ? { ...prev, ...changes } : prev));
+					if (typeof onPostUpdated === "function") {
+						onPostUpdated(postId, changes);
+					}
+				}}
 				isDeletingPost={isDeletingPost}
 			/>
               {createdAt && <h3 className="text-zinc-400 font-semibold text-md ml-2 -m-3 ">{createdAt}</h3>}

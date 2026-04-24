@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { House, UserRound, Search, Mail, LogOut,Bookmark } from "lucide-react";
+import { Search } from "lucide-react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import CreatePost from "../components/Createpost";
 import PostCard from '../components/PostCard';
 import PostView from "../components/postview";
 import MassangerSection from '../components/massangersection';
+import SidebarNav from "../components/SidebarNav";
+import ProfileSection from "../components/ProfileSection";
 
 const API_BASE = "http://127.0.0.1:8000";
 
@@ -13,6 +16,38 @@ const getCleanToken = () => {
 };
 
 const VIEWED_POSTS_STORAGE_KEY = "thoughtflow_viewed_posts";
+
+const normalizeChatPerson = (person) => {
+  if (!person?.username) {
+    return null;
+  }
+
+  return {
+    id: person.id || person.user_id || null,
+    conversationId: person.conversationId || person.conversation_id || null,
+    username: person.username,
+    displayName: person.displayName || person.display_name || person.name || person.username,
+    profileImage: person.profileImage || person.profile_image || "",
+    unreadCount: Number(person.unreadCount || person.unread_count || 0),
+    lastMessage: person.lastMessage || person.last_message || "",
+    lastMessageAt: person.lastMessageAt || person.last_message_at || "",
+  };
+};
+
+const normalizeConversation = (conversation) => {
+  const otherUser = conversation?.other_user;
+  if (!otherUser?.username) {
+    return null;
+  }
+
+  return normalizeChatPerson({
+    ...otherUser,
+    conversationId: conversation.id,
+    unreadCount: conversation.unread_count,
+    lastMessage: conversation?.last_message?.content || "",
+    lastMessageAt: conversation?.last_message_at || conversation?.last_message?.created_at || "",
+  });
+};
 
 const getViewedPostIds = () => {
   try {
@@ -36,22 +71,79 @@ const markPostAsViewed = (postId) => {
 };
 
 function Home() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { username: routeUsername } = useParams();
+
   const [loginStatus, setLoginStatus] = useState(() => Boolean(localStorage.getItem("token")));
   const [profilePicture, setProfilePicture] = useState(null);
   const [currentUsername, setCurrentUsername] = useState("");
+  const [currentUserId, setCurrentUserId] = useState(null);
   const [followingIds, setFollowingIds] = useState([]);
   const [posts, setPosts] = useState([]);
-  const [activeButton, setActiveButton] = useState("home");
+  const [activeButton, setActiveButton] = useState(location.pathname.startsWith("/profile") ? "profile" : "home");
   const [feedTab, setFeedTab] = useState("For You");
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
   const [feedError, setFeedError] = useState("");
   const [selectedPost, setSelectedPost] = useState(null);
   const [deletingPostIds, setDeletingPostIds] = useState([]);
-  const [massangerOpen, setMassangerOpen] = useState(false);
   const [selectedChatUser, setSelectedChatUser] = useState(null);
+  const [selectedConversationId, setSelectedConversationId] = useState(null);
+  const [chatConversations, setChatConversations] = useState([]);
+  const [chatPeopleResults, setChatPeopleResults] = useState([]);
+  const [isLoadingChatUsers, setIsLoadingChatUsers] = useState(false);
+  const [chatSearchQuery, setChatSearchQuery] = useState("");
 
   const goTo = (path) => {
-    window.location.href = path;
+    navigate(path);
+  };
+
+  const handleSelectChatUser = async (person) => {
+    const normalizedPerson = normalizeChatPerson(person);
+    if (!normalizedPerson) {
+      return;
+    }
+
+    if (normalizedPerson.conversationId) {
+      setSelectedConversationId(normalizedPerson.conversationId);
+      setSelectedChatUser(normalizedPerson);
+      return;
+    }
+
+    const token = getCleanToken();
+    if (!token) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/api/chat/conversations/start/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Token " + token,
+        },
+        body: JSON.stringify({ username: normalizedPerson.username }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to start conversation: ${response.status}`);
+      }
+
+      const conversationData = await response.json();
+      const normalizedConversation = normalizeConversation(conversationData);
+      if (!normalizedConversation) {
+        return;
+      }
+
+      setSelectedConversationId(normalizedConversation.conversationId);
+      setSelectedChatUser(normalizedConversation);
+      setChatConversations((currentConversations) => {
+        const withoutSelected = currentConversations.filter((item) => item.conversationId !== normalizedConversation.conversationId);
+        return [normalizedConversation, ...withoutSelected];
+      });
+    } catch (error) {
+      console.error("Failed to start conversation:", error);
+    }
   };
 
   useEffect(() => {
@@ -66,6 +158,17 @@ function Home() {
   if (!loginStatus) {
     return null;
   }
+
+  useEffect(() => {
+    if (location.pathname.startsWith("/profile")) {
+      setActiveButton("profile");
+      return;
+    }
+
+    if (activeButton === "profile") {
+      setActiveButton("home");
+    }
+  }, [location.pathname]);
 
   const fetchProfile = async () => {
     try {
@@ -84,6 +187,7 @@ function Home() {
       const data = await response.json();
       setProfilePicture(data.profile_image);
       setCurrentUsername(data.username || "");
+      setCurrentUserId(Number(data?.user_id) || null);
       setFollowingIds(Array.isArray(data.following) ? data.following.map(String) : []);
     } catch (error) {
       console.error("Failed to fetch user profile:", error);
@@ -142,8 +246,124 @@ function Home() {
     fetchPosts();
   }, []);
 
+  const fetchChatConversations = async () => {
+    const token = getCleanToken();
+    if (!token) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/api/chat/conversations/`, {
+        headers: {
+          Authorization: "Token " + token,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch conversations: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const normalizedConversations = Array.isArray(data)
+        ? data.map(normalizeConversation).filter(Boolean)
+        : [];
+
+      setChatConversations(normalizedConversations);
+      setSelectedConversationId((currentId) => {
+        if (currentId && normalizedConversations.some((item) => item.conversationId === currentId)) {
+          return currentId;
+        }
+        return null;
+      });
+    } catch (error) {
+      console.error("Failed to fetch chat conversations:", error);
+      setChatConversations([]);
+      setSelectedConversationId(null);
+    }
+  };
+
+  const fetchChatPeople = async (query) => {
+    const token = getCleanToken();
+    if (!token) {
+      return;
+    }
+
+    setIsLoadingChatUsers(true);
+    try {
+      const encodedQuery = encodeURIComponent(query || "");
+      const response = await fetch(`${API_BASE}/api/chat/users/search/?q=${encodedQuery}`, {
+        headers: {
+          Authorization: "Token " + token,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch chat users: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const normalizedPeople = Array.isArray(data)
+        ? data.map(normalizeChatPerson).filter(Boolean)
+        : [];
+      setChatPeopleResults(normalizedPeople);
+    } catch (error) {
+      console.error("Failed to fetch chat users:", error);
+      setChatPeopleResults([]);
+    } finally {
+      setIsLoadingChatUsers(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeButton !== "chats") {
+      return;
+    }
+
+    fetchChatConversations();
+  }, [activeButton]);
+
+  useEffect(() => {
+    if (activeButton !== "chats") {
+      return;
+    }
+
+    const pollId = setInterval(() => {
+      fetchChatConversations();
+    }, 3000);
+
+    return () => clearInterval(pollId);
+  }, [activeButton]);
+
+  useEffect(() => {
+    if (activeButton !== "chats") {
+      return;
+    }
+
+    fetchChatPeople(chatSearchQuery);
+  }, [activeButton, chatSearchQuery]);
+
+  useEffect(() => {
+    const selectedConversation = chatConversations.find((conversation) => conversation.conversationId === selectedConversationId) || null;
+    setSelectedChatUser(selectedConversation);
+  }, [chatConversations, selectedConversationId]);
+
   const handleButtonClick = (buttonName) => {
+    setSelectedPost(null);
     setActiveButton(buttonName);
+
+    if (buttonName === "chats") {
+      setSelectedConversationId(null);
+      setSelectedChatUser(null);
+      goTo("/home");
+      return;
+    }
+
+    if (buttonName === "profile") {
+      goTo("/profile");
+      return;
+    }
+
+    goTo("/home");
   };
 
   function handleLogout() {
@@ -193,6 +413,45 @@ function Home() {
   const isFollowingView = feedTab === "Following";
   const isBookmarksView = activeButton === "bookmarks";
   const isMassangerView = activeButton === "chats";
+  const isProfileView = activeButton === "profile";
+  const isFeedView = !isMassangerView && !isProfileView;
+  const normalizedChatSearchQuery = chatSearchQuery.trim().toLowerCase();
+  const filteredChatConversations = chatConversations.filter((person) => {
+    const username = (person?.username || "").toLowerCase();
+    const displayName = (person?.displayName || "").toLowerCase();
+
+    if (!normalizedChatSearchQuery) {
+      return true;
+    }
+
+    return username.includes(normalizedChatSearchQuery) || displayName.includes(normalizedChatSearchQuery);
+  });
+  const filteredPeopleSuggestions = chatPeopleResults.filter((person) => {
+    if (!normalizedChatSearchQuery) {
+      return true;
+    }
+
+    const username = (person?.username || "").toLowerCase();
+    const displayName = (person?.displayName || "").toLowerCase();
+    return username.includes(normalizedChatSearchQuery) || displayName.includes(normalizedChatSearchQuery);
+  });
+  const conversationUsernames = new Set(
+    chatConversations
+      .map((person) => (person?.username || "").toLowerCase())
+      .filter(Boolean)
+  );
+  const filteredNewChatPeople = filteredPeopleSuggestions.filter((person) => {
+    const username = (person?.username || "").toLowerCase();
+    if (!username) {
+      return false;
+    }
+
+    if (username === (currentUsername || "").toLowerCase()) {
+      return false;
+    }
+
+    return !conversationUsernames.has(username);
+  });
   const visiblePosts = isBookmarksView
     ? filteredPosts.filter((post) => Boolean(post?.is_bookmarked))
     : isFollowingView
@@ -291,77 +550,75 @@ function Home() {
     }
   };
 
+  const handlePostUpdated = (postId, changes) => {
+    if (!postId || !changes) {
+      return;
+    }
+
+    setPosts((currentPosts) => currentPosts.map((post) => (
+      post.id === postId ? { ...post, ...changes } : post
+    )));
+
+    setSelectedPost((currentPost) => (
+      currentPost?.id === postId ? { ...currentPost, ...changes } : currentPost
+    ));
+  };
+
+  const handleOwnProfileUpdate = (data) => {
+    setProfilePicture(data?.profile_image || null);
+    setCurrentUsername(data?.username || "");
+    setCurrentUserId(Number(data?.user_id) || null);
+    setFollowingIds(Array.isArray(data?.following) ? data.following.map(String) : []);
+  };
+
 
   return (
     <main className="bg-black w-full h-screen overflow-hidden">
-      <nav className="fixed top-0 left-0 h-screen w-[20%] bg-black overflow-hidden">
-        <header className="flex top-0 self-center w-[35%]">
-            <img
-              src="src/assets/logo.svg"
-              alt="Logo Image"
-              className=" ml-1 mt-1 w-full h-full object-cover rounded-lg"
-            />
-         </header>
-         <section className="flex flex-col gap-2 mt-5">
-            <button
-              className={`text-white gap-6 text-2xl font-bold p-3 transition duration-300 ml-6 w-[70%] ${activeButton === "home" ? "bg-zinc-800/30 " : "hover:bg-zinc-800/30  "} rounded-4xl flex items-center`}
-              onClick={() => handleButtonClick("home")}
-            >
-             <House className="w-9 h-9" />Home
-           </button>
-           <button
-             className={`text-white gap-6 text-2xl font-bold p-3 transition duration-300 ml-6 w-[70%] ${activeButton === "profile" ? "bg-zinc-800/30 " : "hover:bg-zinc-800/30 "} rounded-4xl flex items-center`}
-             onClick={() => {
-               handleButtonClick("profile");
-               goTo("/profile");
-             }}
-           >
-             <UserRound className="w-9 h-9" />Profile
-           </button>
-           <button
-             className={`text-white gap-6 text-2xl font-bold p-3 transition duration-300 ml-6 w-[70%] ${activeButton === "explore" ? "bg-zinc-800/30 " : "hover:bg-zinc-800/30 "} rounded-4xl flex items-center`}
-             onClick={() => handleButtonClick("explore")}
-           >
-             <Search className="w-9 h-9" />Explore
-           </button>
-           <button
-             className={`text-white gap-6 text-2xl font-bold p-3 transition duration-300 ml-6 w-[70%] ${activeButton === "chats" ? "bg-zinc-800/30 " : "hover:bg-zinc-800/30 "} rounded-4xl flex items-center`}
-             onClick={() => {
-               setSelectedPost(null);
-               handleButtonClick("chats");
-             }}
-           >
-             <Mail className="w-9 h-9" />Chats
-           </button>
-           <button
-           onClick={()=>handleButtonClick("bookmarks")}
-             className={`text-white gap-6 text-2xl font-bold p-3 transition duration-300 ml-6 w-[70%] ${activeButton === "bookmarks" ? "bg-zinc-800/30 " : "hover:bg-zinc-800/30 "} rounded-4xl flex items-center`}>
-              <Bookmark className="w-9 h-9" />Bookmarks
-           </button>
-         </section>
-           <button className = "text-white gap-6 text-1xl font-bold p-3 transition duration-300 ml-6 w-[70%] hover:bg-zinc-800/30 hover:shadow-md  rounded-4xl  flex items-center" onClick={handleLogout}>
-             <LogOut className="w-5 h-5" />Logout
-           </button>
-      </nav>
+      <SidebarNav activeButton={activeButton} onSelect={handleButtonClick} onLogout={handleLogout} />
 
       <section className="ml-[20%] flex h-screen w-[80%] overflow-hidden">
         <article className="flex flex-col h-screen w-[60%] text-white border-zinc-900 border-l border-r overflow-hidden">
         {isMassangerView ? (
-          <MassangerSection selectedUser={selectedChatUser} />
+          <MassangerSection
+            selectedUser={selectedChatUser}
+            selectedConversationId={selectedConversationId}
+            currentUserId={currentUserId}
+            onConversationChanged={fetchChatConversations}
+          />
+        ) : isProfileView ? (
+          <ProfileSection
+            viewedUsername={routeUsername || ""}
+            currentUsername={currentUsername}
+            currentUserId={currentUserId}
+            posts={posts}
+            onBackHome={() => handleButtonClick("home")}
+            onNavigateProfile={(username) => {
+              setSelectedPost(null);
+              setActiveButton("profile");
+              goTo(`/profile/${username}`);
+            }}
+            onOpenPost={handleSelectPost}
+            onDeletePost={handleDeletePost}
+            onPostUpdated={handlePostUpdated}
+            deletingPostIds={deletingPostIds}
+            onOwnProfileUpdated={handleOwnProfileUpdate}
+          />
         ) : selectedPost ? (
           <section className="flex-1 overflow-y-auto posts-scrollbar">
             <PostView
               post={selectedPost}
               onBack={handleClosePostView}
               currentUsername={currentUsername}
+              currentUserId={currentUserId}
               currentUserProfilePicture={profilePicture}
               onDeletePost={handleDeletePost}
+              onPostUpdated={handlePostUpdated}
               isDeletingPost={deletingPostIds.includes(selectedPost?.id)}
             />
           </section>
         ) : (
           <>
-            {!isBookmarksView ? (
+            {isFeedView && !isBookmarksView ? (
               <header className="flex w-full h-[8%]">
                 <button
                   className={`text-zinc-400 transition-all duration-200 hover:text-white w-[50%] ${feedTab === "For You" ? "bg-linear-to-r from-zinc-950 to-zinc-900" : "bg-black"}`}
@@ -373,7 +630,7 @@ function Home() {
                   className={`text-zinc-400 transition-all duration-200 hover:text-white w-[50%] ${feedTab === "Following" ? "bg-linear-to-l from-zinc-950 to-zinc-900" : "bg-black "}`}
                   onClick={() => setFeedTab("Following")}
                 >
-                  Following
+                 Following
                 </button>
               </header>
             ) : null}
@@ -395,7 +652,9 @@ function Home() {
                     post={post}
                     onClick={handleSelectPost}
                     currentUsername={currentUsername}
+                    currentUserId={currentUserId}
                     onDeletePost={handleDeletePost}
+                    onPostUpdated={handlePostUpdated}
                     isDeletingPost={deletingPostIds.includes(post.id)}
                   />
                 ))
@@ -409,66 +668,154 @@ function Home() {
         )}
         </article>
         <aside className="flex flex-col border items-center w-[40%] h-screen text-white border-zinc-800 overflow-y-auto posts-scrollbar">
-          <button 
-            type="button"
-            className=" flex flex-row gap-5 mt-5 justify m-5 items-center w-[90%] h-12 border rounded-4xl ">
-            <Search className=" ml-5 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search"
-              className="bg-black w-full h-full text-zinc-300 placeholder:text-zinc-500 focus:outline-none rounded-4xl"
-              onChange={(e)=> setSearchQuery(e.target.value)}
-            />
-          </button>
-          {normalizedSearchQuery ? (
-            <section className="w-[90%] rounded-2xl border border-zinc-800 bg-zinc-950/80 shadow-lg overflow-hidden mx-5">
-              <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-white">People</h3>
-                <span className="text-xs text-zinc-500">{matchingPeople.length}</span>
+          {isMassangerView ? (
+            <section className="w-full h-full flex flex-col">
+              <div className="w-full border-b border-zinc-800 px-5 py-4 flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-xl font-bold">Chats</h2>
+                  <p className="text-sm text-zinc-500 mt-1">People you started conversations with</p>
+                </div>
+                <div className="w-[52%] min-w-45 h-10 border border-zinc-800 rounded-full px-3 flex items-center gap-2 bg-black">
+                  <Search className="w-4 h-4 text-zinc-500" />
+                  <input
+                    type="text"
+                    value={chatSearchQuery}
+                    onChange={(event) => setChatSearchQuery(event.target.value)}
+                    placeholder="Search people"
+                    className="bg-transparent w-full text-sm text-zinc-200 placeholder:text-zinc-500 focus:outline-none"
+                  />
+                </div>
               </div>
-              <div className="max-h-72 overflow-y-auto">
-                {matchingPeople.length > 0 ? (
-                  matchingPeople.map((person) => (
-                    <button
-                      key={person.username}
-                      type="button"
-                      onClick={() => {
-                        if (isMassangerView) {
-                          setSelectedChatUser(person);
-                          return;
-                        }
 
-                        goTo(`/profile/${person.username}`);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-left border-b border-zinc-900/70 hover:bg-zinc-900/80 transition"
-                    >
-                      <div className="w-11 h-11 rounded-full overflow-hidden bg-zinc-800 shrink-0">
-                        {person.profileImage ? (
-                          <img
-                            src={person.profileImage.startsWith("http") ? person.profileImage : `${API_BASE}${person.profileImage}`}
-                            alt={person.username}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : null}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-white font-medium truncate">
-                          {person.displayName || person.username}
-                        </p>
-                        <p className="text-sm text-zinc-500 truncate">@{person.username}</p>
-                      </div>
-                    </button>
-                  ))
-                ) : (
-                  <p className="px-4 py-6 text-sm text-zinc-500">No people match that username.</p>
-                )}
+              <div className="flex-1 overflow-y-auto posts-scrollbar">
+                {filteredChatConversations.length > 0 ? (
+                  <section className="flex flex-col">
+                    {filteredChatConversations.map((person) => {
+                      const isSelected = selectedChatUser?.username === person.username;
+                      const imageSrc = person.profileImage
+                        ? (person.profileImage.startsWith("http") ? person.profileImage : `${API_BASE}${person.profileImage}`)
+                        : "";
+
+                      return (
+                        <button
+                          key={`conversation-${person.username}`}
+                          type="button"
+                          onClick={() => handleSelectChatUser(person)}
+                          className={`w-full flex items-center gap-3 px-4 py-3 text-left border-b border-zinc-900/70 transition ${isSelected ? "bg-zinc-900" : "hover:bg-zinc-900/80"}`}
+                        >
+                          <div className="w-12 h-12 rounded-full overflow-hidden bg-zinc-800 shrink-0">
+                            {imageSrc ? <img src={imageSrc} alt={person.username} className="w-full h-full object-cover" /> : null}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-white font-semibold truncate">{person.displayName || person.username}</p>
+                            <p className="text-sm text-zinc-500 truncate">@{person.username}</p>
+                          </div>
+                          {Number(person.unreadCount) > 0 ? (
+                            <div className="ml-2 flex items-center gap-2 shrink-0">
+                              <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                              <span className="text-[11px] font-semibold text-blue-300">{person.unreadCount}</span>
+                            </div>
+                          ) : null}
+                        </button>
+                      );
+                    })}
+                  </section>
+                ) : null}
+
+                {filteredNewChatPeople.length > 0 ? (
+                  <section className="p-4 flex flex-col gap-3">
+                    <p className="text-xs uppercase tracking-[0.18em] text-zinc-500 font-semibold">Start New Chat</p>
+                    {filteredNewChatPeople.map((person) => {
+                      const imageSrc = person.profileImage
+                        ? (person.profileImage.startsWith("http") ? person.profileImage : `${API_BASE}${person.profileImage}`)
+                        : "";
+
+                      return (
+                        <button
+                          key={`new-chat-${person.username}`}
+                          type="button"
+                          onClick={() => handleSelectChatUser(person)}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-left border border-zinc-900 rounded-xl hover:bg-zinc-900/80 transition"
+                        >
+                          <div className="w-12 h-12 rounded-full overflow-hidden bg-zinc-800 shrink-0">
+                            {imageSrc ? <img src={imageSrc} alt={person.username} className="w-full h-full object-cover" /> : null}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-white font-semibold truncate">{person.displayName || person.username}</p>
+                            <p className="text-sm text-zinc-500 truncate">@{person.username}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </section>
+                ) : null}
+
+                {filteredChatConversations.length === 0 && filteredNewChatPeople.length === 0 ? (
+                  <p className="p-6 text-sm text-zinc-500">No people found for this search.</p>
+                ) : null}
               </div>
             </section>
-          ) : null}
-          <section className="flex w-full mt-5 flex-col" >
-            <div className="text-lg w-full border-b-[0.5px] border-zinc-800 p-5 font-bold text-left ">Trending</div>
-        
-         </section>
+          ) : (
+            <>
+              <button
+                type="button"
+                className=" flex flex-row gap-5 mt-5 justify m-5 items-center w-[90%] h-12 border rounded-4xl "
+              >
+                <Search className=" ml-5 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Search"
+                  className="bg-black w-full h-full text-zinc-300 placeholder:text-zinc-500 focus:outline-none rounded-4xl"
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </button>
+              {normalizedSearchQuery ? (
+                <section className="w-[90%] rounded-2xl border border-zinc-800 bg-zinc-950/80 shadow-lg overflow-hidden mx-5">
+                  <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-white">People</h3>
+                    <span className="text-xs text-zinc-500">{matchingPeople.length}</span>
+                  </div>
+                  <div className="max-h-72 overflow-y-auto">
+                    {matchingPeople.length > 0 ? (
+                      matchingPeople.map((person) => (
+                        <button
+                          key={person.username}
+                          type="button"
+                          onClick={() => {
+                            setSelectedPost(null);
+                            setActiveButton("profile");
+                            goTo(`/profile/${person.username}`);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-left border-b border-zinc-900/70 hover:bg-zinc-900/80 transition"
+                        >
+                          <div className="w-11 h-11 rounded-full overflow-hidden bg-zinc-800 shrink-0">
+                            {person.profileImage ? (
+                              <img
+                                src={person.profileImage.startsWith("http") ? person.profileImage : `${API_BASE}${person.profileImage}`}
+                                alt={person.username}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : null}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-white font-medium truncate">
+                              {person.displayName || person.username}
+                            </p>
+                            <p className="text-sm text-zinc-500 truncate">@{person.username}</p>
+                          </div>
+                        </button>
+                      ))
+                    ) : (
+                      <p className="px-4 py-6 text-sm text-zinc-500">No people match that username.</p>
+                    )}
+                  </div>
+                </section>
+              ) : null}
+              <section className="flex w-full mt-5 flex-col" >
+                <div className="text-lg w-full border-b-[0.5px] border-zinc-800 p-5 font-bold text-left ">Trending</div>
+              </section>
+            </>
+          )}
       </aside>
       </section>
     </main>

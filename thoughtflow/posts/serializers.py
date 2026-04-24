@@ -60,7 +60,7 @@ class PostSerializer(serializers.ModelSerializer):
         user = getattr(request, 'user', None)
         if not user or not user.is_authenticated:
             return False
-        return Post.objects.filter(user=user, reposts=obj).exists()
+        return obj.repost_users.filter(id=user.id).exists()
 
     def get_is_bookmarked(self, obj):
         request = self.context.get('request')
@@ -100,6 +100,7 @@ class PostSerializer(serializers.ModelSerializer):
             'likes',
             'comments',
             'bookmarks',
+            'repost_users',
             'reposts',
             'views_counts',
             'likes_count',
