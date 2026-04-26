@@ -15,7 +15,6 @@ function Profilesetup() {
 
     if (!token || token === "undefined" || token === "null") {
         localStorage.removeItem("token");
-        setInlineAlert({ type: "error", message: "Please login first." });
         setTimeout(() => {
             window.location.href = "/";
         }, 1000);
@@ -36,7 +35,6 @@ function Profilesetup() {
       })
       .catch(() => {
         localStorage.removeItem("token");
-                setInlineAlert({ type: "error", message: "Session expired. Please login again." });
                 setTimeout(() => {
                         window.location.href = "/";
                 }, 1200);

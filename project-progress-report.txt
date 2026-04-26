@@ -1,9 +1,9 @@
 FLOWTHOUGHT PROJECT PROGRESS REPORT
-Date: April 24, 2026
+Date: April 26, 2026
 
 1. Overall Progress
-- Core social app (auth + profile + posts + interactions): about 70% complete
-- Full project including chat, testing, and production readiness: about 55-60% complete
+- Core social app (auth + profile + posts + interactions): about 80% complete
+- Full project including chat, testing, and production readiness: about 65-70% complete
 
 2. What Is Completed
 2.1 Backend
@@ -11,10 +11,17 @@ Date: April 24, 2026
 - User/profile fetch and profile update APIs are working
 - Follow and unfollow APIs are implemented
 - Followers and following list APIs are implemented
-- Posts API supports create and list
-- Post delete API is implemented
+- Posts API supports create, list, and delete
 - Post interactions are implemented: like, bookmark, repost, views increment
 - Comment APIs are implemented: create, list, delete
+- Chat APIs are implemented:
+	- List conversations
+	- Start conversation
+	- List/send messages in a conversation
+	- Mark message as seen
+	- Delete message for me
+	- Delete message for everyone
+	- Search users for chat
 
 2.2 Frontend
 - Login page is connected to backend
@@ -27,24 +34,30 @@ Date: April 24, 2026
 - Create comment and comment listing are present
 - Own profile page is implemented
 - Other user profile page is implemented with follow/unfollow
+- Chat UI is integrated with backend endpoints and supports:
+	- Conversation loading
+	- Sending messages
+	- Polling and message refresh
+	- Replying to messages
+	- Delete for me / delete for everyone actions
 
 2.3 Data Model Coverage
 - Post model includes counters and media fields
 - Comment model includes text and media fields
 - Profile model includes bio, name, images, DOB, followers/following
-- Chat models exist (conversation, participants, messages)
+- Chat models include conversation, participants, and message states
 
 3. What Is Still Left
 3.1 Major Remaining Work
-- Chat backend endpoints are not implemented yet
-- Chat frontend is mostly UI scaffold and not fully functional
-- Automated tests are mostly empty in accounts/posts/chat apps
+- Automated tests are still mostly empty in accounts/posts/chat apps
+- Some chat UX polish remains (error states, empty states, delivery/read indicators refinement)
+- API pagination and filtering need to be standardized where response sizes can grow
 
 3.2 Product Quality Work
-- Improve validation and error handling consistency
-- Add pagination/filtering for feeds and lists
-- Clean placeholder/unused frontend sections
-- Improve edge-case handling (expired token, upload errors, etc.)
+- Improve validation and error handling consistency across endpoints
+- Handle edge cases better (expired token, upload failures, network retries)
+- Clean placeholder/unused frontend sections and naming consistency
+- Add API contract documentation for frontend-backend integration clarity
 
 3.3 Production Readiness
 - Security and permissions audit
@@ -53,16 +66,24 @@ Date: April 24, 2026
 - Performance checks and optimization
 
 4. Time Estimate Left
-- To finish strong MVP without full chat: about 1-2 weeks
-- To finish with robust chat + tests + production quality: about 3-5 weeks
+- To finish a stable MVP (with chat, basic quality checks): about 1-2 weeks
+- To finish with strong test coverage and production quality: about 3-4 weeks
 
 5. Current Direction Summary
-- The project is in a good MVP stage for social features.
-- The biggest gaps are chat completion, testing coverage, and production hardening.
-- If chat is not immediate priority, the app can be finalized faster.
+- The project is now beyond early MVP and has most major social features working.
+- The largest risk is low automated test coverage.
+- The next highest-value work is reliability hardening and production readiness.
 
 6. Suggested Next Priority Order
-1) Complete chat APIs and frontend chat flow
-2) Add automated tests for accounts, posts, and chat
-3) Add pagination and improve API error handling
+1) Add automated tests for accounts, posts, and chat critical flows
+2) Standardize API pagination/filtering and improve error responses
+3) Finish chat UX polish (state handling, indicators, empty/error views)
 4) Production hardening and deployment setup
+
+7. Tracking Checklist (Next 2 Weeks)
+- [ ] Write auth/profile API tests (success + failure paths)
+- [ ] Write post/comment interaction API tests
+- [ ] Write chat conversation/message API tests
+- [ ] Add pagination to high-volume list endpoints
+- [ ] Normalize frontend error handling for API failures
+- [ ] Run end-to-end smoke pass before deployment prep

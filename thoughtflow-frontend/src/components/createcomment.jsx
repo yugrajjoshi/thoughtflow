@@ -1,7 +1,7 @@
 import React from "react";
 import { useState } from "react";
 
-function CreateComment({ postId, onCommentCreated }) {
+function CreateComment({ onCommentCreated }) {
     const [commentText, setCommentText] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 

@@ -13,6 +13,14 @@ def _build_profile_image_url(user, request):
     return profile.profile_image.url
 
 
+def _build_file_url(file_field, request):
+    if not file_field:
+        return ''
+    if request is not None:
+        return request.build_absolute_uri(file_field.url)
+    return file_field.url
+
+
 class UserSummarySerializer(serializers.ModelSerializer):
     display_name = serializers.SerializerMethodField()
     profile_image = serializers.SerializerMethodField()
@@ -53,6 +61,10 @@ class MessageSerializer(serializers.ModelSerializer):
     is_mine = serializers.SerializerMethodField()
     can_delete_for_everyone = serializers.SerializerMethodField()
     reply_to = ReplySummarySerializer(read_only=True)
+    image_url = serializers.SerializerMethodField()
+    video_url = serializers.SerializerMethodField()
+    shared_post = serializers.SerializerMethodField()
+    message_type = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
@@ -62,6 +74,10 @@ class MessageSerializer(serializers.ModelSerializer):
             'sender_id',
             'sender_username',
             'content',
+            'message_type',
+            'image_url',
+            'video_url',
+            'shared_post',
             'created_at',
             'read_at',
             'is_mine',
@@ -75,6 +91,53 @@ class MessageSerializer(serializers.ModelSerializer):
         if obj.deleted_for_everyone:
             return 'This message was deleted'
         return obj.content
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        return _build_file_url(obj.image, request)
+
+    def get_video_url(self, obj):
+        request = self.context.get('request')
+        return _build_file_url(obj.video, request)
+
+    def get_shared_post(self, obj):
+        shared_post = obj.shared_post
+        if not shared_post:
+            return None
+
+        request = self.context.get('request')
+        profile = getattr(shared_post.user, 'profile', None)
+        profile_image = ''
+        if profile and profile.profile_image:
+            profile_image = _build_file_url(profile.profile_image, request)
+
+        image_url = _build_file_url(shared_post.image, request)
+        video_url = _build_file_url(shared_post.video, request)
+
+        return {
+            'id': shared_post.id,
+            'user_id': shared_post.user_id,
+            'username': shared_post.user.username,
+            'display_name': getattr(profile, 'name', '') or shared_post.user.username,
+            'profile_image': profile_image,
+            'content': shared_post.content,
+            'image': image_url,
+            'video': video_url,
+            'created_at': shared_post.created_at,
+        }
+
+    def get_message_type(self, obj):
+        if obj.deleted_for_everyone:
+            return 'deleted'
+        if obj.shared_post_id:
+            return 'post_share'
+        if obj.image and obj.video:
+            return 'media'
+        if obj.image:
+            return 'image'
+        if obj.video:
+            return 'video'
+        return 'text'
 
     def get_is_mine(self, obj):
         request = self.context.get('request')

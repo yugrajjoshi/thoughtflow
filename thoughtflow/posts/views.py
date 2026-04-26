@@ -1,16 +1,153 @@
-from django.shortcuts import render
+import math
+from datetime import timedelta
+
 from rest_framework import response, status
 from .models import Post, Comment
 from .serializers import PostSerializer, CommentSerializer
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from django.utils import timezone
+
+
+def _safe_int(value):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _compute_global_feed_score(post, now):
+    created_at = post.created_at or now
+    age_seconds = max((now - created_at).total_seconds(), 1)
+    age_hours = age_seconds / 3600.0
+
+    recency_score = math.exp(-age_hours / 18.0)
+    engagement_raw = (
+        _safe_int(post.likes_count)
+        + (2.0 * _safe_int(post.comments_count))
+        + (2.5 * _safe_int(post.reposts_count))
+        + (0.15 * _safe_int(post.views_counts))
+    )
+    engagement_score = math.log1p(max(engagement_raw, 0.0))
+
+    # Lightweight creator quality signal from current post-level quality.
+    quality_signal = math.log1p((_safe_int(post.likes_count) * 2) + _safe_int(post.comments_count) + _safe_int(post.reposts_count))
+    quality_score = quality_signal / 10.0
+
+    novelty_boost = 0.0
+    if age_hours <= 2:
+        novelty_boost = 1.0
+    elif age_hours <= 6:
+        novelty_boost = 0.6
+    elif age_hours <= 12:
+        novelty_boost = 0.3
+
+    diversity_bonus = 0.08 if (post.image or post.video) else 0.0
+
+    return (
+        (0.40 * recency_score)
+        + (0.30 * engagement_score)
+        + (0.15 * quality_score)
+        + (0.10 * novelty_boost)
+        + (0.05 * diversity_bonus)
+    )
+
+
+def _build_global_feed_posts(limit=180, candidate_limit=500):
+    now = timezone.now()
+    lookback_start = now - timedelta(days=14)
+
+    base_queryset = (
+        Post.objects
+        .select_related('user', 'user__profile')
+        .prefetch_related('likes', 'bookmarks', 'repost_users')
+        .filter(created_at__gte=lookback_start)
+        .order_by('-created_at')[:candidate_limit]
+    )
+    candidates = list(base_queryset)
+
+    if not candidates:
+        candidates = list(
+            Post.objects
+            .select_related('user', 'user__profile')
+            .prefetch_related('likes', 'bookmarks', 'repost_users')
+            .order_by('-created_at')[:candidate_limit]
+        )
+
+    scored_candidates = []
+    for post in candidates:
+        score = _compute_global_feed_score(post, now)
+        scored_candidates.append((score, post))
+
+    scored_candidates.sort(key=lambda item: (item[0], item[1].created_at), reverse=True)
+
+    selected = []
+    deferred = []
+    author_counts = {}
+    last_was_media = None
+    same_media_streak = 0
+
+    for score, post in scored_candidates:
+        author_id = post.user_id
+        author_limit = 2 if len(selected) < 20 else 4
+
+        if author_counts.get(author_id, 0) >= author_limit:
+            deferred.append((score, post))
+            continue
+
+        is_media = bool(post.image or post.video)
+        if last_was_media is not None and is_media == last_was_media and same_media_streak >= 4:
+            deferred.append((score, post))
+            continue
+
+        selected.append(post)
+        author_counts[author_id] = author_counts.get(author_id, 0) + 1
+
+        if last_was_media is None or is_media != last_was_media:
+            same_media_streak = 1
+            last_was_media = is_media
+        else:
+            same_media_streak += 1
+
+        if len(selected) >= limit:
+            return selected
+
+    for _, post in deferred:
+        author_id = post.user_id
+        if author_counts.get(author_id, 0) >= 5:
+            continue
+
+        selected.append(post)
+        author_counts[author_id] = author_counts.get(author_id, 0) + 1
+        if len(selected) >= limit:
+            break
+
+    return selected
 
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def get_posts(request):
     if request.method == 'GET':
-        posts = Post.objects.select_related('user').all().order_by('-created_at')
+        feed_mode = (request.query_params.get('feed') or 'global').strip().lower()
+        limit_param = request.query_params.get('limit')
+
+        try:
+            limit = int(limit_param) if limit_param is not None else 180
+        except (TypeError, ValueError):
+            limit = 180
+        limit = max(20, min(limit, 300))
+
+        if feed_mode == 'latest':
+            posts = (
+                Post.objects
+                .select_related('user', 'user__profile')
+                .prefetch_related('likes', 'bookmarks', 'repost_users')
+                .order_by('-created_at')[:limit]
+            )
+        else:
+            posts = _build_global_feed_posts(limit=limit)
+
         serializer = PostSerializer(posts, many=True, context={'request': request})
         return response.Response(serializer.data)
 

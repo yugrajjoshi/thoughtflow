@@ -1,5 +1,5 @@
 import { House, UserRound, Search, Mail, LogOut, ArrowLeft, CalendarClockIcon,Balloon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import ProfileEditCard from "../components/profileeditcard";
 import PostCard from "../components/PostCard";
 import RepostedPost from "../components/repostedpost";
@@ -55,8 +55,33 @@ function Profile() {
         window.location.href = path;
     };
 
+    // Fetches all posts and keeps only those created by the current profile user.
+    const loadUserPosts = useCallback(async (username) => {
+        const token = getCleanToken();
+        if (!token || !username) return;
+
+        try {
+            const response = await fetch(`${API_BASE}/api/posts/`, {
+                method: "GET",
+                headers: {
+                    Authorization: "Token " + token,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Request failed with status ${response.status}`);
+            }
+
+            const allPosts = await response.json();
+            const onlyUserPosts = allPosts.filter((post) => post.username === username);
+            setUserPosts(onlyUserPosts);
+        } catch (error) {
+            console.error("Failed to fetch user posts:", error);
+        }
+    }, []);
+
     // Fetches current user profile, then loads posts for that user.
-    const loadProfile = async () => {
+    const loadProfile = useCallback(async () => {
         const token = getCleanToken();
         if (!token) return;
 
@@ -79,34 +104,9 @@ function Profile() {
         } catch (error) {
             console.error("Failed to fetch user profile:", error);
         }
-    };
+    }, [loadUserPosts, loadRelationshipLists]);
 
-    // Fetches all posts and keeps only those created by the current profile user.
-    const loadUserPosts = async (username) => {
-        const token = getCleanToken();
-        if (!token || !username) return;
-
-        try {
-            const response = await fetch(`${API_BASE}/api/posts/`, {
-                method: "GET",
-                headers: {
-                    Authorization: "Token " + token,
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error(`Request failed with status ${response.status}`);
-            }
-
-            const allPosts = await response.json();
-            const onlyUserPosts = allPosts.filter((post) => post.username === username);
-            setUserPosts(onlyUserPosts);
-        } catch (error) {
-            console.error("Failed to fetch user posts:", error);
-        }
-    };
-
-    const loadRelationshipLists = async (username) => {
+    const loadRelationshipLists = useCallback(async (username) => {
         const token = getCleanToken();
         if (!token || !username) return;
 
@@ -141,7 +141,7 @@ function Profile() {
         } finally {
             setRelationshipLoading(false);
         }
-    };
+    }, []);
 
 
 
@@ -167,7 +167,7 @@ function Profile() {
     // Initial page load: fetch profile and user-specific posts.
     useEffect(() => {
         loadProfile();
-    }, []);
+    }, [loadProfile]);
 
     // Opens profile edit modal.
     const openEdit = () => {

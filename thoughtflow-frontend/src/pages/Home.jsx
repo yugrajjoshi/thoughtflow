@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Search } from "lucide-react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import CreatePost from "../components/Createpost";
 import PostCard from '../components/PostCard';
 import PostView from "../components/postview";
@@ -9,6 +9,7 @@ import SidebarNav from "../components/SidebarNav";
 import ProfileSection from "../components/ProfileSection";
 
 const API_BASE = "http://127.0.0.1:8000";
+const HOME_UI_STATE_KEY = "thoughtflow_home_ui_state";
 
 const getCleanToken = () => {
   const rawToken = localStorage.getItem("token");
@@ -81,22 +82,77 @@ function Home() {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [followingIds, setFollowingIds] = useState([]);
   const [posts, setPosts] = useState([]);
-  const [activeButton, setActiveButton] = useState(location.pathname.startsWith("/profile") ? "profile" : "home");
-  const [feedTab, setFeedTab] = useState("For You");
+  const [activeButton, setActiveButton] = useState(() => {
+    if (location.pathname.startsWith("/profile")) {
+      return "profile";
+    }
+
+    try {
+      const savedState = JSON.parse(sessionStorage.getItem(HOME_UI_STATE_KEY) || "{}");
+      const savedButton = savedState?.activeButton;
+      if (["home", "chats", "bookmarks"].includes(savedButton)) {
+        return savedButton;
+      }
+    } catch (error) {
+      console.error("Failed to read saved home UI state:", error);
+    }
+
+    return "home";
+  });
+  const [feedTab, setFeedTab] = useState(() => {
+    try {
+      const savedState = JSON.parse(sessionStorage.getItem(HOME_UI_STATE_KEY) || "{}");
+      const savedFeedTab = savedState?.feedTab;
+      if (savedFeedTab === "Following" || savedFeedTab === "For You") {
+        return savedFeedTab;
+      }
+    } catch (error) {
+      console.error("Failed to read saved feed tab:", error);
+    }
+
+    return "For You";
+  });
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
   const [feedError, setFeedError] = useState("");
   const [selectedPost, setSelectedPost] = useState(null);
   const [deletingPostIds, setDeletingPostIds] = useState([]);
   const [selectedChatUser, setSelectedChatUser] = useState(null);
-  const [selectedConversationId, setSelectedConversationId] = useState(null);
+  const [selectedConversationId, setSelectedConversationId] = useState(() => {
+    try {
+      const savedState = JSON.parse(sessionStorage.getItem(HOME_UI_STATE_KEY) || "{}");
+      const savedConversationId = Number(savedState?.selectedConversationId);
+      return Number.isFinite(savedConversationId) && savedConversationId > 0 ? savedConversationId : null;
+    } catch (error) {
+      console.error("Failed to read saved selected conversation:", error);
+      return null;
+    }
+  });
   const [chatConversations, setChatConversations] = useState([]);
   const [chatPeopleResults, setChatPeopleResults] = useState([]);
-  const [isLoadingChatUsers, setIsLoadingChatUsers] = useState(false);
-  const [chatSearchQuery, setChatSearchQuery] = useState("");
+  const [chatSearchQuery, setChatSearchQuery] = useState(() => {
+    try {
+      const savedState = JSON.parse(sessionStorage.getItem(HOME_UI_STATE_KEY) || "{}");
+      return typeof savedState?.chatSearchQuery === "string" ? savedState.chatSearchQuery : "";
+    } catch (error) {
+      console.error("Failed to read saved chat search query:", error);
+      return "";
+    }
+  });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [uiNotice, setUiNotice] = useState({ type: "", message: "" });
+  const [deletePostConfirmId, setDeletePostConfirmId] = useState(null);
+  const [sharePickerState, setSharePickerState] = useState({ open: false, post: null, query: "" });
 
-  const goTo = (path) => {
+  const showUiNotice = useCallback((type, message) => {
+    setUiNotice({ type, message });
+    window.setTimeout(() => {
+      setUiNotice((current) => (current.message === message ? { type: "", message: "" } : current));
+    }, 2600);
+  }, []);
+
+  const goTo = useCallback((path) => {
     navigate(path);
-  };
+  }, [navigate]);
 
   const handleSelectChatUser = async (person) => {
     const normalizedPerson = normalizeChatPerson(person);
@@ -112,6 +168,7 @@ function Home() {
 
     const token = getCleanToken();
     if (!token) {
+      setDeletePostConfirmId(null);
       return;
     }
 
@@ -146,6 +203,93 @@ function Home() {
     }
   };
 
+  const ensureConversationWithUsername = async (username) => {
+    const token = getCleanToken();
+    if (!token || !username) {
+      return null;
+    }
+
+    const response = await fetch(`${API_BASE}/api/chat/conversations/start/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Token " + token,
+      },
+      body: JSON.stringify({ username }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to start conversation: ${response.status}`);
+    }
+
+    const conversationData = await response.json();
+    return normalizeConversation(conversationData);
+  };
+
+  const sharePostToUser = async ({ post, targetUsername }) => {
+    if (!post?.id || !targetUsername) {
+      return;
+    }
+
+    const token = getCleanToken();
+    if (!token) {
+      return;
+    }
+
+    const normalizedConversation = await ensureConversationWithUsername(targetUsername);
+    if (!normalizedConversation?.conversationId) {
+      throw new Error("Conversation was not created");
+    }
+
+    const payload = new FormData();
+    payload.append("content", `Shared a post from @${post?.username || "user"}`);
+    payload.append("shared_post_id", String(post.id));
+
+    const sendResponse = await fetch(`${API_BASE}/api/chat/conversations/${normalizedConversation.conversationId}/messages/`, {
+      method: "POST",
+      headers: {
+        Authorization: "Token " + token,
+      },
+      body: payload,
+    });
+
+    if (!sendResponse.ok) {
+      throw new Error(`Failed to share post in chat: ${sendResponse.status}`);
+    }
+
+    setSelectedConversationId(normalizedConversation.conversationId);
+    setSelectedChatUser(normalizedConversation);
+    setActiveButton("chats");
+    await fetchChatConversations();
+  };
+
+  const handleSharePost = async (post) => {
+    if (!post?.id) {
+      return;
+    }
+
+    setSharePickerState({ open: true, post, query: "" });
+    if (chatConversations.length === 0) {
+      await fetchChatConversations();
+    }
+  };
+
+  const handleSelectShareRecipient = async (person) => {
+    const targetUsername = person?.username;
+    if (!targetUsername || !sharePickerState?.post?.id) {
+      return;
+    }
+
+    try {
+      await sharePostToUser({ post: sharePickerState.post, targetUsername });
+      showUiNotice("success", `Post shared with @${targetUsername}`);
+      setSharePickerState({ open: false, post: null, query: "" });
+    } catch (error) {
+      console.error("Failed to share post:", error);
+      showUiNotice("error", "Could not share this post right now.");
+    }
+  };
+
   useEffect(() => {
     const token = getCleanToken();
     setLoginStatus(Boolean(token));
@@ -153,11 +297,7 @@ function Home() {
     if (!token) {
       goTo("/");
     }
-  }, [loginStatus]);
-
-  if (!loginStatus) {
-    return null;
-  }
+  }, [loginStatus, goTo]);
 
   useEffect(() => {
     if (location.pathname.startsWith("/profile")) {
@@ -168,9 +308,29 @@ function Home() {
     if (activeButton === "profile") {
       setActiveButton("home");
     }
-  }, [location.pathname]);
+  }, [location.pathname, activeButton]);
 
-  const fetchProfile = async () => {
+  useEffect(() => {
+    if (location.pathname.startsWith("/profile")) {
+      return;
+    }
+
+    try {
+      sessionStorage.setItem(
+        HOME_UI_STATE_KEY,
+        JSON.stringify({
+          activeButton,
+          feedTab,
+          selectedConversationId,
+          chatSearchQuery,
+        })
+      );
+    } catch (error) {
+      console.error("Failed to save home UI state:", error);
+    }
+  }, [activeButton, feedTab, selectedConversationId, chatSearchQuery, location.pathname]);
+
+  const fetchProfile = useCallback(async () => {
     try {
       const token = getCleanToken();
       const response = await fetch(`${API_BASE}/api/profile/`, {
@@ -192,9 +352,9 @@ function Home() {
     } catch (error) {
       console.error("Failed to fetch user profile:", error);
     }
-  };
+  }, []);
 
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
     try {
       setIsLoadingPosts(true);
       setFeedError("");
@@ -239,14 +399,14 @@ function Home() {
     } finally {
       setIsLoadingPosts(false);
     }
-  };
+  }, [goTo]);
 
   useEffect(() => {
     fetchProfile();
     fetchPosts();
-  }, []);
+  }, [fetchProfile, fetchPosts]);
 
-  const fetchChatConversations = async () => {
+  const fetchChatConversations = useCallback(async () => {
     const token = getCleanToken();
     if (!token) {
       return;
@@ -280,15 +440,14 @@ function Home() {
       setChatConversations([]);
       setSelectedConversationId(null);
     }
-  };
+  }, []);
 
-  const fetchChatPeople = async (query) => {
+  const fetchChatPeople = useCallback(async (query) => {
     const token = getCleanToken();
     if (!token) {
       return;
     }
 
-    setIsLoadingChatUsers(true);
     try {
       const encodedQuery = encodeURIComponent(query || "");
       const response = await fetch(`${API_BASE}/api/chat/users/search/?q=${encodedQuery}`, {
@@ -309,10 +468,8 @@ function Home() {
     } catch (error) {
       console.error("Failed to fetch chat users:", error);
       setChatPeopleResults([]);
-    } finally {
-      setIsLoadingChatUsers(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (activeButton !== "chats") {
@@ -320,7 +477,7 @@ function Home() {
     }
 
     fetchChatConversations();
-  }, [activeButton]);
+  }, [activeButton, fetchChatConversations]);
 
   useEffect(() => {
     if (activeButton !== "chats") {
@@ -332,7 +489,7 @@ function Home() {
     }, 3000);
 
     return () => clearInterval(pollId);
-  }, [activeButton]);
+  }, [activeButton, fetchChatConversations]);
 
   useEffect(() => {
     if (activeButton !== "chats") {
@@ -340,7 +497,7 @@ function Home() {
     }
 
     fetchChatPeople(chatSearchQuery);
-  }, [activeButton, chatSearchQuery]);
+  }, [activeButton, chatSearchQuery, fetchChatPeople]);
 
   useEffect(() => {
     const selectedConversation = chatConversations.find((conversation) => conversation.conversationId === selectedConversationId) || null;
@@ -371,7 +528,6 @@ function Home() {
     goTo("/");
   }
 
-  const [searchQuery, setSearchQuery] = useState("");
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
 
   const filteredPosts = posts.filter((post) => {
@@ -452,6 +608,16 @@ function Home() {
 
     return !conversationUsernames.has(username);
   });
+  const filteredShareRecipients = chatConversations.filter((person) => {
+    const query = (sharePickerState.query || "").trim().toLowerCase();
+    if (!query) {
+      return true;
+    }
+
+    const username = (person?.username || "").toLowerCase();
+    const displayName = (person?.displayName || "").toLowerCase();
+    return username.includes(query) || displayName.includes(query);
+  });
   const visiblePosts = isBookmarksView
     ? filteredPosts.filter((post) => Boolean(post?.is_bookmarked))
     : isFollowingView
@@ -517,13 +683,17 @@ function Home() {
       return;
     }
 
-    const token = getCleanToken();
-    if (!token) {
+    setDeletePostConfirmId(postId);
+  };
+
+  const handleConfirmDeletePost = async () => {
+    const postId = deletePostConfirmId;
+    if (!postId) {
       return;
     }
 
-    const shouldDelete = window.confirm("Delete this post? This action cannot be undone.");
-    if (!shouldDelete) {
+    const token = getCleanToken();
+    if (!token) {
       return;
     }
 
@@ -543,10 +713,13 @@ function Home() {
 
       setPosts((currentPosts) => currentPosts.filter((post) => post.id !== postId));
       setSelectedPost((currentPost) => (currentPost?.id === postId ? null : currentPost));
+      showUiNotice("success", "Post deleted.");
     } catch (error) {
       console.error("Failed to delete post:", error);
+      showUiNotice("error", "Failed to delete post.");
     } finally {
       setDeletingPostIds((current) => current.filter((id) => id !== postId));
+      setDeletePostConfirmId(null);
     }
   };
 
@@ -571,9 +744,29 @@ function Home() {
     setFollowingIds(Array.isArray(data?.following) ? data.following.map(String) : []);
   };
 
+  const handleOpenProfileFromChat = (event, username) => {
+    event.stopPropagation();
+    event.preventDefault();
+    if (!username) {
+      return;
+    }
+
+    setSelectedPost(null);
+    goTo(`/profile/${username}`);
+  };
+
+  if (!loginStatus) {
+    return null;
+  }
+
 
   return (
     <main className="bg-black w-full h-screen overflow-hidden">
+      {uiNotice.message ? (
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl border text-sm shadow-lg ${uiNotice.type === "error" ? "border-red-500/40 bg-red-900/40 text-red-200" : "border-green-500/40 bg-green-900/40 text-green-200"}`}>
+          {uiNotice.message}
+        </div>
+      ) : null}
       <SidebarNav activeButton={activeButton} onSelect={handleButtonClick} onLogout={handleLogout} />
 
       <section className="ml-[20%] flex h-screen w-[80%] overflow-hidden">
@@ -655,6 +848,7 @@ function Home() {
                     currentUserId={currentUserId}
                     onDeletePost={handleDeletePost}
                     onPostUpdated={handlePostUpdated}
+                    onSharePost={handleSharePost}
                     isDeletingPost={deletingPostIds.includes(post.id)}
                   />
                 ))
@@ -697,9 +891,8 @@ function Home() {
                         : "";
 
                       return (
-                        <button
+                        <div
                           key={`conversation-${person.username}`}
-                          type="button"
                           onClick={() => handleSelectChatUser(person)}
                           className={`w-full flex items-center gap-3 px-4 py-3 text-left border-b border-zinc-900/70 transition ${isSelected ? "bg-zinc-900" : "hover:bg-zinc-900/80"}`}
                         >
@@ -707,8 +900,20 @@ function Home() {
                             {imageSrc ? <img src={imageSrc} alt={person.username} className="w-full h-full object-cover" /> : null}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-white font-semibold truncate">{person.displayName || person.username}</p>
-                            <p className="text-sm text-zinc-500 truncate">@{person.username}</p>
+                            <Link
+                              to={`/profile/${person.username}`}
+                              className="inline-flex max-w-fit text-white font-semibold truncate hover:underline"
+                              onClick={(event) => handleOpenProfileFromChat(event, person.username)}
+                            >
+                              {person.displayName || person.username}
+                            </Link>
+                            <Link
+                              to={`/profile/${person.username}`}
+                              className="mt-0.5 inline-flex max-w-fit text-sm text-zinc-500 truncate hover:underline"
+                              onClick={(event) => handleOpenProfileFromChat(event, person.username)}
+                            >
+                              @{person.username}
+                            </Link>
                           </div>
                           {Number(person.unreadCount) > 0 ? (
                             <div className="ml-2 flex items-center gap-2 shrink-0">
@@ -716,7 +921,7 @@ function Home() {
                               <span className="text-[11px] font-semibold text-blue-300">{person.unreadCount}</span>
                             </div>
                           ) : null}
-                        </button>
+                        </div>
                       );
                     })}
                   </section>
@@ -731,9 +936,8 @@ function Home() {
                         : "";
 
                       return (
-                        <button
+                        <div
                           key={`new-chat-${person.username}`}
-                          type="button"
                           onClick={() => handleSelectChatUser(person)}
                           className="w-full flex items-center gap-3 px-4 py-3 text-left border border-zinc-900 rounded-xl hover:bg-zinc-900/80 transition"
                         >
@@ -741,10 +945,22 @@ function Home() {
                             {imageSrc ? <img src={imageSrc} alt={person.username} className="w-full h-full object-cover" /> : null}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-white font-semibold truncate">{person.displayName || person.username}</p>
-                            <p className="text-sm text-zinc-500 truncate">@{person.username}</p>
+                            <Link
+                              to={`/profile/${person.username}`}
+                              className="inline-flex max-w-fit text-white font-semibold truncate hover:underline"
+                              onClick={(event) => handleOpenProfileFromChat(event, person.username)}
+                            >
+                              {person.displayName || person.username}
+                            </Link>
+                            <Link
+                              to={`/profile/${person.username}`}
+                              className="mt-0.5 inline-flex max-w-fit text-sm text-zinc-500 truncate hover:underline"
+                              onClick={(event) => handleOpenProfileFromChat(event, person.username)}
+                            >
+                              @{person.username}
+                            </Link>
                           </div>
-                        </button>
+                        </div>
                       );
                     })}
                   </section>
@@ -818,6 +1034,87 @@ function Home() {
           )}
       </aside>
       </section>
+
+      {sharePickerState.open ? (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-zinc-700 bg-zinc-950 p-5">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-lg font-semibold text-white">Share Post</h3>
+              <button
+                type="button"
+                onClick={() => setSharePickerState({ open: false, post: null, query: "" })}
+                className="text-zinc-400 hover:text-white"
+              >
+                Close
+              </button>
+            </div>
+
+            <p className="mt-1 text-sm text-zinc-500">Choose someone you already chatted with.</p>
+
+            <input
+              type="text"
+              value={sharePickerState.query}
+              onChange={(event) => setSharePickerState((current) => ({ ...current, query: event.target.value }))}
+              placeholder="Search chat people"
+              className="mt-4 w-full rounded-xl border border-zinc-700 bg-black px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-500 focus:outline-none"
+            />
+
+            <div className="mt-4 max-h-72 overflow-y-auto posts-scrollbar flex flex-col gap-2">
+              {filteredShareRecipients.length > 0 ? (
+                filteredShareRecipients.map((person) => {
+                  const imageSrc = person.profileImage
+                    ? (person.profileImage.startsWith("http") ? person.profileImage : `${API_BASE}${person.profileImage}`)
+                    : "";
+
+                  return (
+                    <button
+                      key={`share-recipient-${person.username}`}
+                      type="button"
+                      onClick={() => handleSelectShareRecipient(person)}
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-xl border border-zinc-800 text-left hover:bg-zinc-900"
+                    >
+                      <div className="w-10 h-10 rounded-full overflow-hidden bg-zinc-800 shrink-0">
+                        {imageSrc ? <img src={imageSrc} alt={person.username} className="w-full h-full object-cover" /> : null}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm text-white font-medium truncate">{person.displayName || person.username}</p>
+                        <p className="text-xs text-zinc-500 truncate">@{person.username}</p>
+                      </div>
+                    </button>
+                  );
+                })
+              ) : (
+                <p className="text-sm text-zinc-500 py-8 text-center">No existing chat people found.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {deletePostConfirmId ? (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-950 p-5">
+            <h3 className="text-lg font-semibold text-white">Delete Post</h3>
+            <p className="mt-2 text-sm text-zinc-400">Delete this post? This action cannot be undone.</p>
+            <div className="mt-5 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setDeletePostConfirmId(null)}
+                className="px-4 py-2 rounded-lg border border-zinc-700 text-zinc-300 hover:bg-zinc-900"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeletePost}
+                className="px-4 py-2 rounded-lg bg-white text-black font-semibold"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

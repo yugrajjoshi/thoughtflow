@@ -1,11 +1,11 @@
 import React from "react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import PostCard from "./PostCard";
 import CommentCard from "./commentcard";
 
-function CommentView({ postId }) {
-    const [post, setPost] = useState(null);
-    const [comments, setComments] = useState([]);
+function CommentView() {
+    const [post] = useState(null);
+    const [comments] = useState([]);
 
     return(
         <main className="w-full h-auto flex flex-col gap-5">

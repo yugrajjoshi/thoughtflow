@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
     ArrowLeft,
@@ -60,7 +60,7 @@ export default function ProfileView() {
         window.location.href = path;
     };
 
-    const loadUserPosts = async (targetUsername) => {
+    const loadUserPosts = useCallback(async (targetUsername) => {
         const token = getCleanToken();
         if (!token || !targetUsername) return;
 
@@ -82,9 +82,9 @@ export default function ProfileView() {
         } catch (error) {
             console.error("Failed to fetch user posts:", error);
         }
-    };
+    }, []);
 
-    const loadRelationshipLists = async (targetUsername) => {
+    const loadRelationshipLists = useCallback(async (targetUsername) => {
         const token = getCleanToken();
         if (!token || !targetUsername) return;
 
@@ -119,9 +119,9 @@ export default function ProfileView() {
         } finally {
             setRelationshipLoading(false);
         }
-    };
+    }, []);
 
-    const loadVisitedProfile = async () => {
+    const loadVisitedProfile = useCallback(async () => {
         const token = getCleanToken();
         if (!token || !username) return;
 
@@ -145,7 +145,7 @@ export default function ProfileView() {
         } catch (error) {
             console.error("Failed to fetch visited user profile:", error);
         }
-    };
+    }, [username, loadUserPosts, loadRelationshipLists]);
 
     const toggleRelationshipTab = (tabName) => {
         setRelationshipTab((currentTab) => (currentTab === tabName ? null : tabName));
@@ -233,7 +233,7 @@ export default function ProfileView() {
 
     useEffect(() => {
         loadVisitedProfile();
-    }, [username]);
+    }, [loadVisitedProfile]);
 
     return (
         <main className="bg-black w-full h-screen">

@@ -8,6 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from .models import Conversation, ConversationParticipant, Message
 from .serializers import ConversationSerializer, MessageSerializer, UserSummarySerializer
+from posts.models import Post
 
 
 def _user_in_conversation(conversation, user):
@@ -80,15 +81,29 @@ def conversation_messages(request, conversation_id):
 			Message.objects
 			.filter(conversation=conversation)
 			.exclude(deleted_for=request.user)
-			.select_related('sender', 'reply_to', 'reply_to__sender')
+			.select_related('sender', 'reply_to', 'reply_to__sender', 'shared_post', 'shared_post__user', 'shared_post__user__profile')
 			.order_by('created_at')
 		)
 		serializer = MessageSerializer(messages, many=True, context={'request': request})
 		return response.Response(serializer.data)
 
 	content = (request.data.get('content') or '').strip()
-	if not content:
-		return response.Response({'error': 'Message content cannot be empty'}, status=status.HTTP_400_BAD_REQUEST)
+	image = request.FILES.get('image')
+	video = request.FILES.get('video')
+	shared_post_id = request.data.get('shared_post_id')
+	shared_post = None
+
+	if shared_post_id:
+		try:
+			shared_post = Post.objects.get(id=shared_post_id)
+		except Post.DoesNotExist:
+			return response.Response({'error': 'Shared post not found'}, status=status.HTTP_400_BAD_REQUEST)
+
+	if not any([content, image, video, shared_post]):
+		return response.Response(
+			{'error': 'Message must include text, image, video, or a shared post'},
+			status=status.HTTP_400_BAD_REQUEST,
+		)
 
 	reply_to_id = request.data.get('reply_to_id')
 	reply_to_message = None
@@ -102,6 +117,9 @@ def conversation_messages(request, conversation_id):
 		conversation=conversation,
 		sender=request.user,
 		content=content,
+		image=image,
+		video=video,
+		shared_post=shared_post,
 		reply_to=reply_to_message,
 	)
 	conversation.last_message_at = timezone.now()

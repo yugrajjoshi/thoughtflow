@@ -11,8 +11,35 @@ const getCleanToken = () => {
 };
 
 
-function PostCard({ post, onClick, currentUsername, currentUserId, onDeletePost, onPostUpdated, isDeletingPost = false }) {
-    const createdAt = post?.created_at ? new Date(post.created_at).toLocaleString() : "";
+function PostCard({ post, onClick, currentUsername, currentUserId, onDeletePost, onPostUpdated, onSharePost, isDeletingPost = false }) {
+    const getRelativePostTime = (value) => {
+        if (!value) return "";
+        const created = new Date(value);
+        if (Number.isNaN(created.getTime())) return "";
+
+        const seconds = Math.max(1, Math.floor((Date.now() - created.getTime()) / 1000));
+        if (seconds < 60) return "just now";
+
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes}m ago`;
+
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours}h ago`;
+
+        const days = Math.floor(hours / 24);
+        if (days < 7) return `${days}d ago`;
+
+        const weeks = Math.floor(days / 7);
+        if (weeks < 5) return `${weeks}w ago`;
+
+        const months = Math.floor(days / 30);
+        if (months < 12) return `${months}mo ago`;
+
+        const years = Math.floor(days / 365);
+        return `${years}y ago`;
+    };
+
+    const createdAt = getRelativePostTime(post?.created_at);
     const [liked, setLiked] = useState(Boolean(post?.is_liked));
     const [reposted, setReposted] = useState(Boolean(post?.is_reposted));
     const [bookmarked, setBookmarked] = useState(Boolean(post?.is_bookmarked));
@@ -217,6 +244,13 @@ function PostCard({ post, onClick, currentUsername, currentUserId, onDeletePost,
         }
     };
 
+    const handleShareClick = (event) => {
+        event.stopPropagation();
+        if (typeof onSharePost === "function" && post?.id) {
+            onSharePost(post);
+        }
+    };
+
     return (
         <section
             className={`w-full  p-2 h-auto transition-all duration-200 roundeed-lg hover:bg-zinc-950 border-t border-l border-r border-b border-zinc-800 ${onClick ? "cursor-pointer" : ""}`}
@@ -327,7 +361,7 @@ function PostCard({ post, onClick, currentUsername, currentUserId, onDeletePost,
                 </button>
                 <span className="text-zinc-600" >{bookmarksCount}</span>
                 </div>
-                <button className="text-zinc-400  hover:text-zinc-500" onClick={handleStopPropagation}>
+                <button className="text-zinc-400  hover:text-zinc-500" onClick={handleShareClick}>
                     <Share2 className="w-5 h-5" />
                 </button>
                 </div>

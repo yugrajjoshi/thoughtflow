@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.db import models
+from posts.models import Post
 
 
 class Conversation(models.Model):
@@ -54,7 +55,16 @@ class Message(models.Model):
         null=True,
         blank=True,
     )
+    shared_post = models.ForeignKey(
+        Post,
+        on_delete=models.SET_NULL,
+        related_name='shared_in_messages',
+        null=True,
+        blank=True,
+    )
     content = models.TextField()
+    image = models.ImageField(upload_to='chat/messages/images/', null=True, blank=True)
+    video = models.FileField(upload_to='chat/messages/videos/', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     read_at = models.DateTimeField(null=True, blank=True)
     deleted_for_everyone = models.BooleanField(default=False)

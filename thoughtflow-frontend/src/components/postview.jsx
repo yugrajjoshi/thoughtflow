@@ -1,46 +1,42 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { ArrowLeft, MessageCircle } from "lucide-react";
 import PostCard from "./PostCard";
-import CommentView from "./commentViews";
 import CommentCard from "./commentcard";
 import CreateCommentCard from "./CreateCommentCard";
 
-const API_BASE = "http://127.0.0.1:8000";
-
-const getCleanToken = () => {
-    const rawToken = localStorage.getItem("token");
-    return rawToken ? rawToken.replace(/^"|"$/g, "").trim() : "";
-};
-
 function PostView({ post, onBack, currentUsername, currentUserId, currentUserProfilePicture, onDeletePost, onPostUpdated, isDeletingPost }) {
 	const [comments, setComments] = useState(post?.comments || []);
-	const [postData, setPostData] = useState(post);
 	const createdAt = post?.created_at ? new Date(post.created_at).toLocaleString() : "";
-
-	useEffect(() => {
-		setPostData(post);
-		setComments(post?.comments || []);
-	}, [post]);
+	const postData = {
+		...post,
+		comments,
+		comments_count: comments.length,
+	};
 
 	const handleCommentCreated = async (result) => {
 		if (result?.comment) {
-			setComments([result.comment, ...comments]);
-		}
-		// Refresh post data to get updated comments_count
-		if (result?.comments_count !== undefined) {
-			setPostData(prev => ({
-				...prev,
-				comments_count: result.comments_count
-			}));
+			setComments((currentComments) => {
+				const nextComments = [result.comment, ...currentComments];
+				if (typeof onPostUpdated === "function" && post?.id) {
+					onPostUpdated(post.id, {
+						comments_count: result?.comments_count ?? nextComments.length,
+					});
+				}
+				return nextComments;
+			});
 		}
 	};
 
 	const handleCommentDeleted = (deletedCommentId) => {
-		setComments(comments.filter(c => c.id !== deletedCommentId));
-		setPostData(prev => ({
-			...prev,
-			comments_count: Math.max(0, (prev.comments_count || 0) - 1)
-		}));
+		setComments((currentComments) => {
+			const nextComments = currentComments.filter((comment) => comment.id !== deletedCommentId);
+			if (typeof onPostUpdated === "function" && post?.id) {
+				onPostUpdated(post.id, {
+					comments_count: nextComments.length,
+				});
+			}
+			return nextComments;
+		});
 	};
 
 	return (
@@ -65,7 +61,6 @@ function PostView({ post, onBack, currentUsername, currentUserId, currentUserPro
 				currentUserId={currentUserId}
 				onDeletePost={onDeletePost}
 				onPostUpdated={(postId, changes) => {
-					setPostData((prev) => (prev?.id === postId ? { ...prev, ...changes } : prev));
 					if (typeof onPostUpdated === "function") {
 						onPostUpdated(postId, changes);
 					}

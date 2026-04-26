@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CalendarClockIcon, Balloon, Search } from "lucide-react";
 import PostCard from "./PostCard";
 import ProfileEditCard from "./profileeditcard";
@@ -79,7 +79,7 @@ function ProfileSection({
             });
     }, [posts, usernameForPosts, userIdForPosts, userData?.name, userData?.username]);
 
-    const loadRelationshipLists = async (targetUsername) => {
+    const loadRelationshipLists = useCallback(async (targetUsername) => {
         const token = getCleanToken();
         if (!token || !targetUsername) return;
 
@@ -114,9 +114,9 @@ function ProfileSection({
         } finally {
             setRelationshipLoading(false);
         }
-    };
+    }, []);
 
-    const loadProfile = async () => {
+    const loadProfile = useCallback(async () => {
         const token = getCleanToken();
         if (!token) return;
 
@@ -147,11 +147,11 @@ function ProfileSection({
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [isOwnProfile, viewedUsername, loadRelationshipLists]);
 
     useEffect(() => {
         loadProfile();
-    }, [viewedUsername, currentUsername]);
+    }, [loadProfile]);
 
     const handleFollowAction = async () => {
         if (!viewedUsername) return;
