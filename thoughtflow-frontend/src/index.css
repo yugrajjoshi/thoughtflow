@@ -33,3 +33,331 @@ body {
 .posts-scrollbar::-webkit-scrollbar-thumb:hover {
 	background: #71717a;
 }
+
+/* ===== RESPONSIVE DESIGN - MOBILE FIRST ===== */
+
+/* ===== MOBILE (0px - 767px) ===== */
+@media (max-width: 767px) {
+  /* Main layout - stack vertically */
+  main.responsive-layout {
+    flex-direction: column;
+  }
+
+  /* Sidebar becomes fixed bottom navigation */
+  nav.responsive-sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    top: auto;
+    width: 100% !important;
+    height: auto;
+    max-height: 70px;
+    padding: 0 !important;
+    flex-direction: row;
+    justify-content: space-around;
+    border-top: 1px solid #27272a;
+    z-index: 40;
+    overflow-x: auto;
+  }
+
+  nav.responsive-sidebar header {
+    display: none;
+  }
+
+  nav.responsive-sidebar section {
+    flex-direction: row;
+    gap: 0;
+    margin-top: 0 !important;
+    width: 100%;
+    justify-content: space-around;
+  }
+
+  nav.responsive-sidebar button {
+    width: auto !important;
+    margin-left: 0 !important;
+    padding: 8px 12px !important;
+    font-size: 0.75rem !important;
+    gap: 0 !important;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    border-radius: 0 !important;
+    justify-content: center;
+  }
+
+  nav.responsive-sidebar button span,
+  nav.responsive-sidebar button svg {
+    margin: 0 !important;
+  }
+
+  nav.responsive-sidebar button svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  nav.responsive-sidebar button:last-child {
+    display: none;
+  }
+
+  /* Main content area - full width with bottom margin for nav */
+  section.responsive-main-section {
+    margin-left: 0 !important;
+    width: 100% !important;
+    margin-bottom: 70px;
+    flex-direction: column;
+  }
+
+  /* Feed article - full width */
+  article.responsive-feed {
+    width: 100% !important;
+    border-left: none !important;
+    border-right: none !important;
+  }
+
+  /* Right sidebar - hidden on mobile */
+  aside.responsive-aside {
+    display: none;
+    position: fixed;
+    bottom: 70px;
+    left: 0;
+    right: 0;
+    top: 0;
+    width: 100% !important;
+    height: auto !important;
+    max-height: calc(100vh - 70px);
+    border: none;
+    z-index: 30;
+    border-radius: 0;
+  }
+
+  /* Feed header tabs */
+  article.responsive-feed header {
+    height: auto !important;
+    gap: 0;
+  }
+
+  article.responsive-feed header button {
+    font-size: 0.875rem;
+    padding: 12px 8px !important;
+  }
+
+  /* Post cards - full width */
+  .post-card {
+    border-radius: 0;
+    margin-bottom: 1px;
+  }
+
+  /* Hide trending section on mobile */
+  .trending-section {
+    display: none;
+  }
+
+  /* Modals stay fixed */
+  .fixed {
+    z-index: 50;
+  }
+}
+
+/* ===== TABLET (768px - 1023px) ===== */
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* Sidebar width on tablet */
+  nav.responsive-sidebar {
+    width: 18% !important;
+  }
+
+  /* Adjust main section margin */
+  section.responsive-main-section {
+    margin-left: 18% !important;
+    width: 82% !important;
+  }
+
+  /* Feed takes 65% of remaining space */
+  article.responsive-feed {
+    width: 65% !important;
+  }
+
+  /* Right sidebar takes 35% */
+  aside.responsive-aside {
+    width: 35% !important;
+  }
+
+  /* Reduce text sizes slightly */
+  nav.responsive-sidebar button {
+    font-size: 1.25rem !important;
+    gap: 4px !important;
+  }
+
+  nav.responsive-sidebar button svg {
+    width: 7.5rem !important;
+    height: 7.5rem !important;
+  }
+
+  /* Trending section visible */
+  .trending-section {
+    display: block;
+  }
+}
+
+/* ===== DESKTOP (1024px and above) ===== */
+@media (min-width: 1024px) {
+  /* Keep original layout */
+  nav.responsive-sidebar {
+    width: 20% !important;
+  }
+
+  section.responsive-main-section {
+    margin-left: 20% !important;
+    width: 80% !important;
+  }
+
+  article.responsive-feed {
+    width: 60% !important;
+  }
+
+  aside.responsive-aside {
+    width: 40% !important;
+  }
+
+  /* Original styling preserved */
+  nav.responsive-sidebar button {
+    font-size: 1.25rem !important;
+    gap: 1.5rem !important;
+    width: 70% !important;
+  }
+}
+
+/* ===== UTILITY CLASSES ===== */
+
+/* Hide on mobile */
+.hide-mobile {
+  display: block;
+}
+
+@media (max-width: 767px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+/* Show only on mobile */
+.show-mobile-only {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .show-mobile-only {
+    display: block !important;
+  }
+}
+
+/* Hide on tablet and below */
+.hide-tablet-below {
+  display: block;
+}
+
+@media (max-width: 1023px) {
+  .hide-tablet-below {
+    display: none !important;
+  }
+}
+
+/* Responsive text sizes */
+@media (max-width: 767px) {
+  body, html {
+    font-size: 14px;
+  }
+
+  .text-2xl {
+    font-size: 1.25rem !important;
+  }
+
+  .text-xl {
+    font-size: 1.125rem !important;
+  }
+
+  .text-lg {
+    font-size: 1rem !important;
+  }
+
+  .gap-6 {
+    gap: 0.5rem !important;
+  }
+}
+
+/* Responsive spacing */
+@media (max-width: 767px) {
+  .p-6 {
+    padding: 1rem !important;
+  }
+
+  .p-5 {
+    padding: 0.875rem !important;
+  }
+
+  .px-5 {
+    padding-left: 0.875rem !important;
+    padding-right: 0.875rem !important;
+  }
+
+  .py-4 {
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+  }
+
+  .mt-5 {
+    margin-top: 0.875rem !important;
+  }
+}
+
+/* Touch-friendly spacing on mobile */
+@media (max-width: 767px) {
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .post-card {
+    min-height: auto;
+  }
+
+  .hover\:bg-zinc-800\/30:hover {
+    background-color: rgba(39, 39, 42, 0.3) !important;
+  }
+}
+
+/* Responsive grid adjustments */
+@media (max-width: 767px) {
+  .flex.flex-col {
+    width: 100%;
+  }
+
+  .overflow-hidden {
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+}
+
+/* Modal responsiveness */
+@media (max-width: 767px) {
+  .fixed.inset-0 {
+    padding: 1rem;
+  }
+
+  .max-w-lg {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .max-w-md {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+}
+
+/* Prevent horizontal scroll */
+@media (max-width: 767px) {
+  main, body, html {
+    overflow-x: hidden;
+    width: 100vw;
+  }
+}

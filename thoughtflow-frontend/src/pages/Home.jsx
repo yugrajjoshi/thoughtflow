@@ -621,7 +621,10 @@ function Home() {
   const visiblePosts = isBookmarksView
     ? filteredPosts.filter((post) => Boolean(post?.is_bookmarked))
     : isFollowingView
-      ? filteredPosts.filter((post) => followingIds.includes(String(post?.user)))
+      ? filteredPosts.filter((post) => {
+        const postUserId = post?.user && typeof post.user === 'object' ? post.user.id : post?.user;
+        return followingIds.includes(String(postUserId));
+      })
       : filteredPosts;
 
   const handleSelectPost = (post) => {
@@ -761,7 +764,7 @@ function Home() {
 
 
   return (
-    <main className="bg-black w-full h-screen overflow-hidden">
+    <main className="responsive-layout bg-black w-full h-screen overflow-hidden">
       {uiNotice.message ? (
         <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl border text-sm shadow-lg ${uiNotice.type === "error" ? "border-red-500/40 bg-red-900/40 text-red-200" : "border-green-500/40 bg-green-900/40 text-green-200"}`}>
           {uiNotice.message}
@@ -769,8 +772,8 @@ function Home() {
       ) : null}
       <SidebarNav activeButton={activeButton} onSelect={handleButtonClick} onLogout={handleLogout} />
 
-      <section className="ml-[20%] flex h-screen w-[80%] overflow-hidden">
-        <article className="flex flex-col h-screen w-[60%] text-white border-zinc-900 border-l border-r overflow-hidden">
+      <section className="responsive-main-section ml-[20%] flex h-screen w-[80%] overflow-hidden">
+        <article className="responsive-feed flex flex-col h-screen w-[60%] text-white border-zinc-900 border-l border-r overflow-hidden">
         {isMassangerView ? (
           <MassangerSection
             selectedUser={selectedChatUser}
@@ -861,7 +864,7 @@ function Home() {
           </>
         )}
         </article>
-        <aside className="flex flex-col border items-center w-[40%] h-screen text-white border-zinc-800 overflow-y-auto posts-scrollbar">
+        <aside className="responsive-aside flex flex-col border items-center w-[40%] h-screen text-white border-zinc-800 overflow-y-auto posts-scrollbar">
           {isMassangerView ? (
             <section className="w-full h-full flex flex-col">
               <div className="w-full border-b border-zinc-800 px-5 py-4 flex items-start justify-between gap-3">
@@ -1027,7 +1030,7 @@ function Home() {
                   </div>
                 </section>
               ) : null}
-              <section className="flex w-full mt-5 flex-col" >
+              <section className="trending-section flex w-full mt-5 flex-col" >
                 <div className="text-lg w-full border-b-[0.5px] border-zinc-800 p-5 font-bold text-left ">Trending</div>
               </section>
             </>
@@ -1035,7 +1038,24 @@ function Home() {
       </aside>
       </section>
 
-      {sharePickerState.open ? (
+      {activeButton === "search" ? (
+        <div className="fixed inset-0 z-50 bg-black/90 flex items-start justify-center p-4 md:hidden">
+          <div className="w-full max-w-lg rounded-2xl border border-zinc-700 bg-zinc-950 p-4">
+            <div className="flex items-center gap-2">
+              <Search className="w-5 h-5 text-zinc-400" />
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search posts or people"
+                className="flex-1 rounded-xl border border-zinc-700 bg-black px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-500 focus:outline-none"
+              />
+              <button type="button" onClick={() => setActiveButton('home')} className="text-zinc-400 hover:text-white">Close</button>
+            </div>
+
+            <div className="mt-3 text-sm text-zinc-500">Search results will appear here.</div>
+          </div>
+        </div>
+      ) : sharePickerState.open ? (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
           <div className="w-full max-w-lg rounded-2xl border border-zinc-700 bg-zinc-950 p-5">
             <div className="flex items-center justify-between gap-3">

@@ -3,7 +3,7 @@ import logo from "../assets/logo.svg";
 
 function SidebarNav({ activeButton, onSelect, onLogout }) {
     return (
-        <nav className="fixed top-0 left-0 h-screen w-[20%] bg-black overflow-hidden">
+        <nav className="responsive-sidebar fixed top-0 left-0 h-screen w-[20%] bg-black overflow-hidden">
             <header className="flex top-0 self-center w-[35%]">
                 <img
                     src={logo}
@@ -16,44 +16,56 @@ function SidebarNav({ activeButton, onSelect, onLogout }) {
                 <button
                     className={`text-white gap-6 text-2xl font-bold p-3 transition duration-300 ml-6 w-[70%] ${activeButton === "home" ? "bg-zinc-800/30" : "hover:bg-zinc-800/30"} rounded-4xl flex items-center`}
                     onClick={() => onSelect("home")}
+                    title="Home"
                 >
-                    <House className="w-9 h-9" />Home
+                    <House className="w-9 h-9" />
+                    <span className="hide-mobile">Home</span>
                 </button>
 
                 <button
                     className={`text-white gap-6 text-2xl font-bold p-3 transition duration-300 ml-6 w-[70%] ${activeButton === "profile" ? "bg-zinc-800/30" : "hover:bg-zinc-800/30"} rounded-4xl flex items-center`}
                     onClick={() => onSelect("profile")}
+                    title="Profile"
                 >
-                    <UserRound className="w-9 h-9" />Profile
+                    <UserRound className="w-9 h-9" />
+                    <span className="hide-mobile">Profile</span>
                 </button>
 
                 <button
-                    className={`text-white gap-6 text-2xl font-bold p-3 transition duration-300 ml-6 w-[70%] ${activeButton === "explore" ? "bg-zinc-800/30" : "hover:bg-zinc-800/30"} rounded-4xl flex items-center`}
-                    onClick={() => onSelect("explore")}
+                    className={`text-white gap-6 text-2xl font-bold p-3 transition duration-300 ml-6 w-[70%] show-mobile-only ${activeButton === "search" ? "bg-zinc-800/30" : "hover:bg-zinc-800/30"} rounded-4xl flex items-center`}
+                    onClick={() => onSelect("search")}
+                    title="Search"
                 >
-                    <Search className="w-9 h-9" />Explore
+                    <Search className="w-9 h-9" />
+                    <span className="hide-mobile">Search</span>
                 </button>
 
                 <button
                     className={`text-white gap-6 text-2xl font-bold p-3 transition duration-300 ml-6 w-[70%] ${activeButton === "chats" ? "bg-zinc-800/30" : "hover:bg-zinc-800/30"} rounded-4xl flex items-center`}
                     onClick={() => onSelect("chats")}
+                    title="Chats"
                 >
-                    <Mail className="w-9 h-9" />Chats
+                    <Mail className="w-9 h-9" />
+                    <span className="hide-mobile">Chats</span>
                 </button>
 
                 <button
                     onClick={() => onSelect("bookmarks")}
                     className={`text-white gap-6 text-2xl font-bold p-3 transition duration-300 ml-6 w-[70%] ${activeButton === "bookmarks" ? "bg-zinc-800/30" : "hover:bg-zinc-800/30"} rounded-4xl flex items-center`}
+                    title="Bookmarks"
                 >
-                    <Bookmark className="w-9 h-9" />Bookmarks
+                    <Bookmark className="w-9 h-9" />
+                    <span className="hide-mobile">Bookmarks</span>
                 </button>
             </section>
 
             <button
                 className="text-white gap-6 text-1xl font-bold p-3 transition duration-300 ml-6 w-[70%] hover:bg-zinc-800/30 hover:shadow-md rounded-4xl flex items-center"
                 onClick={onLogout}
+                title="Logout"
             >
-                <LogOut className="w-5 h-5" />Logout
+                <LogOut className="w-5 h-5" />
+                <span className="hide-mobile">Logout</span>
             </button>
         </nav>
     );

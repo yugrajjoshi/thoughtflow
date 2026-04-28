@@ -250,7 +250,7 @@ function Profile() {
                             )}
                         </section>
 
-                        <div className="border-6 rounded-full absolute left-10 top-65 md:top-65 border-black w-45 h-45 z-10">
+                        <div className="border-6 rounded-full absolute left-8 top-60 md:left-10 md:top-55 border-black w-45 h-45 z-10">
                             {profilePicture ? (
                                 <img src={profilePicture} alt="Profile Image" className="w-full h-full object-cover rounded-full" />
                             ) : (
@@ -262,7 +262,7 @@ function Profile() {
                             <div className="flex flex-col w-full h-full mt-20 pl-5 pr-5 pt-5 gap-2">
                                 <div className="flex items-start justify-between w-full">
                                     <div>
-                                        <h1 className="text-3xl font-bold">{userData?.name}</h1>
+                                        <h1 className=" font-semibold">{userData?.name}</h1>
                                         <h3 className=" text-zinc-500 ">@{userData?.username}</h3>
                                     </div>
                                     

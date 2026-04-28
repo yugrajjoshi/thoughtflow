@@ -311,60 +311,61 @@ function PostCard({ post, onClick, currentUsername, currentUserId, onDeletePost,
                     )}
                </div>
                </div>
-               <div 
-                className="flex   ml-18 mt-10 border-zinc-800 justify-between gap-5 pr-5  w-[90%] p-3">
-               <div className="flex gap-2 justify-center items-center" >
-                <button className="text-zinc-400 hover:text-zinc-500" onClick={handleCommentClick}>
-                    <MessageCircle className="w-5 h-5" />
-                </button>
-                <span className="text-zinc-600" >{commentsCount}</span>
+               <div className="mt-2 mb-2 flex w-full items-center justify-between gap-2 px-4 pl-16 md:pl-20 pr-4 overflow-hidden">
+                <div className="flex min-w-0 flex-1 items-center justify-center gap-2 text-zinc-400">
+                    <button className="text-zinc-400 hover:text-zinc-500" onClick={handleCommentClick}>
+                        <MessageCircle className="w-5 h-5" />
+                    </button>
+                    <span className="text-zinc-500 text-sm min-w-5.5 text-right">{commentsCount}</span>
                 </div>
-                <div className="flex gap-2 justify-center items-center" >
-                <button 
-                onClick={(event) => {
-                    event.stopPropagation();
-                    toggleRepost();
-                }}
-                disabled={repostLoading}
-                className={`flex gap-2 transition-colors ${reposted ? "text-green-500" : "text-zinc-400 hover:text-zinc-500"}`}>
-                    <Repeat2 className={`w-5 h-5 ${reposted ? "fill-current" : ""}`} />
-                </button>
-                <span className="text-zinc-600" >{repostsCount}</span>
+
+                <div className="flex min-w-0 flex-1 items-center justify-center gap-2 text-zinc-400">
+                    <button
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            toggleRepost();
+                        }}
+                        disabled={repostLoading}
+                        className={`transition-colors ${reposted ? "text-green-500" : "text-zinc-400 hover:text-zinc-500"}`}>
+                        <Repeat2 className={`w-5 h-5 ${reposted ? "fill-current" : ""}`} />
+                    </button>
+                    <span className="text-zinc-500 text-sm min-w-5.5 text-right">{repostsCount}</span>
                 </div>
-                <div className="flex gap-2 justify-center items-center" >
-                <button 
-                onClick={(event) => {
-                    event.stopPropagation();
-                    toggleLike();
-                }}
-                disabled={likeLoading}
-                className={`flex gap-2 transition-colors ${liked ? "text-red-500  " : "text-zinc-400 hover:text-zinc-500"}`}>
-                    <Heart className={`w-5 h-5 ${liked ? "fill-current" : ""}`} />
-                </button>
-                <span className="text-zinc-600" >{likesCount}</span>
+
+                <div className="flex min-w-0 flex-1 items-center justify-center gap-2 text-zinc-400">
+                    <button
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            toggleLike();
+                        }}
+                        disabled={likeLoading}
+                        className={`transition-colors ${liked ? "text-red-500" : "text-zinc-400 hover:text-zinc-500"}`}>
+                        <Heart className={`w-5 h-5 ${liked ? "fill-current" : ""}`} />
+                    </button>
+                    <span className="text-zinc-500 text-sm min-w-5.5 text-right">{likesCount}</span>
                 </div>
-                
-                <span className="text-zinc-400 flex gap-1 text-sm" >
-                    <Kanban className="w-5 h-5  rotate-180"/>
-                    {post?.views || 0}
-                </span>
-                <div className="flex gap-2 justify-center items-center" >
-                <div className="flex gap-5">
-                <button 
-                onClick={(event) => {
-                    event.stopPropagation();
-                    toggleBookmark();
-                }}
-                disabled={bookmarkLoading}
-                className={`transition-colors ${bookmarked ? "text-blue-500" : "text-zinc-400 hover:text-zinc-500"}`}>
-                    <Bookmark className={`w-5 h-5 ${bookmarked ? "fill-current" : ""}`} />
-                </button>
-                <span className="text-zinc-600" >{bookmarksCount}</span>
+
+                <div className="flex min-w-0 flex-1 items-center justify-center gap-2 text-zinc-400">
+                    <Kanban className="w-5 h-5 rotate-180" />
+                    <span className="text-zinc-500 text-sm min-w-5.5 text-right">{post?.views || 0}</span>
                 </div>
-                <button className="text-zinc-400  hover:text-zinc-500" onClick={handleShareClick}>
-                    <Share2 className="w-5 h-5" />
-                </button>
+
+                <div className="flex min-w-0 flex-1 items-center justify-center gap-2 text-zinc-400">
+                    <button
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            toggleBookmark();
+                        }}
+                        disabled={bookmarkLoading}
+                        className={`transition-colors ${bookmarked ? "text-blue-500" : "text-zinc-400 hover:text-zinc-500"}`}>
+                        <Bookmark className={`w-5 h-5 ${bookmarked ? "fill-current" : ""}`} />
+                    </button>
+                    <span className="text-zinc-500 text-sm min-w-5.5 text-right">{bookmarksCount}</span>
+                    <button className="text-zinc-400 hover:text-zinc-500 ml-2" onClick={handleShareClick}>
+                        <Share2 className="w-5 h-5" />
+                    </button>
                 </div>
+
             </div>
         </section>
     );

@@ -210,7 +210,7 @@ function ProfileSection({
                 </header>
 
                 <section className="flex flex-col w-full">
-                    <section className="flex w-full h-56 md:h-72 items-center justify-center">
+                    <section className="flex w-full h-40 md:h-56 lg:h-72 items-center justify-center">
                         {userData?.banner_image ? (
                             <img src={toMediaUrl(userData.banner_image)} alt="Banner" className="w-full h-full object-cover" />
                         ) : (
@@ -218,7 +218,7 @@ function ProfileSection({
                         )}
                     </section>
 
-                    <div className="border-6 rounded-full absolute left-10 top-64 border-black w-36 h-36 md:w-45 md:h-45 z-10 overflow-hidden bg-zinc-800">
+                    <div className="border-6 rounded-full absolute left-8 mt-30 md:left-10 md:mt-50 border-black w-24 h-24 md:w-36 md:h-36 lg:w-45 lg:h-45 z-10 overflow-hidden bg-zinc-800">
                         {userData?.profile_image ? (
                             <img src={toMediaUrl(userData.profile_image)} alt="Profile Image" className="w-full h-full object-cover rounded-full" />
                         ) : null}
@@ -234,10 +234,10 @@ function ProfileSection({
 
                                 {isOwnProfile ? (
                                     <button
-                                        className="px-4 py-2 rounded-3xl bg-black border border-zinc-600 hover:text-white text-zinc-400 hover:bg-zinc-800/30 transition duration-300"
+                                        className="px-4  rounded-3xl bg-black border border-zinc-600 hover:text-white text-zinc-400 hover:bg-zinc-800/30 transition duration-300"
                                         onClick={() => setIsEditOpen(true)}
                                     >
-                                        Edit Profile
+                                     Edit Profile
                                     </button>
                                 ) : (
                                     <button

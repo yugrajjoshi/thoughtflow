@@ -35,6 +35,23 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
     const [confirmDialog, setConfirmDialog] = useState({ open: false, title: "", message: "", action: null });
     const fileInputRef = useRef(null);
 
+    const formatTimeHoursMinutes = useCallback((dateTimeValue) => {
+        if (!dateTimeValue) {
+            return "";
+        }
+
+        const value = new Date(dateTimeValue);
+        if (Number.isNaN(value.getTime())) {
+            return "";
+        }
+
+        return value.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+        });
+    }, []);
+
     const showNotice = useCallback((type, message) => {
         setNotice({ type, message });
         window.setTimeout(() => {
@@ -115,7 +132,7 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
 
     const handleSendMessage = async () => {
         const content = draft.trim();
-        if ((!content && !attachmentFile) || !selectedConversationId || sending) {
+        if ((!content && !attachmentFile) || !selectedConversationId || !selectedUser || sending) {
             return;
         }
 
@@ -151,7 +168,7 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
             }
 
             const createdMessage = await response.json();
-            setMessages((currentMessages) => [...currentMessages, createdMessage]);
+                setMessages((currentMessages) => [...currentMessages, createdMessage]);
             setDraft("");
             setReplyToMessage(null);
             clearAttachment();
@@ -186,6 +203,8 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
         setAttachmentType(selectedFile.type.startsWith("image/") ? "image" : "video");
         event.target.value = "";
     };
+
+    const canSend = Boolean(selectedUser && selectedConversationId && (draft.trim() || attachmentFile));
 
     const deleteForMe = async (messageId) => {
         if (!messageId) {
@@ -292,6 +311,14 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
         return messages.filter((message) => message.is_mine && Boolean(message.read_at)).length;
     }, [messages]);
 
+    const getImageValue = (message) => {
+        return message?.image_url || message?.image || "";
+    };
+
+    const getVideoValue = (message) => {
+        return message?.video_url || message?.video || "";
+    };
+
     return (
         <main className="w-full p-2 h-full flex flex-col">
             {notice.message ? (
@@ -348,13 +375,13 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
 
                                         <div>{message.content}</div>
 
-                                        {message.image_url ? (
-                                            <img src={message.image_url} alt="Chat attachment" className="rounded-xl mt-1 max-h-72 w-full object-cover" />
+                                        {getImageValue(message) ? (
+                                            <img src={getImageValue(message)} alt="Chat attachment" className="rounded-xl mt-1 max-h-72 w-full object-cover" />
                                         ) : null}
 
-                                        {message.video_url ? (
+                                        {getVideoValue(message) ? (
                                             <video controls className="rounded-xl mt-1 max-h-72 w-full">
-                                                <source src={message.video_url} />
+                                                <source src={getVideoValue(message)} />
                                             </video>
                                         ) : null}
 
@@ -375,7 +402,14 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
                                         ) : null}
 
                                         <div className="text-[11px] opacity-70 flex items-center justify-between gap-4">
-                                            <span>{new Date(message.created_at).toLocaleTimeString()}</span>
+                                            <span>
+                                                {formatTimeHoursMinutes(message.created_at)}
+                                                {message.is_mine ? (
+                                                    <span className="ml-2 text-zinc-300/80">
+                                                        {message.read_at ? "Seen" : "Sent"}
+                                                    </span>
+                                                ) : null}
+                                            </span>
                                             <div className="flex items-center gap-2">
                                                 {canReply ? (
                                                     <button type="button" onClick={() => setReplyToMessage(message)} className="hover:text-white">
@@ -468,7 +502,7 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
                 <button
                     type="button"
                     onClick={handleSendMessage}
-                    disabled={!selectedUser || (!draft.trim() && !attachmentFile) || sending}
+                    disabled={!canSend || sending}
                     className="px-4 py-2 rounded-full bg-white text-black text-sm font-semibold disabled:opacity-50"
                 >
                     {sending ? "Sending..." : "Send"}
