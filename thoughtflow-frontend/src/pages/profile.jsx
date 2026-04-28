@@ -143,7 +143,7 @@ function Profile() {
         }
     }, []);
 
-
+////////// Profile update handler passed to edit modal, syncs updated profile and posts after successful edit.
 
     // Sidebar button state handler (for visual active styles).
     const handleButtonClick = (buttonName) => {
