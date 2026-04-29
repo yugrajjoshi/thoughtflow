@@ -1,9 +1,9 @@
 FLOWTHOUGHT PROJECT PROGRESS REPORT
-Date: April 26, 2026
+Date: April 29, 2026
 
 1. Overall Progress
-- Core social app (auth + profile + posts + interactions): about 80% complete
-- Full project including chat, testing, and production readiness: about 65-70% complete
+- Core social app (auth + profile + posts + interactions + search/trending): about 85% complete
+- Full project including chat, testing, and production readiness: about 70-75% complete
 
 2. What Is Completed
 2.1 Backend
@@ -14,6 +14,11 @@ Date: April 26, 2026
 - Posts API supports create, list, and delete
 - Post interactions are implemented: like, bookmark, repost, views increment
 - Comment APIs are implemented: create, list, delete
+- Hashtag and trending APIs are implemented:
+	- Auto-extract hashtags from new posts
+	- Trending hashtag list endpoint
+	- Hashtag search and hashtag detail/posts endpoints
+	- Unified search endpoint for posts, hashtags, and users
 - Chat APIs are implemented:
 	- List conversations
 	- Start conversation
@@ -34,6 +39,11 @@ Date: April 26, 2026
 - Create comment and comment listing are present
 - Own profile page is implemented
 - Other user profile page is implemented with follow/unfollow
+- Responsive mobile search screen is implemented with:
+	- Full-screen search layout
+	- Recent searches with delete/clear actions
+	- Trending hashtags section
+	- Unified search results for posts, hashtags, and users
 - Chat UI is integrated with backend endpoints and supports:
 	- Conversation loading
 	- Sending messages
@@ -46,10 +56,12 @@ Date: April 26, 2026
 - Comment model includes text and media fields
 - Profile model includes bio, name, images, DOB, followers/following
 - Chat models include conversation, participants, and message states
+- Hashtag model and through table support trending/search discovery
 
 3. What Is Still Left
 3.1 Major Remaining Work
 - Automated tests are still mostly empty in accounts/posts/chat apps
+- Search and hashtag edge-case coverage still needs automated tests
 - Some chat UX polish remains (error states, empty states, delivery/read indicators refinement)
 - API pagination and filtering need to be standardized where response sizes can grow
 
@@ -57,6 +69,7 @@ Date: April 26, 2026
 - Improve validation and error handling consistency across endpoints
 - Handle edge cases better (expired token, upload failures, network retries)
 - Clean placeholder/unused frontend sections and naming consistency
+- Confirm mobile/desktop search parity after the responsive redesign
 - Add API contract documentation for frontend-backend integration clarity
 
 3.3 Production Readiness
@@ -66,16 +79,16 @@ Date: April 26, 2026
 - Performance checks and optimization
 
 4. Time Estimate Left
-- To finish a stable MVP (with chat, basic quality checks): about 1-2 weeks
+- To finish a stable MVP (with chat, search/trending, basic quality checks): about 1-2 weeks
 - To finish with strong test coverage and production quality: about 3-4 weeks
 
 5. Current Direction Summary
 - The project is now beyond early MVP and has most major social features working.
-- The largest risk is low automated test coverage.
-- The next highest-value work is reliability hardening and production readiness.
+- The largest risks are low automated test coverage and a few remaining integration edge cases.
+- The next highest-value work is reliability hardening, search coverage, and production readiness.
 
 6. Suggested Next Priority Order
-1) Add automated tests for accounts, posts, and chat critical flows
+1) Add automated tests for accounts, posts, chat, and search/trending critical flows
 2) Standardize API pagination/filtering and improve error responses
 3) Finish chat UX polish (state handling, indicators, empty/error views)
 4) Production hardening and deployment setup
@@ -84,6 +97,8 @@ Date: April 26, 2026
 - [ ] Write auth/profile API tests (success + failure paths)
 - [ ] Write post/comment interaction API tests
 - [ ] Write chat conversation/message API tests
+- [ ] Write search and hashtag API tests
 - [ ] Add pagination to high-volume list endpoints
 - [ ] Normalize frontend error handling for API failures
+- [ ] Verify responsive search/trending behavior on mobile and desktop
 - [ ] Run end-to-end smoke pass before deployment prep
