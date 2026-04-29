@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Post, Comment
+from .models import Post, Comment, Hashtag, PostHashtag
 
 class CommentSerializer(serializers.ModelSerializer):
     author_name = serializers.CharField(source='user.username', read_only=True)
@@ -38,6 +38,21 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = ['id', 'author_name', 'author_id', 'profile_image', 'content', 'image_url', 'video_url', 'created_at', 'updated_at']
         read_only_fields = ['id', 'author_name', 'author_id', 'profile_image', 'image_url', 'video_url', 'created_at', 'updated_at']
 
+class HashtagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Hashtag
+        fields = ['id', 'tag', 'posts_count', 'created_at']
+        read_only_fields = ['id', 'posts_count', 'created_at']
+
+class PostHashtagSerializer(serializers.ModelSerializer):
+    tag = serializers.CharField(source='hashtag.tag', read_only=True)
+    hashtag_id = serializers.IntegerField(source='hashtag.id', read_only=True)
+    
+    class Meta:
+        model = PostHashtag
+        fields = ['hashtag_id', 'tag', 'created_at']
+        read_only_fields = ['hashtag_id', 'tag', 'created_at']
+
 class PostSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
     display_name = serializers.SerializerMethodField()
@@ -47,6 +62,7 @@ class PostSerializer(serializers.ModelSerializer):
     is_bookmarked = serializers.SerializerMethodField()
     is_reposted = serializers.SerializerMethodField()
     comments = CommentSerializer(source='comments_set', many=True, read_only=True)
+    hashtags = HashtagSerializer(many=True, read_only=True)
 
     def get_is_liked(self, obj):
         request = self.context.get('request')
@@ -110,5 +126,6 @@ class PostSerializer(serializers.ModelSerializer):
             'bookmarks_count',
             'is_bookmarked',
             'is_reposted',
+            'hashtags',
         ]
-        read_only_fields = ['id', 'user', 'username', 'display_name', 'profile_image', 'created_at']
+        read_only_fields = ['id', 'user', 'username', 'display_name', 'profile_image', 'created_at', 'hashtags']

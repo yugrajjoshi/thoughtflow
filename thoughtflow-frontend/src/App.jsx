@@ -3,6 +3,7 @@ import AuthPage from "./pages/Authpage";
 import Home from "./pages/Home";
 import Signup from "./pages/signup";
 import Profilesetup from "./pages/profilesetup";
+import HashtagPage from "./pages/HashtagPage";
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route path="/profile/:username" element={<Home />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/profilesetup" element={<Profilesetup />} />
+        <Route path="/hashtag/:hashtagId" element={<HashtagPage />} />
       </Routes>
     </Router>
   );

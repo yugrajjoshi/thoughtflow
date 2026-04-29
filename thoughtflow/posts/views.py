@@ -1,12 +1,16 @@
 import math
 from datetime import timedelta
+import re
 
 from rest_framework import response, status
-from .models import Post, Comment
-from .serializers import PostSerializer, CommentSerializer
+from .models import Post, Comment, Hashtag, PostHashtag
+from .serializers import PostSerializer, CommentSerializer, HashtagSerializer
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
+from django.db.models import Q, Count
+from chat.serializers import UserSummarySerializer
+from django.contrib.auth.models import User
 
 
 def _safe_int(value):
@@ -14,6 +18,23 @@ def _safe_int(value):
         return int(value)
     except (TypeError, ValueError):
         return 0
+
+
+def _extract_hashtags(content):
+    """Extract hashtags from post content"""
+    hashtag_pattern = r'#\w+'
+    hashtags = re.findall(hashtag_pattern, content)
+    return [tag[1:].lower() for tag in hashtags]  # Remove # and convert to lowercase
+
+
+def _create_hashtags_for_post(post, content):
+    """Create hashtags and link them to post"""
+    hashtag_tags = _extract_hashtags(content)
+    for tag in hashtag_tags:
+        hashtag, created = Hashtag.objects.get_or_create(tag=tag)
+        PostHashtag.objects.get_or_create(post=post, hashtag=hashtag)
+        hashtag.posts_count = hashtag.posts_set.count()
+        hashtag.save(update_fields=['posts_count'])
 
 
 def _compute_global_feed_score(post, now):
@@ -154,7 +175,12 @@ def get_posts(request):
     if request.method == 'POST':
         serializer = PostSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            serializer.save(user=request.user)
+            post = serializer.save(user=request.user)
+            # Extract and create hashtags
+            content = request.data.get('content', '')
+            _create_hashtags_for_post(post, content)
+            # Re-serialize to include hashtags
+            serializer = PostSerializer(post, context={'request': request})
             return response.Response(serializer.data, status=status.HTTP_201_CREATED)
         return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -382,3 +408,130 @@ def delete_comment(request, post_id, comment_id):
         {'message': 'Comment deleted successfully', 'comments_count': post.comments_count},
         status=status.HTTP_200_OK
     )
+
+
+# Hashtag endpoints
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_trending_hashtags(request):
+    """Get trending hashtags ordered by post count"""
+    limit_param = request.query_params.get('limit')
+    try:
+        limit = int(limit_param) if limit_param is not None else 10
+    except (TypeError, ValueError):
+        limit = 10
+    limit = max(1, min(limit, 50))
+
+    trending = Hashtag.objects.filter(posts_count__gt=0).order_by('-posts_count')[:limit]
+    serializer = HashtagSerializer(trending, many=True)
+    return response.Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def search_hashtags(request):
+    """Search hashtags by tag name"""
+    query = request.query_params.get('q', '').strip().lower()
+    if not query:
+        return response.Response({'error': 'Query parameter "q" is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    hashtags = Hashtag.objects.filter(tag__icontains=query).order_by('-posts_count')[:20]
+    serializer = HashtagSerializer(hashtags, many=True)
+    return response.Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_posts_by_hashtag(request, hashtag_id):
+    """Get all posts with a specific hashtag"""
+    try:
+        hashtag = Hashtag.objects.get(id=hashtag_id)
+    except Hashtag.DoesNotExist:
+        return response.Response({'error': 'Hashtag not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    limit_param = request.query_params.get('limit')
+    try:
+        limit = int(limit_param) if limit_param is not None else 50
+    except (TypeError, ValueError):
+        limit = 50
+    limit = max(1, min(limit, 300))
+
+    posts = (
+        hashtag.posts
+        .select_related('user', 'user__profile')
+        .prefetch_related('likes', 'bookmarks', 'repost_users')
+        .order_by('-created_at')[:limit]
+    )
+    
+    serializer = PostSerializer(posts, many=True, context={'request': request})
+    return response.Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_hashtag_detail(request, hashtag_id):
+    """Get hashtag details"""
+    try:
+        hashtag = Hashtag.objects.get(id=hashtag_id)
+    except Hashtag.DoesNotExist:
+        return response.Response({'error': 'Hashtag not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    serializer = HashtagSerializer(hashtag)
+    return response.Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def search_content(request):
+    query = (request.query_params.get('q') or '').strip()
+    limit_param = request.query_params.get('limit')
+
+    try:
+        limit = int(limit_param) if limit_param is not None else 20
+    except (TypeError, ValueError):
+        limit = 20
+
+    limit = max(1, min(limit, 50))
+
+    if not query:
+        return response.Response({'posts': [], 'hashtags': [], 'users': []})
+
+    normalized_query = query.lstrip('#').strip()
+
+    posts = (
+        Post.objects
+        .select_related('user', 'user__profile')
+        .prefetch_related('likes', 'bookmarks', 'repost_users', 'hashtags')
+        .filter(
+            Q(content__icontains=normalized_query)
+            | Q(user__username__icontains=normalized_query)
+            | Q(user__profile__name__icontains=normalized_query)
+            | Q(hashtags__tag__icontains=normalized_query)
+        )
+        .distinct()
+        .order_by('-created_at')[:limit]
+    )
+
+    hashtags = (
+        Hashtag.objects
+        .filter(Q(tag__icontains=normalized_query) | Q(tag__icontains=query.lstrip('#')))
+        .order_by('-posts_count', 'tag')[:limit]
+    )
+
+    users = (
+        User.objects
+        .select_related('profile')
+        .filter(Q(username__icontains=normalized_query) | Q(profile__name__icontains=normalized_query))
+        .order_by('username')[:limit]
+    )
+
+    posts_serializer = PostSerializer(posts, many=True, context={'request': request})
+    hashtags_serializer = HashtagSerializer(hashtags, many=True)
+    users_serializer = UserSummarySerializer(users, many=True, context={'request': request})
+
+    return response.Response({
+        'posts': posts_serializer.data,
+        'hashtags': hashtags_serializer.data,
+        'users': users_serializer.data,
+    })

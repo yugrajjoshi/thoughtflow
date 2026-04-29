@@ -300,6 +300,20 @@ function PostCard({ post, onClick, currentUsername, currentUserId, onDeletePost,
                         </div>
                     </div>
                     <p className="text-zinc-200 mt-1 whitespace-pre-wrap">{post?.content}</p>
+                    {post?.hashtags && post.hashtags.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                            {post.hashtags.map((hashtag) => (
+                                <Link
+                                    key={hashtag.id}
+                                    to={`/hashtag/${hashtag.id}`}
+                                    className="text-blue-400 hover:text-blue-300 text-sm"
+                                    onClick={handleStopPropagation}
+                                >
+                                    #{hashtag.tag}
+                                </Link>
+                            ))}
+                        </div>
+                    )}
                    
                         {post?.image && (
                         <img src={post.image} alt="Post" className="mt-3 max-h-96 w-full object-cover rounded-2xl" />
