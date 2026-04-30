@@ -46,6 +46,8 @@ function ProfileSection({
     const [followersPeople, setFollowersPeople] = useState([]);
     const [relationshipLoading, setRelationshipLoading] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
+    const [isProfileSearchActive, setIsProfileSearchActive] = useState(false);
+    const [profileSearchQuery, setProfileSearchQuery] = useState("");
 
     const isOwnProfile = !viewedUsername || viewedUsername === currentUsername;
     const usernameForPosts = userData?.username || "";
@@ -78,6 +80,18 @@ function ProfileSection({
                 };
             });
     }, [posts, usernameForPosts, userIdForPosts, userData?.name, userData?.username]);
+
+    const filteredProfilePosts = useMemo(() => {
+        if (!isProfileSearchActive || !profileSearchQuery.trim()) {
+            return userPosts;
+        }
+        
+        const query = profileSearchQuery.toLowerCase();
+        return userPosts.filter((post) => {
+            const content = (post.content || "").toLowerCase();
+            return content.includes(query);
+        });
+    }, [userPosts, isProfileSearchActive, profileSearchQuery]);
 
     const loadRelationshipLists = useCallback(async (targetUsername) => {
         const token = getCleanToken();
@@ -203,10 +217,27 @@ function ProfileSection({
     return (
         <section className="w-full h-full overflow-y-auto posts-scrollbar">
             <article className="flex flex-col min-h-full text-white border-zinc-900 border-l border-r relative">
-                <header className="flex w-full h-16 bg-linear-to-r from-black to-zinc-800 text-white items-center p-4">
+                <header className="flex w-full h-16 bg-linear-to-r from-black to-zinc-800 text-white items-center p-4 relative">
                     <ArrowLeft className="w-6 h-6 cursor-pointer" onClick={onBackHome} />
                     <h1 className="text-2xl font-bold ml-4">{userData?.name || userData?.username}</h1>
-                    <Search className="w-6 h-6 absolute right-8" />
+                    <Search 
+                        className="w-6 h-6 absolute right-8 cursor-pointer hover:text-zinc-300 transition" 
+                        onClick={() => {
+                            setIsProfileSearchActive(!isProfileSearchActive);
+                            if (isProfileSearchActive) {
+                                setProfileSearchQuery("");
+                            }
+                        }}
+                    />
+                    {isProfileSearchActive && (
+                        <input
+                            type="text"
+                            placeholder="Search posts..."
+                            value={profileSearchQuery}
+                            onChange={(e) => setProfileSearchQuery(e.target.value)}
+                            className="absolute right-16 bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-1 text-sm w-48 focus:outline-none focus:border-zinc-400"
+                        />
+                    )}
                 </header>
 
                 <section className="flex flex-col w-full">
@@ -303,8 +334,8 @@ function ProfileSection({
                         <h2 className="text-xl font-semibold">Posts</h2>
                     </div>
 
-                    {userPosts.length > 0 ? (
-                        userPosts.map((post) => (
+                    {filteredProfilePosts.length > 0 ? (
+                        filteredProfilePosts.map((post) => (
                             <PostCard
                                 key={post.id}
                                 post={post}
@@ -317,7 +348,9 @@ function ProfileSection({
                             />
                         ))
                     ) : (
-                        <p className="px-5 py-6 text-zinc-500">No posts yet.</p>
+                        <p className="px-5 py-6 text-zinc-500">
+                            {isProfileSearchActive ? "No posts found matching your search." : "No posts yet."}
+                        </p>
                     )}
                 </section>
             </article>

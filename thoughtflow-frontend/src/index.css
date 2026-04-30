@@ -104,7 +104,23 @@ body {
     margin-left: 0 !important;
     width: 100% !important;
     margin-bottom: 70px;
+    margin-top: 64px !important;
+    height: calc(100vh - 134px) !important;
     flex-direction: column;
+  }
+
+  /* Profile view section on mobile - no top margin for black bar */
+  section.responsive-main-section.profile-view-section {
+    margin-top: 0 !important;
+  }
+
+  /* Profile view main container on mobile - no top margin */
+  div.profile-main-container {
+    margin-left: 0 !important;
+    width: 100% !important;
+    margin-bottom: 70px !important;
+    margin-top: 0 !important;
+    height: calc(100vh - 70px) !important;
   }
 
   /* Feed article - full width */

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Search } from "lucide-react";
+import { Bookmark, House, LogOut, Mail, Plus, Search, Settings2, UserRound, X } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import CreatePost from "../components/Createpost";
 import PostCard from '../components/PostCard';
@@ -7,6 +7,8 @@ import PostView from "../components/postview";
 import MassangerSection from '../components/massangersection';
 import SidebarNav from "../components/SidebarNav";
 import ProfileSection from "../components/ProfileSection";
+import TrendingHashtags from "../components/TrendingHashtags";
+import logo from "../assets/logo.svg";
 
 const API_BASE = "http://127.0.0.1:8000";
 const HOME_UI_STATE_KEY = "thoughtflow_home_ui_state";
@@ -179,6 +181,9 @@ function Home() {
       return "";
     }
   });
+
+  const [isMobileView, setIsMobileView] = useState(() => typeof window !== "undefined" ? window.innerWidth < 768 : false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState({ posts: [], hashtags: [], users: [] });
   const [searchLoading, setSearchLoading] = useState(false);
@@ -189,6 +194,9 @@ function Home() {
   const [uiNotice, setUiNotice] = useState({ type: "", message: "" });
   const [deletePostConfirmId, setDeletePostConfirmId] = useState(null);
   const [sharePickerState, setSharePickerState] = useState({ open: false, post: null, query: "" });
+  const [mobileCreatePostOpen, setMobileCreatePostOpen] = useState(false);
+
+  const MOBILE_CREATE_POST_BUTTON_CLASS = "show-mobile-only fixed bottom-3 left-1/2 -translate-x-1/2 z-50 flex h-16 w-16 items-center justify-center rounded-full bg-black border-2 border-white text-white shadow-2xl shadow-black/40 hover:bg-zinc-900 transition";
 
   const showUiNotice = useCallback((type, message) => {
     setUiNotice({ type, message });
@@ -710,6 +718,12 @@ function Home() {
   }, [activeButton, fetchChatConversations]);
 
   useEffect(() => {
+    const handleResize = () => setIsMobileView(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
     if (activeButton !== "chats") {
       return;
     }
@@ -735,6 +749,8 @@ function Home() {
   }, [chatConversations, selectedConversationId]);
 
   const handleButtonClick = (buttonName) => {
+    setMobileNavOpen(false);
+    setMobileCreatePostOpen(false);
     setSelectedPost(null);
     setActiveButton(buttonName);
 
@@ -856,6 +872,47 @@ function Home() {
         return followingIds.includes(String(postUserId));
       })
       : filteredPosts;
+
+  const renderChatPersonRow = (person, { keyPrefix = "conversation", showUnread = true } = {}) => {
+    const isSelected = selectedChatUser?.username === person.username;
+    const imageSrc = person.profileImage
+      ? (person.profileImage.startsWith("http") ? person.profileImage : `${API_BASE}${person.profileImage}`)
+      : "";
+
+    return (
+      <div
+        key={person.conversationId ? `${keyPrefix}-${person.conversationId}` : `${keyPrefix}-${person.username}`}
+        onClick={() => handleSelectChatUser(person)}
+        className={`w-full flex items-center gap-3 px-4 py-3 text-left border-b border-zinc-900/70 transition ${isSelected ? "bg-zinc-900" : "hover:bg-zinc-900/80"}`}
+      >
+        <div className="w-12 h-12 rounded-full overflow-hidden bg-zinc-800 shrink-0">
+          {imageSrc ? <img src={imageSrc} alt={person.username} className="w-full h-full object-cover" /> : null}
+        </div>
+        <div className="min-w-0 flex-1">
+          <Link
+            to={`/profile/${person.username}`}
+            className="inline-flex max-w-fit text-white font-semibold truncate hover:underline"
+            onClick={(event) => handleOpenProfileFromChat(event, person.username)}
+          >
+            {person.displayName || person.username}
+          </Link>
+          <Link
+            to={`/profile/${person.username}`}
+            className="mt-0.5 inline-flex max-w-fit text-sm text-zinc-500 truncate hover:underline"
+            onClick={(event) => handleOpenProfileFromChat(event, person.username)}
+          >
+            @{person.username}
+          </Link>
+        </div>
+        {showUnread && Number(person.unreadCount) > 0 ? (
+          <div className="ml-2 flex items-center gap-2 shrink-0">
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+            <span className="text-[11px] font-semibold text-blue-300">{person.unreadCount}</span>
+          </div>
+        ) : null}
+      </div>
+    );
+  };
 
   const handleSelectPost = (post) => {
     setSelectedPost(post);
@@ -988,6 +1045,204 @@ function Home() {
     goTo(`/profile/${username}`);
   };
 
+  const handleMobileCreatePostOpen = () => {
+    setMobileCreatePostOpen(true);
+  };
+
+  const handleMobileCreatePostClose = () => {
+    setMobileCreatePostOpen(false);
+  };
+
+  const mobileProfileImageSrc = profilePicture
+    ? (profilePicture.startsWith("http") ? profilePicture : `${API_BASE}${profilePicture}`)
+    : "";
+
+  const mobileTopBarCenter = activeButton === "search" ? (
+    <form onSubmit={handleSearchSubmit} className="flex w-full items-center gap-2 rounded-full border border-zinc-800 bg-zinc-950 px-3 py-2">
+      <Search className="h-4 w-4 text-zinc-500" />
+      <input
+        type="text"
+        value={searchQuery}
+        onChange={(event) => setSearchQuery(event.target.value)}
+        placeholder="Search"
+        className="w-full bg-transparent text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none"
+      />
+    </form>
+  ) : (
+    <button
+      type="button"
+      onClick={() => handleButtonClick("home")}
+      className="mx-auto flex items-center justify-center"
+      aria-label="Go to home"
+    >
+      <img src={logo} alt="ThoughtFlow" className="h-9 w-auto object-contain" />
+    </button>
+  );
+
+  const mobileNavItems = [
+    { key: "home", label: "Home", icon: House },
+    { key: "profile", label: "Profile", icon: UserRound },
+    { key: "search", label: "Search", icon: Search },
+    { key: "chats", label: "Chats", icon: Mail },
+    { key: "bookmarks", label: "Bookmarks", icon: Bookmark },
+  ];
+
+  const mobileTopBar = isMobileView && !isProfileView ? (
+    <div className="show-mobile-only fixed left-0 right-0 top-0 z-50 h-16 bg-black/95 backdrop-blur">
+      <div className="flex h-full items-center gap-3 px-3">
+        <button
+          type="button"
+          onClick={() => setMobileNavOpen((current) => !current)}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-transparent text-white"
+          aria-label="Open navigation"
+        >
+          {mobileProfileImageSrc ? (
+            <img src={mobileProfileImageSrc} alt={currentUsername || "Profile"} className="h-full w-full rounded-full object-cover" />
+          ) : (
+            <UserRound className="h-5 w-5" />
+          )}
+        </button>
+
+        <div className="min-w-0 flex-1">{mobileTopBarCenter}</div>
+
+        <button
+          type="button"
+          onClick={() => showUiNotice("info", "Settings will be added later.")}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-transparent text-white"
+          aria-label="Settings"
+        >
+          <Settings2 className="h-5 w-5" />
+        </button>
+      </div>
+    </div>
+  ) : null;
+
+  const mobileNavDrawer = isMobileView ? (
+    <>
+      {mobileNavOpen ? (
+        <button
+          type="button"
+          aria-label="Close navigation"
+          onClick={() => setMobileNavOpen(false)}
+          className="show-mobile-only fixed inset-0 z-50 bg-black/60"
+        />
+      ) : null}
+
+      <div
+        className={`show-mobile-only fixed left-0 top-16 z-60 h-[calc(100vh-134px)] w-[78%] max-w-xs border-r border-zinc-800 bg-black/98 shadow-2xl transition-transform duration-300 ${mobileNavOpen ? "translate-x-0" : "-translate-x-full"}`}
+      >
+        <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-4">
+          <div>
+            <p className="text-sm text-zinc-500">Navigation</p>
+            <p className="font-semibold text-white">ThoughtFlow</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMobileNavOpen(false)}
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-zinc-800 text-zinc-300"
+            aria-label="Close navigation drawer"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-2 p-4">
+          {mobileNavItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeButton === item.key;
+
+            return (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => handleButtonClick(item.key)}
+                className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${isActive ? "border-zinc-700 bg-zinc-900 text-white" : "border-zinc-800 bg-transparent text-zinc-300 hover:bg-zinc-900/70"}`}
+              >
+                <Icon className="h-5 w-5" />
+                <span className="font-medium">{item.label}</span>
+              </button>
+            );
+          })}
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="mt-2 flex items-center gap-3 rounded-2xl border border-zinc-800 px-4 py-3 text-left text-zinc-300 transition hover:bg-zinc-900/70"
+          >
+            <LogOut className="h-5 w-5" />
+            <span className="font-medium">Logout</span>
+          </button>
+        </div>
+      </div>
+    </>
+  ) : null;
+
+  const mobileChatScreen = isMobileView && isMassangerView ? (
+    <div className="show-mobile-only fixed inset-x-0 top-16 bottom-17.5 z-30 flex flex-col bg-black text-white">
+      <div className="border-b border-zinc-800 px-4 py-4">
+        {selectedChatUser ? (
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedChatUser(null);
+                setSelectedConversationId(null);
+              }}
+              className="rounded-full border border-zinc-800 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-900"
+            >
+              Back
+            </button>
+            <div className="min-w-0">
+              <p className="text-sm text-zinc-500">Chat with</p>
+              <p className="font-semibold truncate">{selectedChatUser.displayName || selectedChatUser.username}</p>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <h2 className="text-xl font-bold">Chats</h2>
+            <p className="mt-1 text-sm text-zinc-500">People you chatted with before</p>
+          </div>
+        )}
+      </div>
+
+      {selectedChatUser ? (
+        <div className="flex-1 min-h-0">
+          <MassangerSection
+            selectedUser={selectedChatUser}
+            selectedConversationId={selectedConversationId}
+            currentUserId={currentUserId}
+            onConversationChanged={fetchChatConversations}
+          />
+        </div>
+      ) : (
+        <>
+          <div className="border-b border-zinc-800 px-4 py-3">
+            <div className="flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-950 px-3 py-2">
+              <Search className="h-4 w-4 text-zinc-500" />
+              <input
+                type="text"
+                value={chatSearchQuery}
+                onChange={(event) => setChatSearchQuery(event.target.value)}
+                placeholder="Search chats"
+                className="w-full bg-transparent text-sm text-zinc-200 placeholder:text-zinc-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex-1 min-h-0 overflow-y-auto posts-scrollbar">
+            {filteredChatConversations.length > 0 ? (
+              <section className="flex flex-col">
+                {filteredChatConversations.map((person) => renderChatPersonRow(person, { keyPrefix: "mobile-conversation" }))}
+              </section>
+            ) : (
+              <div className="px-4 py-8 text-sm text-zinc-500">No previous chats found.</div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  ) : null;
+
   if (!loginStatus) {
     return null;
   }
@@ -1002,7 +1257,55 @@ function Home() {
       ) : null}
       <SidebarNav activeButton={activeButton} onSelect={handleButtonClick} onLogout={handleLogout} />
 
-      <section className="responsive-main-section ml-[20%] flex h-screen w-[80%] overflow-hidden">
+      {mobileTopBar}
+      {mobileNavDrawer}
+
+      {isMobileView ? (
+        <button
+          type="button"
+          onClick={handleMobileCreatePostOpen}
+          className={MOBILE_CREATE_POST_BUTTON_CLASS}
+          aria-label="Create post"
+          disabled={activeButton !== "home"}
+          style={{ opacity: activeButton === "home" ? 1 : 0.6, pointerEvents: activeButton === "home" ? "auto" : "none" }}
+        >
+          <Plus className="h-8 w-8 font-bold" />
+        </button>
+      ) : null}
+
+      {mobileChatScreen}
+
+      {isMobileView && mobileCreatePostOpen ? (
+        <div className="show-mobile-only fixed inset-x-0 top-16 bottom-17.5 z-40 bg-black text-white">
+          <div className="flex h-full flex-col">
+            <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-4">
+              <div>
+                <h2 className="text-lg font-bold">Create Post</h2>
+                <p className="mt-1 text-sm text-zinc-500">Share something new</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleMobileCreatePostClose}
+                className="rounded-full border border-zinc-800 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-900"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto posts-scrollbar">
+              <CreatePost
+                profilePicture={profilePicture}
+                onPostCreated={(createdPost) => {
+                  setPosts((prevPosts) => [createdPost, ...prevPosts]);
+                  handleMobileCreatePostClose();
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <section className={`responsive-main-section ml-[20%] flex h-screen w-[80%] overflow-hidden ${isProfileView ? "profile-view-section" : ""}`} style={isProfileView ? { marginTop: 0 } : {}}>
         <article className="responsive-feed flex flex-col h-screen w-[60%] text-white border-zinc-900 border-l border-r overflow-hidden">
         {isMassangerView ? (
           <MassangerSection
@@ -1061,7 +1364,7 @@ function Home() {
               </header>
             ) : null}
             <section className="flex-1 overflow-y-auto posts-scrollbar">
-              {!isBookmarksView ? (
+              {!isBookmarksView && !isMobileView ? (
                 <CreatePost
                   profilePicture={profilePicture}
                   onPostCreated={(createdPost) => setPosts((prevPosts) => [createdPost, ...prevPosts])}
@@ -1097,6 +1400,32 @@ function Home() {
         <aside className="responsive-aside flex flex-col border items-center w-[40%] h-screen text-white border-zinc-800 overflow-y-auto posts-scrollbar">
           {isMassangerView ? (
             <section className="w-full h-full flex flex-col">
+              {isMobileView && selectedChatUser ? (
+                <div className="w-full h-full flex flex-col">
+                  <div className="w-full border-b border-zinc-800 px-5 py-3 flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedChatUser(null);
+                        setSelectedConversationId(null);
+                      }}
+                      className="rounded-full border border-zinc-800 px-3 py-2 text-sm text-zinc-300 mr-2"
+                    >
+                      Back
+                    </button>
+                    <h2 className="text-lg font-bold">Conversation</h2>
+                  </div>
+                  <div className="flex-1">
+                    <MassangerSection
+                      selectedUser={selectedChatUser}
+                      selectedConversationId={selectedConversationId}
+                      currentUserId={currentUserId}
+                      onConversationChanged={fetchChatConversations}
+                    />
+                  </div>
+                </div>
+              ) : (
+              <>
               <div className="w-full border-b border-zinc-800 px-5 py-4 flex items-start justify-between gap-3">
                 <div>
                   <h2 className="text-xl font-bold">Chats</h2>
@@ -1125,7 +1454,7 @@ function Home() {
 
                       return (
                         <div
-                          key={`conversation-${person.username}`}
+                          key={person.conversationId ? `conversation-${person.conversationId}` : `conversation-${person.username}`}
                           onClick={() => handleSelectChatUser(person)}
                           className={`w-full flex items-center gap-3 px-4 py-3 text-left border-b border-zinc-900/70 transition ${isSelected ? "bg-zinc-900" : "hover:bg-zinc-900/80"}`}
                         >
@@ -1170,7 +1499,7 @@ function Home() {
 
                       return (
                         <div
-                          key={`new-chat-${person.username}`}
+                          key={person.conversationId ? `new-chat-${person.conversationId}` : `new-chat-${person.username}`}
                           onClick={() => handleSelectChatUser(person)}
                           className="w-full flex items-center gap-3 px-4 py-3 text-left border border-zinc-900 rounded-xl hover:bg-zinc-900/80 transition"
                         >
@@ -1202,7 +1531,10 @@ function Home() {
                 {filteredChatConversations.length === 0 && filteredNewChatPeople.length === 0 ? (
                   <p className="p-6 text-sm text-zinc-500">No people found for this search.</p>
                 ) : null}
-              </div>
+                </div>
+            </>
+            )
+            }
             </section>
           ) : (
             <>
@@ -1269,7 +1601,7 @@ function Home() {
       </section>
 
       {activeButton === "search" ? (
-        <div className="fixed inset-0 z-50 flex flex-col bg-black">
+        <div className="fixed inset-x-0 top-16 bottom-17.5 z-30 flex flex-col bg-black">
           <div className="sticky top-0 z-10 border-b border-zinc-800 bg-black/95 px-4 py-4 backdrop-blur">
             <form onSubmit={handleSearchSubmit} className="mx-auto flex w-full max-w-3xl items-center gap-3">
               <button
@@ -1277,7 +1609,7 @@ function Home() {
                 onClick={() => setActiveButton('home')}
                 className="rounded-full border border-zinc-800 px-3 py-2 text-sm text-zinc-300 transition hover:border-zinc-600 hover:text-white"
               >
-                Back
+                
               </button>
 
               <div className="flex flex-1 items-center gap-3 rounded-full border border-zinc-800 bg-zinc-950 px-4 py-3">

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
     ArrowLeft,
@@ -49,6 +49,20 @@ export default function ProfileView() {
     const [followingPeople, setFollowingPeople] = useState([]);
     const [followersPeople, setFollowersPeople] = useState([]);
     const [relationshipLoading, setRelationshipLoading] = useState(false);
+    const [isProfileSearchActive, setIsProfileSearchActive] = useState(false);
+    const [profileSearchQuery, setProfileSearchQuery] = useState("");
+
+    const filteredProfilePosts = useMemo(() => {
+        if (!isProfileSearchActive || !profileSearchQuery.trim()) {
+            return userPosts;
+        }
+        
+        const query = profileSearchQuery.toLowerCase();
+        return userPosts.filter((post) => {
+            const content = (post.content || "").toLowerCase();
+            return content.includes(query);
+        });
+    }, [userPosts, isProfileSearchActive, profileSearchQuery]);
 
     const applyProfileData = (data) => {
         setUserData(data);
@@ -285,13 +299,30 @@ export default function ProfileView() {
                 </button>
             </nav>
 
-            <div className="ml-[20%] flex h-screen w-[80%] bg-black">
+            <div className="ml-[20%] flex h-screen w-[80%] bg-black profile-main-container" style={{ marginTop: 0 }}>
                 <section className="w-2/3 h-screen overflow-y-auto overscroll-none posts-scrollbar">
                     <article className="flex flex-col min-h-screen text-white border-zinc-500 border-l-[0.5px] border-r-[0.5px] relative">
-                    <header className="flex w-full h-16 bg-linear-to-r from-black-500 to-zinc-800 text-white items-center p-4">
-                        <ArrowLeft className="w-6 h-6" onClick={() => goTo("/home")} />
+                    <header className="flex w-full h-16 bg-linear-to-r from-black-500 to-zinc-800 text-white items-center p-4 relative">
+                        <ArrowLeft className="w-6 h-6 cursor-pointer" onClick={() => goTo("/home")} />
                         <h1 className="text-2xl font-bold ml-4">{userData?.name}</h1>
-                        <Search className="w-6 h-6 absolute right-8" />
+                        <Search 
+                            className="w-6 h-6 absolute right-8 cursor-pointer hover:text-zinc-300 transition" 
+                            onClick={() => {
+                                setIsProfileSearchActive(!isProfileSearchActive);
+                                if (isProfileSearchActive) {
+                                    setProfileSearchQuery("");
+                                }
+                            }}
+                        />
+                        {isProfileSearchActive && (
+                            <input
+                                type="text"
+                                placeholder="Search posts..."
+                                value={profileSearchQuery}
+                                onChange={(e) => setProfileSearchQuery(e.target.value)}
+                                className="absolute right-16 bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-1 text-sm w-48 focus:outline-none focus:border-zinc-400"
+                            />
+                        )}
                     </header>
 
                     <section className="flex flex-col w-full">
@@ -377,10 +408,12 @@ export default function ProfileView() {
                             <button className="text-xl w-1/2 font-semibold  ">Posts</button>
                             <button className="text-xl w-1/2 font-semibold" >Replies</button>
                         </div>
-                        {userPosts.length > 0 ? (
-                            userPosts.map((post) => <PostCard key={post.id} post={post} />)
+                        {filteredProfilePosts.length > 0 ? (
+                            filteredProfilePosts.map((post) => <PostCard key={post.id} post={post} />)
                         ) : (
-                            <p className="px-5 py-6 text-zinc-500">No posts yet.</p>
+                            <p className="px-5 py-6 text-zinc-500">
+                                {isProfileSearchActive ? "No posts found matching your search." : "No posts yet."}
+                            </p>
                         )}
                     </section>
                     </article>
