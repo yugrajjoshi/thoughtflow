@@ -151,3 +151,27 @@ Date: May 2, 2026
 - [ ] Verify responsive search/trending behavior on mobile and desktop
 - [ ] Run end-to-end smoke pass before deployment prep
 - [ ] Add search pagination/ranking to keep old-post discoverability without large payloads
+
+9. Live Tracking Board (May 2, 2026)
+9.1 Done Recently
+- Unified backend search expanded to include old posts and broader user discovery
+- Desktop search sidebar upgraded to show users, hashtags, posts, and recent searches
+- Profile search and mobile UX updates stabilized
+- Sidebar logout button pinned to bottom on desktop
+
+9.2 In Progress
+- Search relevance and performance balance (high limits currently improve coverage but need ranking/pagination)
+- Mobile and desktop search consistency verification across multiple viewport widths
+
+9.3 Next 3 Action Items
+- Implement backend pagination/ranking for search results and update frontend query parameters
+- Add API tests for search (old posts, no-post users, hashtag matches)
+- Complete Settings feature scaffold (UI entry + placeholder route + state handling)
+
+9.4 Current Blockers / Risks
+- Limited automated tests increase regression risk for rapid UI/search iteration
+- Large search result windows can hurt response time on bigger datasets
+
+9.5 Tracking Cadence
+- Update this report at the end of each working session
+- Move items from "In Progress" to "Done Recently" only after code + manual verification
