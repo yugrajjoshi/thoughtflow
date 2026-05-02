@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.db.models import Q, Count
 from chat.serializers import UserSummarySerializer
 from django.contrib.auth.models import User
+from accounts.models import Profile
 
 
 def _safe_int(value):
@@ -488,11 +489,11 @@ def search_content(request):
     limit_param = request.query_params.get('limit')
 
     try:
-        limit = int(limit_param) if limit_param is not None else 20
+        limit = int(limit_param) if limit_param is not None else 500
     except (TypeError, ValueError):
-        limit = 20
+        limit = 500
 
-    limit = max(1, min(limit, 50))
+    limit = max(1, min(limit, 2000))
 
     if not query:
         return response.Response({'posts': [], 'hashtags': [], 'users': []})
@@ -519,10 +520,12 @@ def search_content(request):
         .order_by('-posts_count', 'tag')[:limit]
     )
 
+    profile_user_ids = Profile.objects.filter(name__icontains=normalized_query).values_list('user_id', flat=True)
+
     users = (
         User.objects
         .select_related('profile')
-        .filter(Q(username__icontains=normalized_query) | Q(profile__name__icontains=normalized_query))
+        .filter(Q(username__icontains=normalized_query) | Q(id__in=profile_user_ids))
         .order_by('username')[:limit]
     )
 

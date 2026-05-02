@@ -3,8 +3,8 @@ import logo from "../assets/logo.svg";
 
 function SidebarNav({ activeButton, onSelect, onLogout }) {
     return (
-        <nav className="responsive-sidebar fixed top-0 left-0 h-screen w-[20%] bg-black overflow-hidden">
-            <header className="flex top-0 self-center w-[35%]">
+        <nav className="responsive-sidebar fixed top-0 left-0 h-screen w-[20%] bg-black overflow-hidden flex flex-col">
+            <header className="flex text-white  -ml-50 top-0 self-center w-[35%]">
                 <img
                     src={logo}
                     alt="Logo Image"
@@ -12,7 +12,7 @@ function SidebarNav({ activeButton, onSelect, onLogout }) {
                 />
             </header>
 
-            <section className="flex flex-col gap-2 mt-5">
+            <section className="flex flex-col gap-2 mt-5 flex-1">
                 <button
                     className={`text-white gap-6 text-2xl font-bold p-3 transition duration-300 ml-6 w-[70%] ${activeButton === "home" ? "bg-zinc-800/30" : "hover:bg-zinc-800/30"} rounded-4xl flex items-center`}
                     onClick={() => onSelect("home")}
@@ -60,7 +60,7 @@ function SidebarNav({ activeButton, onSelect, onLogout }) {
             </section>
 
             <button
-                className="text-white gap-6 text-1xl font-bold p-3 transition duration-300 ml-6 w-[70%] hover:bg-zinc-800/30 hover:shadow-md rounded-4xl flex items-center"
+                className="text-white gap-6 text-1xl font-bold p-3 transition duration-300 ml-6 mb-4 w-[70%] hover:bg-zinc-800/30 hover:shadow-md rounded-4xl flex items-center mt-auto"
                 onClick={onLogout}
                 title="Logout"
             >

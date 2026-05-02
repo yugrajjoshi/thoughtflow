@@ -1,9 +1,9 @@
 FLOWTHOUGHT PROJECT PROGRESS REPORT
-Date: April 30, 2026
+Date: May 2, 2026
 
 1. Overall Progress
-- Core social app (auth + profile + posts + interactions + search/trending + mobile UX): about 90% complete
-- Full project including chat, testing, and production readiness: about 75-80% complete
+- Core social app (auth + profile + posts + interactions + search/trending + mobile UX): about 92% complete
+- Full project including chat, testing, and production readiness: about 78-82% complete
 
 2. What Is Completed
 2.1 Backend
@@ -62,6 +62,9 @@ Date: April 30, 2026
 	- Fixed mobile chat screen with prior conversations
 	- Responsive layout with proper spacing (no flickering transitions)
 	- Black bar/spacing issues removed on profile screens
+	- Responsive PostCard interaction spacing tuned for small-width devices (including 350px viewport testing)
+	- Sidebar logout button anchored to bottom on desktop nav
+	- Desktop web search sidebar now shows unified result groups (people, hashtags, posts) and recent searches
 
 2.3 Data Model Coverage
 - Post model includes counters and media fields
@@ -70,6 +73,13 @@ Date: April 30, 2026
 - Chat models include conversation, participants, and message states
 - Hashtag model and through table support trending/search discovery
 
+2.4 Search Reliability Improvements (May 2)
+- Backend search limit expanded to include older matching content
+- Frontend search request limit increased for deeper retrieval of old posts
+- User search matching improved to include profile-name-based user discovery
+- Desktop people list now merges API search users with local post-derived users
+- Web and responsive search behavior aligned around the same unified search data source
+
 3. What Is Still Left
 3.1 Major Remaining Work
 - Automated tests are still mostly empty in accounts/posts/chat apps
@@ -77,12 +87,13 @@ Date: April 30, 2026
 - Some chat UX polish remains (error states, empty states, delivery/read indicators refinement)
 - API pagination and filtering need to be standardized where response sizes can grow
 - Settings feature (currently placeholder)
+- Search performance tuning is needed after increasing result window sizes (introduce ranking/pagination strategy)
 
 3.2 Product Quality Work
 - Improve validation and error handling consistency across endpoints
 - Handle edge cases better (expired token, upload failures, network retries)
 - Clean placeholder/unused frontend sections and naming consistency
-- Confirm mobile/desktop search parity after the responsive redesign
+- Confirm mobile/desktop search parity after the latest web sidebar search updates
 - Add API contract documentation for frontend-backend integration clarity
 - Mobile form validation and better error messaging
 
@@ -93,7 +104,7 @@ Date: April 30, 2026
 - Performance checks and optimization
 
 4. Time Estimate Left
-- To finish a stable MVP (with chat, search/trending, mobile UX, basic quality checks): about 1 week
+- To finish a stable MVP (with chat, search/trending, mobile UX, basic quality checks): about 5-7 days
 - To finish with strong test coverage and production quality: about 3-4 weeks
 
 5. Current Direction Summary
@@ -103,7 +114,15 @@ Date: April 30, 2026
 - The largest risks remain low automated test coverage and a few integration edge cases.
 - Next priority is reliability hardening, test coverage, and production readiness.
 
-6. Recent Changes (April 30, 2026)
+6. Recent Changes (May 2, 2026)
+- Expanded backend and frontend search limits so older posts are searchable
+- Improved user discovery in search (including users without posts and less active accounts)
+- Fixed web search results mismatch by adding unified grouped results and recent searches in desktop sidebar
+- Restored web search behavior while preserving responsive-specific search screen behavior
+- Improved PostCard responsive interaction layout to avoid overlap on very small widths
+- Anchored sidebar logout button to bottom for desktop layout consistency
+
+6. Previous Changes (April 30, 2026)
 - Implemented profile-specific search in ProfileSection and profileview components
 - Moved floating create post button to center of mobile bottom nav bar
 - Styled button with black background, white border, larger white plus icon (8x8)
@@ -115,7 +134,7 @@ Date: April 30, 2026
 7. Suggested Next Priority Order
 1) Add automated tests for accounts, posts, chat, and search/trending critical flows
 2) Implement Settings feature UI and functionality
-3) Standardize API pagination/filtering and improve error responses
+3) Standardize API pagination/filtering and improve error responses (especially search)
 4) Finish chat UX polish (state handling, indicators, empty/error views)
 5) Production hardening and deployment setup
 
@@ -131,3 +150,4 @@ Date: April 30, 2026
 - [ ] Normalize frontend error handling for API failures
 - [ ] Verify responsive search/trending behavior on mobile and desktop
 - [ ] Run end-to-end smoke pass before deployment prep
+- [ ] Add search pagination/ranking to keep old-post discoverability without large payloads

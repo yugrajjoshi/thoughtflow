@@ -257,8 +257,8 @@ function PostCard({ post, onClick, currentUsername, currentUserId, onDeletePost,
             onClick={handleCardClick}
         >
             {post?.reposted_by_label ? (
-                <div className="px-3 pt-2 text-zinc-500 font-bold text-sm">
-                    {post.reposted_by_label} reposted
+                <div className="px-3 pt-2 text-zinc-500  font-bold text-sm">
+                    <i>{post.reposted_by_label} reposted</i>
                 </div>
             ) : null}
             <div className="flex flex-row w-full h-auto gap-4 p-3">
@@ -286,7 +286,7 @@ function PostCard({ post, onClick, currentUsername, currentUserId, onDeletePost,
                                 className="p-2 rounded-full transition-all duration-500 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-300"
                                 onClick={handleStopPropagation}
                             >
-                                <Ellipsis className="w-7 h-7" />
+                                <Ellipsis className=" rotate-90  w-7 h-7 ml-9 " />
                             </button>
                             {showSettingsHover ? (
                                 <div className="absolute right-0 top-full mt-2 z-20" onClick={handleStopPropagation}>
@@ -325,15 +325,15 @@ function PostCard({ post, onClick, currentUsername, currentUserId, onDeletePost,
                     )}
                </div>
                </div>
-               <div className="mt-2 mb-2 flex w-full items-center justify-between gap-2 px-4 pl-16 md:pl-20 pr-4 overflow-hidden">
-                <div className="flex min-w-0 flex-1 items-center justify-center gap-2 text-zinc-400">
+               <div className="post-interactions mt-2 mb-2 flex w-full items-center justify-between gap-1 px-2 pl-12 sm:px-3 sm:pl-14 md:gap-2 md:px-4 md:pl-10 overflow-hidden">
+                <div className="flex min-w-0 flex-1 items-center justify-center gap-1 md:gap-2 text-zinc-400">
                     <button className="text-zinc-400 hover:text-zinc-500" onClick={handleCommentClick}>
-                        <MessageCircle className="w-5 h-5" />
+                        <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
-                    <span className="text-zinc-500 text-sm min-w-5.5 text-right">{commentsCount}</span>
+                    <span className="post-interaction-count relative max-[350px]:-left-2 text-zinc-500 -ml-10 sm:-ml-4 md:-ml-2 text-xs sm:text-sm min-w-4 sm:min-w-5 text-right">{commentsCount}</span>
                 </div>
 
-                <div className="flex min-w-0 flex-1 items-center justify-center gap-2 text-zinc-400">
+                <div className="flex min-w-0 flex-1 items-center justify-center gap-1 md:gap-2 text-zinc-400">
                     <button
                         onClick={(event) => {
                             event.stopPropagation();
@@ -341,12 +341,12 @@ function PostCard({ post, onClick, currentUsername, currentUserId, onDeletePost,
                         }}
                         disabled={repostLoading}
                         className={`transition-colors ${reposted ? "text-green-500" : "text-zinc-400 hover:text-zinc-500"}`}>
-                        <Repeat2 className={`w-5 h-5 ${reposted ? "fill-current" : ""}`} />
+                        <Repeat2 className={`w-4 h-4 sm:w-5 sm:h-5 ${reposted ? "fill-current" : ""}`} />
                     </button>
-                    <span className="text-zinc-500 text-sm min-w-5.5 text-right">{repostsCount}</span>
+                    <span className="post-interaction-count relative max-[350px]:-left-2 text-zinc-500 -ml-10 sm:-ml-4 md:-ml-2 text-xs sm:text-sm min-w-4 sm:min-w-5 text-right">{repostsCount}</span>
                 </div>
 
-                <div className="flex min-w-0 flex-1 items-center justify-center gap-2 text-zinc-400">
+                <div className="flex min-w-0 flex-1 items-center justify-center gap-1 md:gap-2 text-zinc-400">
                     <button
                         onClick={(event) => {
                             event.stopPropagation();
@@ -354,17 +354,17 @@ function PostCard({ post, onClick, currentUsername, currentUserId, onDeletePost,
                         }}
                         disabled={likeLoading}
                         className={`transition-colors ${liked ? "text-red-500" : "text-zinc-400 hover:text-zinc-500"}`}>
-                        <Heart className={`w-5 h-5 ${liked ? "fill-current" : ""}`} />
+                        <Heart className={`w-4 h-4 sm:w-5 sm:h-5 ${liked ? "fill-current" : ""}`} />
                     </button>
-                    <span className="text-zinc-500 text-sm min-w-5.5 text-right">{likesCount}</span>
+                    <span className="post-interaction-count relative max-[350px]:-left-2 text-zinc-500 -ml-10 sm:-ml-4 md:-ml-2 text-xs sm:text-sm min-w-4 sm:min-w-5 text-right">{likesCount}</span>
                 </div>
 
-                <div className="flex min-w-0 flex-1 items-center justify-center gap-2 text-zinc-400">
-                    <Kanban className="w-5 h-5 rotate-180" />
-                    <span className="text-zinc-500 text-sm min-w-5.5 text-right">{post?.views || 0}</span>
+                <div className="flex min-w-0 flex-1 items-center justify-center gap-1 md:gap-2 text-zinc-400">
+                    <Kanban className="w-4 h-4 sm:w-5 sm:h-5 -ml-5  rotate-180" />
+                    <span className="post-interaction-count relative max-[350px]:-left-2 text-zinc-500 -ml-2  sm:-ml-4 md:-ml-2 text-xs sm:text-sm min-w-4 sm:min-w-5 text-right">{post?.views || 0}</span>
                 </div>
 
-                <div className="flex min-w-0 flex-1 items-center justify-center gap-2 text-zinc-400">
+                <div className="flex min-w-0 flex-1 items-center justify-center gap-1 md:gap-2 text-zinc-400">
                     <button
                         onClick={(event) => {
                             event.stopPropagation();
@@ -372,11 +372,11 @@ function PostCard({ post, onClick, currentUsername, currentUserId, onDeletePost,
                         }}
                         disabled={bookmarkLoading}
                         className={`transition-colors ${bookmarked ? "text-blue-500" : "text-zinc-400 hover:text-zinc-500"}`}>
-                        <Bookmark className={`w-5 h-5 ${bookmarked ? "fill-current" : ""}`} />
+                        <Bookmark className={`w-4 h-4 sm:w-5 ml-1 sm:h-5 ${bookmarked ? "fill-current" : ""}`} />
                     </button>
-                    <span className="text-zinc-500 text-sm min-w-5.5 text-right">{bookmarksCount}</span>
-                    <button className="text-zinc-400 hover:text-zinc-500 ml-2" onClick={handleShareClick}>
-                        <Share2 className="w-5 h-5" />
+                    <span className="post-interaction-count relative max-[350px]:-left-2 text-zinc-500 -ml-10 sm:-ml-4 md:-ml-2 text-xs sm:text-sm min-w-4 sm:min-w-5 text-right">{bookmarksCount}</span>
+                    <button className="text-zinc-400 hover:text-zinc-500 ml-1 sm:ml-2" onClick={handleShareClick}>
+                        <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                 </div>
 

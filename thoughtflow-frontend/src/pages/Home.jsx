@@ -313,7 +313,7 @@ function Home() {
       setSearchError("");
 
       const [contentResponse, usersResponse] = await Promise.all([
-        fetch(`${API_BASE}/api/search/?q=${encodeURIComponent(normalizedQuery)}`, {
+        fetch(`${API_BASE}/api/search/?q=${encodeURIComponent(normalizedQuery)}&limit=1000`, {
           headers: {
             Authorization: "Token " + token,
           },
@@ -543,10 +543,8 @@ function Home() {
       return;
     }
 
-    if (activeButton === "profile") {
-      setActiveButton("home");
-    }
-  }, [location.pathname, activeButton]);
+    setActiveButton((current) => (current === "profile" ? "home" : current));
+  }, [location.pathname]);
 
   useEffect(() => {
     if (location.pathname.startsWith("/profile")) {
@@ -792,16 +790,17 @@ function Home() {
   const matchingPeople = Array.from(
     posts.reduce((peopleMap, post) => {
       const username = typeof post?.username === "string" ? post.username.trim() : "";
-      if (!username || peopleMap.has(username.toLowerCase())) {
+      if (!username) {
         return peopleMap;
       }
 
+      const key = username.toLowerCase();
       const displayName = typeof post?.display_name === "string" ? post.display_name.trim() : "";
       const profileImage = typeof post?.profile_image === "string" ? post.profile_image : "";
       const matchesSearch = !normalizedSearchQuery || [username, displayName].some((value) => value.toLowerCase().includes(normalizedSearchQuery));
 
-      if (matchesSearch) {
-        peopleMap.set(username.toLowerCase(), {
+      if (matchesSearch && !peopleMap.has(key)) {
+        peopleMap.set(key, {
           username,
           displayName,
           profileImage,
@@ -809,7 +808,29 @@ function Home() {
       }
 
       return peopleMap;
-    }, new Map()).values()
+    },
+    (Array.isArray(searchResults?.users) ? searchResults.users : []).reduce((peopleMap, person) => {
+      const username = typeof person?.username === "string" ? person.username.trim() : "";
+      if (!username) {
+        return peopleMap;
+      }
+
+      const key = username.toLowerCase();
+      const displayName = typeof person?.display_name === "string" ? person.display_name.trim() : "";
+      const profileImage = typeof person?.profile_image === "string" ? person.profile_image : "";
+      const matchesSearch = !normalizedSearchQuery || [username, displayName].some((value) => value.toLowerCase().includes(normalizedSearchQuery));
+
+      if (matchesSearch && !peopleMap.has(key)) {
+        peopleMap.set(key, {
+          username,
+          displayName,
+          profileImage,
+        });
+      }
+
+      return peopleMap;
+    }, new Map())
+    ).values()
   );
 
   const isFollowingView = feedTab === "Following";
@@ -1545,6 +1566,7 @@ function Home() {
                 <Search className=" ml-5 w-5 h-5" />
                 <input
                   type="text"
+                  value={searchQuery}
                   placeholder="Search"
                   className="bg-black w-full h-full text-zinc-300 placeholder:text-zinc-500 focus:outline-none rounded-4xl"
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -1553,14 +1575,27 @@ function Home() {
               {normalizedSearchQuery ? (
                 <section className="w-[90%] rounded-2xl border border-zinc-800 bg-zinc-950/80 shadow-lg overflow-hidden mx-5">
                   <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-white">People</h3>
-                    <span className="text-xs text-zinc-500">{matchingPeople.length}</span>
+                    <h3 className="text-sm font-semibold text-white">Search Results</h3>
+                    <span className="text-xs text-zinc-500">
+                      {searchLoading
+                        ? "Searching..."
+                        : `${searchResults.posts.length + searchResults.hashtags.length + matchingPeople.length} results`}
+                    </span>
                   </div>
-                  <div className="max-h-72 overflow-y-auto">
-                    {matchingPeople.length > 0 ? (
+
+                  {searchError ? <p className="px-4 py-4 text-sm text-red-400">{searchError}</p> : null}
+
+                  <div className="max-h-96 overflow-y-auto posts-scrollbar">
+                    {!searchLoading && !searchError && matchingPeople.length > 0 ? (
+                      <div className="px-4 py-3 border-b border-zinc-900/70">
+                        <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">People</p>
+                      </div>
+                    ) : null}
+
+                    {!searchLoading && !searchError && matchingPeople.length > 0 ? (
                       matchingPeople.map((person) => (
                         <button
-                          key={person.username}
+                          key={`desktop-search-user-${person.username}`}
                           type="button"
                           onClick={() => {
                             setSelectedPost(null);
@@ -1579,19 +1614,98 @@ function Home() {
                             ) : null}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-white font-medium truncate">
-                              {person.displayName || person.username}
-                            </p>
+                            <p className="text-white font-medium truncate">{person.displayName || person.username}</p>
                             <p className="text-sm text-zinc-500 truncate">@{person.username}</p>
                           </div>
                         </button>
                       ))
-                    ) : (
-                      <p className="px-4 py-6 text-sm text-zinc-500">No people match that username.</p>
-                    )}
+                    ) : null}
+
+                    {!searchLoading && !searchError && searchResults.hashtags.length > 0 ? (
+                      <>
+                        <div className="px-4 py-3 border-b border-zinc-900/70">
+                          <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Hashtags</p>
+                        </div>
+                        {searchResults.hashtags.map((hashtag) => (
+                          <button
+                            key={`desktop-search-hashtag-${hashtag.id}`}
+                            type="button"
+                            onClick={() => {
+                              setSelectedPost(null);
+                              setActiveButton("home");
+                              goTo(`/hashtag/${hashtag.id}`);
+                            }}
+                            className="w-full px-4 py-3 text-left border-b border-zinc-900/70 hover:bg-zinc-900/80 transition"
+                          >
+                            <p className="text-blue-400 font-medium">#{hashtag.tag}</p>
+                            <p className="mt-1 text-xs text-zinc-500">{hashtag.posts_count} posts</p>
+                          </button>
+                        ))}
+                      </>
+                    ) : null}
+
+                    {!searchLoading && !searchError && searchResults.posts.length > 0 ? (
+                      <>
+                        <div className="px-4 py-3 border-b border-zinc-900/70">
+                          <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Posts</p>
+                        </div>
+                        {searchResults.posts.map((post) => (
+                          <button
+                            key={`desktop-search-post-${post.id}`}
+                            type="button"
+                            onClick={() => {
+                              setSelectedPost(null);
+                              handleSelectPost(post);
+                            }}
+                            className="w-full px-4 py-3 text-left border-b border-zinc-900/70 hover:bg-zinc-900/80 transition"
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-white font-medium truncate">{post.display_name || post.username}</p>
+                              <p className="text-xs text-zinc-500 shrink-0">@{post.username}</p>
+                            </div>
+                            <p className="mt-2 max-h-16 overflow-hidden whitespace-pre-wrap text-sm text-zinc-300">{post.content}</p>
+                          </button>
+                        ))}
+                      </>
+                    ) : null}
+
+                    {!searchLoading && !searchError && matchingPeople.length === 0 && searchResults.hashtags.length === 0 && searchResults.posts.length === 0 ? (
+                      <p className="px-4 py-6 text-sm text-zinc-500">No posts, hashtags, or users matched this search.</p>
+                    ) : null}
                   </div>
                 </section>
               ) : null}
+              <section className="w-[90%] rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 mx-5 mt-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-semibold text-white">Recent Searches</h3>
+                  {recentSearches.length > 0 ? (
+                    <button
+                      type="button"
+                      onClick={handleClearRecentSearches}
+                      className="text-xs text-zinc-500 transition hover:text-white"
+                    >
+                      Clear all
+                    </button>
+                  ) : null}
+                </div>
+
+                {recentSearches.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {recentSearches.map((item) => (
+                      <button
+                        key={`desktop-recent-search-${item}`}
+                        type="button"
+                        onClick={() => handleRecentSearchSelect(item)}
+                        className="rounded-full border border-zinc-800 bg-black/40 px-3 py-2 text-sm text-zinc-200 transition hover:text-white"
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-zinc-500">No recent searches yet.</p>
+                )}
+              </section>
               <section className="trending-section flex w-full mt-5 flex-col" >
                 <div className="text-lg w-full border-b-[0.5px] border-zinc-800 p-5 font-bold text-left ">Trending</div>
               </section>
