@@ -155,10 +155,10 @@ def get_posts(request):
         limit_param = request.query_params.get('limit')
 
         try:
-            limit = int(limit_param) if limit_param is not None else 180
+            limit = int(limit_param) if limit_param is not None else 500
         except (TypeError, ValueError):
-            limit = 180
-        limit = max(20, min(limit, 300))
+            limit = 500
+        limit = max(20, min(limit, 5000))
 
         if feed_mode == 'latest':
             posts = (
@@ -168,7 +168,16 @@ def get_posts(request):
                 .order_by('-created_at')[:limit]
             )
         else:
-            posts = _build_global_feed_posts(limit=limit)
+            total_posts = Post.objects.count()
+            if total_posts > 50:
+                posts = _build_global_feed_posts(limit=limit)
+            else:
+                posts = (
+                    Post.objects
+                    .select_related('user', 'user__profile')
+                    .prefetch_related('likes', 'bookmarks', 'repost_users')
+                    .order_by('-created_at')[:limit]
+                )
 
         serializer = PostSerializer(posts, many=True, context={'request': request})
         return response.Response(serializer.data)

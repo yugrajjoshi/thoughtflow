@@ -124,6 +124,7 @@ function Home() {
   const [currentUsername, setCurrentUsername] = useState("");
   const [currentUserId, setCurrentUserId] = useState(null);
   const [followingIds, setFollowingIds] = useState([]);
+  const [followingUsernames, setFollowingUsernames] = useState([]);
   const [posts, setPosts] = useState([]);
   const [activeButton, setActiveButton] = useState(() => {
     if (location.pathname.startsWith("/profile")) {
@@ -196,7 +197,7 @@ function Home() {
   const [sharePickerState, setSharePickerState] = useState({ open: false, post: null, query: "" });
   const [mobileCreatePostOpen, setMobileCreatePostOpen] = useState(false);
 
-  const MOBILE_CREATE_POST_BUTTON_CLASS = "show-mobile-only fixed bottom-3 left-1/2 -translate-x-1/2 z-50 flex h-16 w-16 items-center justify-center rounded-full bg-black border-2 border-white text-white shadow-2xl shadow-black/40 hover:bg-zinc-900 transition";
+  const MOBILE_CREATE_POST_BUTTON_CLASS = "show-mobile-only  pl-4 text-zinc-400 fixed bottom-5 border-[0.5px] border-zinc-600  left-1/2 -translate-x-1/2 z-50 flex h-16 w-16 items-center justify-center rounded-full bg-black  text-white shadow-2xl shadow-black/40 hover:bg-zinc-900 transition";
 
   const showUiNotice = useCallback((type, message) => {
     setUiNotice({ type, message });
@@ -585,6 +586,33 @@ function Home() {
       setCurrentUsername(data.username || "");
       setCurrentUserId(Number(data?.user_id) || null);
       setFollowingIds(Array.isArray(data.following) ? data.following.map(String) : []);
+
+      if (data?.username) {
+        try {
+          const followingResponse = await fetch(`${API_BASE}/api/profile/${data.username}/following/`, {
+            headers: {
+              Authorization: "Token " + token,
+            },
+          });
+
+          if (followingResponse.ok) {
+            const followingData = await followingResponse.json();
+            const usernames = Array.isArray(followingData?.results)
+              ? followingData.results
+                .map((person) => (typeof person?.username === "string" ? person.username.toLowerCase().trim() : ""))
+                .filter(Boolean)
+              : [];
+            setFollowingUsernames(usernames);
+          } else {
+            setFollowingUsernames([]);
+          }
+        } catch (error) {
+          console.error("Failed to fetch following usernames:", error);
+          setFollowingUsernames([]);
+        }
+      } else {
+        setFollowingUsernames([]);
+      }
     } catch (error) {
       console.error("Failed to fetch user profile:", error);
     }
@@ -602,7 +630,8 @@ function Home() {
         return;
       }
 
-      const response = await fetch(`${API_BASE}/api/posts/`, {
+      const feedQuery = feedTab === "Following" ? "feed=latest&limit=5000" : "feed=global&limit=500";
+      const response = await fetch(`${API_BASE}/api/posts/?${feedQuery}`, {
         method: "GET",
         headers: {
           Authorization: "Token " + token,
@@ -635,7 +664,7 @@ function Home() {
     } finally {
       setIsLoadingPosts(false);
     }
-  }, [goTo]);
+  }, [feedTab, goTo]);
 
   useEffect(() => {
     fetchProfile();
@@ -890,7 +919,8 @@ function Home() {
     : isFollowingView
       ? filteredPosts.filter((post) => {
         const postUserId = post?.user && typeof post.user === 'object' ? post.user.id : post?.user;
-        return followingIds.includes(String(postUserId));
+        const postUsername = typeof post?.username === "string" ? post.username.toLowerCase().trim() : "";
+        return followingIds.includes(String(postUserId)) || followingUsernames.includes(postUsername);
       })
       : filteredPosts;
 
@@ -1053,6 +1083,7 @@ function Home() {
     setCurrentUsername(data?.username || "");
     setCurrentUserId(Number(data?.user_id) || null);
     setFollowingIds(Array.isArray(data?.following) ? data.following.map(String) : []);
+    fetchProfile();
   };
 
   const handleOpenProfileFromChat = (event, username) => {
@@ -1160,7 +1191,7 @@ function Home() {
           <button
             type="button"
             onClick={() => setMobileNavOpen(false)}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-zinc-800 text-zinc-300"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-zinc-300"
             aria-label="Close navigation drawer"
           >
             <X className="h-4 w-4" />
@@ -1718,30 +1749,9 @@ function Home() {
         <div className="fixed inset-x-0 top-16 bottom-17.5 z-30 flex flex-col bg-black">
           <div className="sticky top-0 z-10 border-b border-zinc-800 bg-black/95 px-4 py-4 backdrop-blur">
             <form onSubmit={handleSearchSubmit} className="mx-auto flex w-full max-w-3xl items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setActiveButton('home')}
-                className="rounded-full border border-zinc-800 px-3 py-2 text-sm text-zinc-300 transition hover:border-zinc-600 hover:text-white"
-              >
-                
-              </button>
+            
 
-              <div className="flex flex-1 items-center gap-3 rounded-full border border-zinc-800 bg-zinc-950 px-4 py-3">
-                <Search className="w-5 h-5 text-zinc-500 shrink-0" />
-                <input
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Search posts, hashtags, or users"
-                  className="w-full bg-transparent text-sm text-zinc-200 placeholder:text-zinc-500 focus:outline-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-zinc-200"
-              >
-                Search
-              </button>
+              
             </form>
           </div>
 

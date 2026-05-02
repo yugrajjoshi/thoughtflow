@@ -307,8 +307,14 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
         }
     };
 
-    const seenCount = useMemo(() => {
-        return messages.filter((message) => message.is_mine && Boolean(message.read_at)).length;
+    const lastOwnMessageId = useMemo(() => {
+        for (let index = messages.length - 1; index >= 0; index -= 1) {
+            if (messages[index]?.is_mine) {
+                return messages[index].id;
+            }
+        }
+
+        return null;
     }, [messages]);
 
     const getImageValue = (message) => {
@@ -404,11 +410,6 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
                                         <div className="text-[11px] opacity-70 flex items-center justify-between gap-4">
                                             <span>
                                                 {formatTimeHoursMinutes(message.created_at)}
-                                                {message.is_mine ? (
-                                                    <span className="ml-2 text-zinc-300/80">
-                                                        {message.read_at ? "Seen" : "Sent"}
-                                                    </span>
-                                                ) : null}
                                             </span>
                                             <div className="flex items-center gap-2">
                                                 {canReply ? (
@@ -426,6 +427,12 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
                                                 ) : null}
                                             </div>
                                         </div>
+
+                                        {message.is_mine && message.id === lastOwnMessageId ? (
+                                            <div className="text-[11px] text-zinc-300/80 mt-1 text-right">
+                                                {message.read_at ? "Seen" : "Sent"}
+                                            </div>
+                                        ) : null}
                                     </div>
                                 );
                             })}
@@ -509,12 +516,6 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
                 </button>
                 </div>
             </div>
-
-            {selectedUser ? (
-                <div className="text-xs text-zinc-500 mt-2 px-2 text-right">
-                    Seen messages: {seenCount}
-                </div>
-            ) : null}
 
             {confirmDialog.open ? (
                 <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
