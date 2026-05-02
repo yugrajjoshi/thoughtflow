@@ -23,6 +23,7 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
     const profileImage = getUserImage(selectedUser);
     const displayName = selectedUser?.displayName || selectedUser?.name || selectedUser?.username || "";
     const username = selectedUser?.username || "";
+    const isConversationOpen = Boolean(selectedConversationId);
     const [draft, setDraft] = useState("");
     const [messages, setMessages] = useState([]);
     const [replyToMessage, setReplyToMessage] = useState(null);
@@ -345,12 +346,18 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
                             ) : null}
                         </div>
                         <div className="min-w-0">
-                            <Link to={`/profile/${username}`} className="inline-flex max-w-fit text-white font-semibold truncate hover:underline">
-                                {displayName}
-                            </Link>
-                            <Link to={`/profile/${username}`} className="mt-0.5 inline-flex max-w-fit text-sm text-zinc-400 truncate hover:underline">
-                                @{username}
-                            </Link>
+                            {isConversationOpen ? (
+                                <>
+                                    <Link to={`/profile/${username}`} className="inline-flex max-w-fit text-white font-semibold truncate hover:underline">
+                                        {displayName}
+                                    </Link>
+                                    <Link to={`/profile/${username}`} className="ml-2 inline-flex text-sm text-zinc-400 truncate hover:underline">
+                                        @{username}
+                                    </Link>
+                                </>
+                            ) : (
+                                <div className="text-white font-semibold truncate">{displayName}</div>
+                            )}
                         </div>
                     </div>
                 ) : (

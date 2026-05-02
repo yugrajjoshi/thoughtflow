@@ -197,7 +197,7 @@ function Home() {
   const [sharePickerState, setSharePickerState] = useState({ open: false, post: null, query: "" });
   const [mobileCreatePostOpen, setMobileCreatePostOpen] = useState(false);
 
-  const MOBILE_CREATE_POST_BUTTON_CLASS = "show-mobile-only  pl-4 text-zinc-400 fixed bottom-5 border-[0.5px] border-zinc-600  left-1/2 -translate-x-1/2 z-50 flex h-16 w-16 items-center justify-center rounded-full bg-black  text-white shadow-2xl shadow-black/40 hover:bg-zinc-900 transition";
+  const MOBILE_CREATE_POST_BUTTON_CLASS = "show-mobile-only  pl-4 text-zinc-400 fixed left-1/2 -translate-x-1/2 z-50 flex h-16 w-16 items-center justify-center rounded-full bg-black border border-zinc-800 text-white shadow-2xl shadow-black/40 hover:bg-zinc-900 transition";
 
   const showUiNotice = useCallback((type, message) => {
     setUiNotice({ type, message });
@@ -1230,7 +1230,7 @@ function Home() {
   ) : null;
 
   const mobileChatScreen = isMobileView && isMassangerView ? (
-    <div className="show-mobile-only fixed inset-x-0 top-16 bottom-17.5 z-30 flex flex-col bg-black text-white">
+    <div className="show-mobile-only fixed inset-x-0 top-16 z-30 flex flex-col bg-black text-white" style={{ bottom: '70px' }}>
       <div className="border-b border-zinc-800 px-4 py-4">
         {selectedChatUser ? (
           <div className="flex items-center gap-3">
@@ -1319,7 +1319,7 @@ function Home() {
           className={MOBILE_CREATE_POST_BUTTON_CLASS}
           aria-label="Create post"
           disabled={activeButton !== "home"}
-          style={{ opacity: activeButton === "home" ? 1 : 0.6, pointerEvents: activeButton === "home" ? "auto" : "none" }}
+          style={{ bottom: '38px', opacity: activeButton === "home" ? 1 : 0.6, pointerEvents: activeButton === "home" ? "auto" : "none" }}
         >
           <Plus className="h-8 w-8 font-bold" />
         </button>
@@ -1328,7 +1328,7 @@ function Home() {
       {mobileChatScreen}
 
       {isMobileView && mobileCreatePostOpen ? (
-        <div className="show-mobile-only fixed inset-x-0 top-16 bottom-17.5 z-40 bg-black text-white">
+        <div className="show-mobile-only fixed inset-x-0 top-16 z-40 bg-black text-white" style={{ bottom: '70px' }}>
           <div className="flex h-full flex-col">
             <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-4">
               <div>
@@ -1467,7 +1467,7 @@ function Home() {
                     </button>
                     <h2 className="text-lg font-bold">Conversation</h2>
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 pb-24">
                     <MassangerSection
                       selectedUser={selectedChatUser}
                       selectedConversationId={selectedConversationId}
@@ -1681,21 +1681,23 @@ function Home() {
                           <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Posts</p>
                         </div>
                         {searchResults.posts.map((post) => (
-                          <button
+                          <div
                             key={`desktop-search-post-${post.id}`}
-                            type="button"
+                            role="button"
+                            tabIndex={0}
                             onClick={() => {
                               setSelectedPost(null);
                               handleSelectPost(post);
                             }}
-                            className="w-full px-4 py-3 text-left border-b border-zinc-900/70 hover:bg-zinc-900/80 transition"
+                            onKeyDown={(e) => { if (e.key === 'Enter') { setSelectedPost(null); handleSelectPost(post); } }}
+                            className="w-full px-4 py-3 text-left border-b border-zinc-900/70 hover:bg-zinc-900/80 transition cursor-pointer"
                           >
                             <div className="flex items-center justify-between gap-3">
                               <p className="text-white font-medium truncate">{post.display_name || post.username}</p>
                               <p className="text-xs text-zinc-500 shrink-0">@{post.username}</p>
                             </div>
                             <p className="mt-2 max-h-16 overflow-hidden whitespace-pre-wrap text-sm text-zinc-300">{post.content}</p>
-                          </button>
+                          </div>
                         ))}
                       </>
                     ) : null}
@@ -1746,7 +1748,7 @@ function Home() {
       </section>
 
       {activeButton === "search" ? (
-        <div className="fixed inset-x-0 top-16 bottom-17.5 z-30 flex flex-col bg-black">
+        <div className="fixed inset-x-0 top-16 z-30 flex flex-col bg-black" style={{ bottom: '70px' }}>
           <div className="sticky top-0 z-10 border-b border-zinc-800 bg-black/95 px-4 py-4 backdrop-blur">
             <form onSubmit={handleSearchSubmit} className="mx-auto flex w-full max-w-3xl items-center gap-3">
             
@@ -1755,7 +1757,7 @@ function Home() {
             </form>
           </div>
 
-          <div className="flex-1 overflow-y-auto posts-scrollbar px-4 py-5">
+          <div className="flex-1 overflow-y-auto posts-scrollbar px-4 py-5 pb-24">
             <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
               {normalizedSearchQuery ? (
                 <section className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
@@ -1830,21 +1832,23 @@ function Home() {
                     <div className="mt-5 space-y-2">
                       <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Posts</p>
                       {searchResults.posts.map((post) => (
-                        <button
+                        <div
                           key={`search-post-${post.id}`}
-                          type="button"
+                          role="button"
+                          tabIndex={0}
                           onClick={() => {
                             setSelectedPost(null);
                             handleSelectPost(post);
                           }}
-                          className="w-full rounded-xl border border-zinc-800 bg-black/40 px-3 py-3 text-left transition hover:bg-zinc-900/80"
+                          onKeyDown={(e) => { if (e.key === 'Enter') { setSelectedPost(null); handleSelectPost(post); } }}
+                          className="w-full rounded-xl border border-zinc-800 bg-black/40 px-3 py-3 text-left transition hover:bg-zinc-900/80 cursor-pointer"
                         >
                           <div className="flex items-center justify-between gap-3">
                             <p className="text-white font-medium truncate">{post.display_name || post.username}</p>
                             <p className="text-xs text-zinc-500 shrink-0">@{post.username}</p>
                           </div>
                           <p className="mt-2 max-h-16 overflow-hidden whitespace-pre-wrap text-sm text-zinc-300">{post.content}</p>
-                        </button>
+                        </div>
                       ))}
                     </div>
                   ) : null}
