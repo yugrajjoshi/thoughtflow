@@ -175,3 +175,30 @@ Date: May 2, 2026
 9.5 Tracking Cadence
 - Update this report at the end of each working session
 - Move items from "In Progress" to "Done Recently" only after code + manual verification
+
+10. Scan Snapshot (May 3, 2026)
+- Backend
+	- Django project: `thoughtflow` (contains `manage.py`, `requirements.txt`, `db.sqlite3`).
+	- Installed apps seen in `thoughtflow/settings.py`: `accounts`, `posts`, `chat`, plus standard Django and DRF apps.
+	- Migrations exist for `accounts`, `chat`, and `posts` (multiple numbered migration files present).
+	- Tests present: `accounts/tests.py`, `chat/tests.py`, `posts/tests.py` with API-style tests (APITestCase).
+
+- Frontend
+	- Frontend app: `thoughtflow-frontend` using React + Vite (`package.json`, `vite.config.js`).
+	- Entry points: `src/main.jsx`, `src/App.jsx` with routes for `/`, `/home`, `/profile`, `/signup`, `/profilesetup`, `/hashtag/:hashtagId`.
+	- Pages: `Home.jsx`, `Authpage.jsx`, `signup.jsx`, `profilesetup.jsx`, `profile.jsx`, `HashtagPage.jsx`.
+	- Major components under `src/components`: `Createpost.jsx`, `PostCard.jsx`, `PostView`/`postview.jsx`, `SidebarNav.jsx`, `ProfileSection.jsx`, `ProfileView`/`profileview.jsx`, `MassangerSection`/`massangersection.jsx`, `TrendingHashtags.jsx`, `followinglist.jsx`, `commentcard.jsx`, and others.
+	- Assets: `src/assets/logo.svg` referenced across pages.
+
+- Notes / Observations
+	- Backend uses SQLite for local development (`db.sqlite3`).
+	- Requirements pinned in `requirements.txt` (Django 6.0.3, DRF, corsheaders, Pillow).
+	- Frontend references backend at `http://127.0.0.1:8000` in many components.
+	- Search/migration/test artifacts confirm active development and reasonable test scaffolding, but many tests assert API behaviors rather than exhaustive edge cases.
+
+11. Immediate Next Steps (I can run now)
+- Append this scan snapshot to the live tracker (done).
+- Expand the frontend components inventory into a CSV or markdown list (optional).
+- Expand backend migration/test status into a detailed table (optional).
+
+-- End of Scan Snapshot --

@@ -138,3 +138,22 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
     ]
 }
+
+# Frontend / backend URLs used by email links and OAuth redirects
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5174')
+BACKEND_URL = os.getenv('BACKEND_URL', 'http://127.0.0.1:8000')
+
+# Email configuration: defaults to console backend for development
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'no-reply@thoughtflow.local')
+
+# SMTP settings (used when EMAIL_BACKEND is set to SMTP backend)
+EMAIL_HOST = os.getenv('EMAIL_HOST', '')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587) or 587)
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
+
+# If SMTP credentials are not provided but EMAIL_BACKEND requests SMTP, fall back to console backend
+if 'smtp' in EMAIL_BACKEND.lower() and not EMAIL_HOST:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

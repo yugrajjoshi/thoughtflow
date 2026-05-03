@@ -9,6 +9,15 @@ from rest_framework.permissions import IsAuthenticated
 from .models import Profile
 from django.shortcuts import get_object_or_404
 from .models import Media
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+import json
+import urllib.request
+import urllib.parse
+import os
+from django.core.mail import send_mail, EmailMessage
+from django.conf import settings
 
 @api_view(['POST'])
 def register_user(request):
@@ -188,3 +197,153 @@ def following(request, username):
         'count': target_profile.following.count(),
         'results': serializer.data,
     })
+
+
+@api_view(['POST'])
+def password_reset_request(request):
+    email = request.data.get('email')
+    if not email:
+        return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        user = User.objects.get(email__iexact=email)
+    except User.DoesNotExist:
+        # Do not reveal whether email exists
+        return Response({'detail': 'If that email exists, a reset link was sent.'})
+
+    token = default_token_generator.make_token(user)
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+
+    frontend_url = getattr(settings, 'FRONTEND_URL', os.getenv('FRONTEND_URL', 'http://localhost:5174'))
+    reset_path = f"/reset-password?uid={uid}&token={token}"
+    reset_url = frontend_url.rstrip('/') + reset_path
+
+    subject = 'ThoughtFlow password reset'
+    message = f"You (or someone else) requested a password reset. Use this link to set a new password:\n\n{reset_url}\n\nIf you did not request this, ignore this email."
+
+    try:
+        send_mail(subject, message, getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@thoughtflow.local'), [user.email], fail_silently=False)
+    except Exception as e:
+        # Fall back to printing the link in server logs for development
+        print('Failed to send email, falling back to console. Error:', e)
+        print(f"Password reset URL for {user.email}: {reset_url}")
+
+    # For development / convenience when DEBUG, return the reset URL so devs can click it
+    if getattr(settings, 'DEBUG', True):
+        return Response({'detail': 'Password reset link generated.', 'reset_url': reset_url})
+
+    return Response({'detail': 'If that email exists, a reset link was sent.'})
+
+
+@api_view(['POST'])
+def password_reset_confirm(request):
+    uid = request.data.get('uid')
+    token = request.data.get('token')
+    new_password = request.data.get('new_password')
+
+    if not uid or not token or not new_password:
+        return Response({'error': 'uid, token and new_password are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        pk = force_str(urlsafe_base64_decode(uid))
+        user = User.objects.get(pk=pk)
+    except Exception:
+        return Response({'error': 'Invalid uid'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not default_token_generator.check_token(user, token):
+        return Response({'error': 'Invalid or expired token'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user.set_password(new_password)
+    user.save()
+    return Response({'detail': 'Password has been reset.'})
+
+
+@api_view(['GET'])
+def google_oauth_redirect(request):
+    client_id = os.getenv('GOOGLE_CLIENT_ID')
+    redirect_uri = os.getenv('GOOGLE_REDIRECT_URI') or os.getenv('BACKEND_URL', 'http://127.0.0.1:8000') + '/api/auth/google/callback/'
+
+    if not client_id:
+        return Response({'error': 'GOOGLE_CLIENT_ID not configured on server.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    params = {
+        'client_id': client_id,
+        'redirect_uri': redirect_uri,
+        'response_type': 'code',
+        'scope': 'openid email profile',
+        'access_type': 'offline',
+        'prompt': 'consent',
+    }
+    url = 'https://accounts.google.com/o/oauth2/v2/auth?' + urllib.parse.urlencode(params)
+    from django.shortcuts import redirect
+    return redirect(url)
+
+
+@api_view(['GET'])
+def google_oauth_callback(request):
+    # Exchange code for tokens, verify id_token, create or get user, return auth token
+    code = request.GET.get('code')
+    if not code:
+        return Response({'error': 'Missing code'}, status=status.HTTP_400_BAD_REQUEST)
+
+    client_id = os.getenv('GOOGLE_CLIENT_ID')
+    client_secret = os.getenv('GOOGLE_CLIENT_SECRET')
+    redirect_uri = os.getenv('GOOGLE_REDIRECT_URI') or os.getenv('BACKEND_URL', 'http://127.0.0.1:8000') + '/api/auth/google/callback/'
+
+    if not client_id or not client_secret:
+        return Response({'error': 'Google OAuth credentials not configured on server.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    token_url = 'https://oauth2.googleapis.com/token'
+    data = urllib.parse.urlencode({
+        'code': code,
+        'client_id': client_id,
+        'client_secret': client_secret,
+        'redirect_uri': redirect_uri,
+        'grant_type': 'authorization_code',
+    }).encode()
+
+    try:
+        req = urllib.request.Request(token_url, data=data, method='POST', headers={'Content-Type': 'application/x-www-form-urlencoded'})
+        resp = urllib.request.urlopen(req)
+        resp_data = json.loads(resp.read().decode())
+    except Exception as e:
+        return Response({'error': 'Failed to exchange code for token', 'details': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    id_token = resp_data.get('id_token')
+    access_token = resp_data.get('access_token')
+
+    # Verify id_token via Google's tokeninfo endpoint
+    try:
+        verify_url = f'https://oauth2.googleapis.com/tokeninfo?id_token={urllib.parse.quote(id_token)}'
+        verify_resp = urllib.request.urlopen(verify_url)
+        verify_data = json.loads(verify_resp.read().decode())
+    except Exception as e:
+        return Response({'error': 'Failed to verify id_token', 'details': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    email = verify_data.get('email')
+    name = verify_data.get('name') or email.split('@')[0]
+    picture = verify_data.get('picture')
+
+    if not email:
+        return Response({'error': 'Google account has no email'}, status=status.HTTP_400_BAD_REQUEST)
+
+    username_base = email.split('@')[0]
+    username = username_base
+    counter = 0
+    while User.objects.filter(username=username).exists():
+        counter += 1
+        username = f"{username_base}{counter}"
+
+    user, created = User.objects.get_or_create(email=email, defaults={'username': username})
+    if created:
+        user.set_unusable_password()
+        user.save()
+        Profile.objects.get_or_create(user=user, defaults={'name': name, 'profile_image': picture})
+
+    token, _ = Token.objects.get_or_create(user=user)
+
+    # Redirect back to frontend with token
+    frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5174')
+    redirect_to = frontend_url.rstrip('/') + f"/?token={token.key}"
+    from django.shortcuts import redirect
+    return redirect(redirect_to)
