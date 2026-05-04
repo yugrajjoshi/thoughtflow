@@ -43,11 +43,20 @@ The frontend expects the backend API at `http://127.0.0.1:8000` by default. Adju
 - Backend: `python manage.py runserver`
 - Frontend: `npm run dev` (inside `thoughtflow-frontend`)
 
-## Recent updates (till 2026-05-02)
+## Recent updates (till 2026-05-04)
 
 - UI: Messenger header now hides the `@username` and profile link in the user-selection state, but keeps them when a conversation is open.
-- Search: Post results are now reliably clickable (replaced nested buttons with accessible role="button" containers) so selecting search posts opens the post view.
+- Search (May 4): Desktop now renders inline web search results in the Home middle column (Top/Latest/Users tabs appear after pressing Enter). While typing, live user suggestions appear inline as before. Mobile full-screen search and the dedicated `/search` page remain available for small screens.
+- Fixes (May 4): Added `topPosts`/`latestPosts` ranking helpers and `useMemo` derivations to avoid runtime ReferenceErrors. Restored the desktop search input and fixed responsive spacing and header heights.
 - Mobile layout: Fixed overlay positioning and added bottom padding so search/chat overlays no longer show feed content behind the bottom nav. Centered the floating create-post (`+`) button over the nav and adjusted its positioning so it appears solid and not transparent.
+
+## How to quickly verify the new search behavior
+
+1. Start backend and frontend dev servers (see Quick start). Frontend expects backend at `http://127.0.0.1:8000`.
+2. Open the app on desktop and click the search input in the top bar — typing should show live user suggestions in the middle column; press Enter to perform a full search and reveal the Top/Latest/Users tabs.
+3. On a small-width viewport or mobile device, activating search should open the full-screen mobile search overlay (unchanged).
+
+If you want, I can add a short automated smoke test script (Playwright) that verifies typing shows users and Enter shows tabs.
 
 ## Notes
 

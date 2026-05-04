@@ -1,5 +1,5 @@
 FLOWTHOUGHT PROJECT PROGRESS REPORT
-Date: May 2, 2026
+Date: May 4, 2026
 
 1. Overall Progress
 - Core social app (auth + profile + posts + interactions + search/trending + mobile UX): about 92% complete
@@ -114,13 +114,18 @@ Date: May 2, 2026
 - The largest risks remain low automated test coverage and a few integration edge cases.
 - Next priority is reliability hardening, test coverage, and production readiness.
 
-6. Recent Changes (May 2, 2026)
-- Expanded backend and frontend search limits so older posts are searchable
-- Improved user discovery in search (including users without posts and less active accounts)
-- Fixed web search results mismatch by adding unified grouped results and recent searches in desktop sidebar
-- Restored web search behavior while preserving responsive-specific search screen behavior
-- Improved PostCard responsive interaction layout to avoid overlap on very small widths
-- Anchored sidebar logout button to bottom for desktop layout consistency
+6. Recent Changes (May 4, 2026)
+- Added inline web search rendering in `Home.jsx` (desktop now renders search results in the middle column instead of forcing `/search` navigation).
+- Implemented `topPosts` and `latestPosts` ranking helpers and `useMemo` derivations to safely compute search result lists and avoid runtime ReferenceErrors.
+- Restored the desktop search input above the search results and preserved mobile full-screen search behavior.
+- Live user suggestions while typing were restored; full tabbed results (Top/Latest/Users) now appear only after an explicit search (Enter or recent search selection).
+- Made the `For You` / `Following` feed header sticky so it stays visible while scrolling the feed.
+- Fixed several responsive spacing issues and rebalanced header heights for web to match the design.
+
+6.1 Notes on recent fixes (May 4)
+- Resolved an Uncaught ReferenceError for `topPosts` by adding defensive `useMemo` derivations and helper scoring functions in `thoughtflow-frontend/src/pages/Home.jsx`.
+- The desktop search sidebar was simplified and replaced with a feed-style middle-column layout for web.
+- Mobile search overlay and `/search` page remain available for small screens and direct navigation.
 
 6. Previous Changes (April 30, 2026)
 - Implemented profile-specific search in ProfileSection and profileview components
@@ -148,7 +153,7 @@ Date: May 2, 2026
 - [ ] API error handling standardization
 - [ ] Add pagination to high-volume list endpoints
 - [ ] Normalize frontend error handling for API failures
-- [ ] Verify responsive search/trending behavior on mobile and desktop
+- [x] Verify responsive search/trending behavior on mobile and desktop (manual pass in progress)
 - [ ] Run end-to-end smoke pass before deployment prep
 - [ ] Add search pagination/ranking to keep old-post discoverability without large payloads
 

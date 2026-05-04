@@ -5,6 +5,7 @@ import Signup from "./pages/signup";
 import Profilesetup from "./pages/profilesetup";
 import HashtagPage from "./pages/HashtagPage";
 import ResetPassword from "./pages/ResetPassword";
+import SearchPage from "./pages/SearchPage";
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
         <Route path="/profilesetup" element={<Profilesetup />} />
         <Route path="/hashtag/:hashtagId" element={<HashtagPage />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/search" element={<SearchPage />} />
       </Routes>
     </Router>
   );

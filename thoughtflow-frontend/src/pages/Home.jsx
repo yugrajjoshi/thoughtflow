@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { Bookmark, House, LogOut, Mail, Plus, Search, Settings2, UserRound, X } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import CreatePost from "../components/Createpost";
@@ -114,6 +114,34 @@ const removeRecentSearch = (query) => {
   }
 };
 
+// Helpers for scoring and recency used by search result ranking
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
+const toNumber = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const getPostScore = (post) => {
+  const likes = toNumber(post?.likes_count ?? (Array.isArray(post?.likes) ? post.likes.length : 0));
+  const reposts = toNumber(post?.reposts_count ?? (Array.isArray(post?.reposts) ? post.reposts.length : 0));
+  const bookmarks = toNumber(post?.bookmarks_count ?? (Array.isArray(post?.bookmarks) ? post.bookmarks.length : 0));
+  const comments = toNumber(post?.comments_count ?? (Array.isArray(post?.comments) ? post.comments.length : 0));
+  const views = toNumber(post?.views_counts ?? post?.views ?? 0);
+
+  const createdAt = new Date(post?.created_at || 0).getTime();
+  const ageDays = Number.isFinite(createdAt) ? Math.max(0, (Date.now() - createdAt) / THIRTY_DAYS_MS * 30) : 30;
+  const recencyBoost = Math.max(0, 40 - ageDays * 1.25);
+
+  return (likes * 5) + (reposts * 6) + (bookmarks * 4) + (comments * 3) + (views * 0.08) + recencyBoost;
+};
+
+const isWithinLast30Days = (value) => {
+  const timestamp = new Date(value || 0).getTime();
+  if (!Number.isFinite(timestamp)) return false;
+  return Date.now() - timestamp <= THIRTY_DAYS_MS;
+};
+
 function Home() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -190,6 +218,8 @@ function Home() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [recentSearches, setRecentSearches] = useState(() => getRecentSearches());
+  const [searchTab, setSearchTab] = useState("top");
+  const [searchPerformed, setSearchPerformed] = useState(false);
   const [trendingHashtags, setTrendingHashtags] = useState([]);
   const [trendingLoading, setTrendingLoading] = useState(false);
   const [uiNotice, setUiNotice] = useState({ type: "", message: "" });
@@ -223,7 +253,15 @@ function Home() {
     setSearchQuery(normalizedQuery);
     saveRecentSearch(normalizedQuery);
     refreshRecentSearches();
-  }, [refreshRecentSearches]);
+    if (isMobileView) {
+      goTo(`/search?q=${encodeURIComponent(normalizedQuery)}`);
+      return;
+    }
+
+    setActiveButton("search");
+    setSearchTab("top");
+    setSearchPerformed(true);
+  }, [goTo, isMobileView, refreshRecentSearches]);
 
   const handleClearRecentSearches = useCallback(() => {
     localStorage.removeItem(RECENT_SEARCHES_STORAGE_KEY);
@@ -240,7 +278,15 @@ function Home() {
 
     saveRecentSearch(normalizedQuery);
     refreshRecentSearches();
-  }, [refreshRecentSearches, searchQuery]);
+    if (isMobileView) {
+      goTo(`/search?q=${encodeURIComponent(normalizedQuery)}`);
+      return;
+    }
+
+    setActiveButton("search");
+    setSearchTab("top");
+    setSearchPerformed(true);
+  }, [goTo, isMobileView, refreshRecentSearches, searchQuery]);
 
   const loadTrendingHashtags = useCallback(async () => {
     const token = getCleanToken();
@@ -866,6 +912,7 @@ function Home() {
   const isBookmarksView = activeButton === "bookmarks";
   const isMassangerView = activeButton === "chats";
   const isProfileView = activeButton === "profile";
+  const isSearchView = activeButton === "search";
   const isFeedView = !isMassangerView && !isProfileView;
   const normalizedChatSearchQuery = chatSearchQuery.trim().toLowerCase();
   const filteredChatConversations = chatConversations.filter((person) => {
@@ -887,6 +934,26 @@ function Home() {
     const displayName = (person?.displayName || "").toLowerCase();
     return username.includes(normalizedChatSearchQuery) || displayName.includes(normalizedChatSearchQuery);
   });
+
+  // Derived search result groupings used by the inline search UI
+  const topPosts = useMemo(() => {
+    const source = Array.isArray(searchResults?.posts) ? searchResults.posts : [];
+    return [...source]
+      .sort((left, right) => {
+        const scoreDelta = getPostScore(right) - getPostScore(left);
+        if (scoreDelta !== 0) return scoreDelta;
+        return new Date(right?.created_at || 0).getTime() - new Date(left?.created_at || 0).getTime();
+      })
+      .slice(0, 50);
+  }, [searchResults?.posts]);
+
+  const latestPosts = useMemo(() => {
+    const source = Array.isArray(searchResults?.posts) ? searchResults.posts : [];
+    return [...source]
+      .filter((post) => isWithinLast30Days(post?.created_at))
+      .sort((left, right) => new Date(right?.created_at || 0).getTime() - new Date(left?.created_at || 0).getTime())
+      .slice(0, 50);
+  }, [searchResults?.posts]);
   const conversationUsernames = new Set(
     chatConversations
       .map((person) => (person?.username || "").toLowerCase())
@@ -1115,7 +1182,7 @@ function Home() {
       <input
         type="text"
         value={searchQuery}
-        onChange={(event) => setSearchQuery(event.target.value)}
+        onChange={(event) => { setSearchQuery(event.target.value); setSearchPerformed(false); }}
         placeholder="Search"
         className="w-full bg-transparent text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none"
       />
@@ -1130,14 +1197,6 @@ function Home() {
       <img src={logo} alt="ThoughtFlow" className="h-9 w-auto object-contain" />
     </button>
   );
-
-  const mobileNavItems = [
-    { key: "home", label: "Home", icon: House },
-    { key: "profile", label: "Profile", icon: UserRound },
-    { key: "search", label: "Search", icon: Search },
-    { key: "chats", label: "Chats", icon: Mail },
-    { key: "bookmarks", label: "Bookmarks", icon: Bookmark },
-  ];
 
   const mobileTopBar = isMobileView && !isProfileView ? (
     <div className="show-mobile-only fixed left-0 right-0 top-0 z-50 h-16 bg-black/95 backdrop-blur">
@@ -1168,6 +1227,14 @@ function Home() {
       </div>
     </div>
   ) : null;
+
+  const mobileNavItems = [
+    { key: "home", label: "Home", icon: House },
+    { key: "profile", label: "Profile", icon: UserRound },
+    { key: "search", label: "Search", icon: Search },
+    { key: "chats", label: "Chats", icon: Mail },
+    { key: "bookmarks", label: "Bookmarks", icon: Bookmark },
+  ];
 
   const mobileNavDrawer = isMobileView ? (
     <>
@@ -1229,71 +1296,6 @@ function Home() {
     </>
   ) : null;
 
-  const mobileChatScreen = isMobileView && isMassangerView ? (
-    <div className="show-mobile-only fixed inset-x-0 top-16 z-30 flex flex-col bg-black text-white" style={{ bottom: '70px' }}>
-      <div className="border-b border-zinc-800 px-4 py-4">
-        {selectedChatUser ? (
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedChatUser(null);
-                setSelectedConversationId(null);
-              }}
-              className="rounded-full border border-zinc-800 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-900"
-            >
-              Back
-            </button>
-            <div className="min-w-0">
-              <p className="text-sm text-zinc-500">Chat with</p>
-              <p className="font-semibold truncate">{selectedChatUser.displayName || selectedChatUser.username}</p>
-            </div>
-          </div>
-        ) : (
-          <div>
-            <h2 className="text-xl font-bold">Chats</h2>
-            <p className="mt-1 text-sm text-zinc-500">People you chatted with before</p>
-          </div>
-        )}
-      </div>
-
-      {selectedChatUser ? (
-        <div className="flex-1 min-h-0">
-          <MassangerSection
-            selectedUser={selectedChatUser}
-            selectedConversationId={selectedConversationId}
-            currentUserId={currentUserId}
-            onConversationChanged={fetchChatConversations}
-          />
-        </div>
-      ) : (
-        <>
-          <div className="border-b border-zinc-800 px-4 py-3">
-            <div className="flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-950 px-3 py-2">
-              <Search className="h-4 w-4 text-zinc-500" />
-              <input
-                type="text"
-                value={chatSearchQuery}
-                onChange={(event) => setChatSearchQuery(event.target.value)}
-                placeholder="Search chats"
-                className="w-full bg-transparent text-sm text-zinc-200 placeholder:text-zinc-500 focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="flex-1 min-h-0 overflow-y-auto posts-scrollbar">
-            {filteredChatConversations.length > 0 ? (
-              <section className="flex flex-col">
-                {filteredChatConversations.map((person) => renderChatPersonRow(person, { keyPrefix: "mobile-conversation" }))}
-              </section>
-            ) : (
-              <div className="px-4 py-8 text-sm text-zinc-500">No previous chats found.</div>
-            )}
-          </div>
-        </>
-      )}
-    </div>
-  ) : null;
 
   if (!loginStatus) {
     return null;
@@ -1303,7 +1305,7 @@ function Home() {
   return (
     <main
       className="responsive-layout bg-black w-full min-h-dvh overflow-hidden"
-      style={isMobileView ? { paddingTop: "64px", paddingBottom: "70px" } : undefined}
+      style={isMobileView ? { paddingTop: isProfileView ? "0" : "64px", paddingBottom: "70px" } : undefined}
     >
       {uiNotice.message ? (
         <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl border text-sm shadow-lg ${uiNotice.type === "error" ? "border-red-500/40 bg-red-900/40 text-red-200" : "border-green-500/40 bg-green-900/40 text-green-200"}`}>
@@ -1313,6 +1315,7 @@ function Home() {
       <SidebarNav activeButton={activeButton} onSelect={handleButtonClick} onLogout={handleLogout} />
 
       {mobileTopBar}
+
       {mobileNavDrawer}
 
       {isMobileView ? (
@@ -1327,8 +1330,6 @@ function Home() {
           <Plus className="h-8 w-8 font-bold" />
         </button>
       ) : null}
-
-      {mobileChatScreen}
 
       {isMobileView && mobileCreatePostOpen ? (
         <div className="show-mobile-only fixed inset-x-0 z-40 bg-black text-white" style={{ top: "64px", bottom: "70px" }}>
@@ -1403,7 +1404,7 @@ function Home() {
         ) : (
           <>
             {isFeedView && !isBookmarksView ? (
-              <header className="flex w-full h-[8%]">
+              <header className="sticky top-0 z-20 bg-black border-b border-zinc-900 flex w-full h-15">
                 <button
                   className={`text-zinc-400 transition-all duration-200 hover:text-white w-[50%] ${feedTab === "For You" ? "bg-linear-to-r from-zinc-950 to-zinc-900" : "bg-black"}`}
                   onClick={() => setFeedTab("For You")}
@@ -1593,167 +1594,186 @@ function Home() {
             </section>
           ) : (
             <>
-              <button
-                type="button"
-                className=" flex flex-row gap-5 mt-5 justify m-5 items-center w-[90%] h-12 border rounded-4xl "
-              >
-                <Search className=" ml-5 w-5 h-5" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  placeholder="Search"
-                  className="bg-black w-full h-full text-zinc-300 placeholder:text-zinc-500 focus:outline-none rounded-4xl"
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </button>
-              {normalizedSearchQuery ? (
-                <section className="w-[90%] rounded-2xl border border-zinc-800 bg-zinc-950/80 shadow-lg overflow-hidden mx-5">
-                  <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-white">Search Results</h3>
-                    <span className="text-xs text-zinc-500">
-                      {searchLoading
-                        ? "Searching..."
-                        : `${searchResults.posts.length + searchResults.hashtags.length + matchingPeople.length} results`}
-                    </span>
-                  </div>
+              <div className="w-full px-4 md:px-6 lg:px-8 py-3">
+                <form onSubmit={handleSearchSubmit} className="mx-auto flex w-full max-w-3xl items-center gap-3 rounded-full border border-zinc-800 bg-zinc-950 px-3 py-2">
+                  <Search className="h-4 w-4 shrink-0 text-zinc-500" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => { setSearchQuery(e.target.value); setSearchPerformed(false); }}
+                    placeholder="Search posts, hashtags, people"
+                    className="w-full bg-transparent text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none"
+                  />
+                </form>
+              </div>
 
-                  {searchError ? <p className="px-4 py-4 text-sm text-red-400">{searchError}</p> : null}
-
-                  <div className="max-h-96 overflow-y-auto posts-scrollbar">
-                    {!searchLoading && !searchError && matchingPeople.length > 0 ? (
-                      <div className="px-4 py-3 border-b border-zinc-900/70">
-                        <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">People</p>
-                      </div>
-                    ) : null}
-
-                    {!searchLoading && !searchError && matchingPeople.length > 0 ? (
-                      matchingPeople.map((person) => (
+              { !normalizedSearchQuery ? (
+                <div className="px-4 md:px-6 lg:px-8 py-3 flex flex-col gap-4">
+                  <section className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <h3 className="text-sm font-semibold text-white">Recent Searches</h3>
+                      {recentSearches.length > 0 ? (
                         <button
-                          key={`desktop-search-user-${person.username}`}
                           type="button"
-                          onClick={() => {
-                            setSelectedPost(null);
-                            setActiveButton("profile");
-                            goTo(`/profile/${person.username}`);
-                          }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-left border-b border-zinc-900/70 hover:bg-zinc-900/80 transition"
+                          onClick={handleClearRecentSearches}
+                          className="text-xs text-zinc-500 transition hover:text-white"
                         >
-                          <div className="w-11 h-11 rounded-full overflow-hidden bg-zinc-800 shrink-0">
-                            {person.profileImage ? (
-                              <img
-                                src={person.profileImage.startsWith("http") ? person.profileImage : `${API_BASE}${person.profileImage}`}
-                                alt={person.username}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : null}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-white font-medium truncate">{person.displayName || person.username}</p>
-                            <p className="text-sm text-zinc-500 truncate">@{person.username}</p>
-                          </div>
+                          Clear all
                         </button>
-                      ))
-                    ) : null}
+                      ) : null}
+                    </div>
 
-                    {!searchLoading && !searchError && searchResults.hashtags.length > 0 ? (
-                      <>
-                        <div className="px-4 py-3 border-b border-zinc-900/70">
-                          <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Hashtags</p>
-                        </div>
-                        {searchResults.hashtags.map((hashtag) => (
+                    {recentSearches.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {recentSearches.map((item) => (
                           <button
-                            key={`desktop-search-hashtag-${hashtag.id}`}
+                            key={`desktop-recent-search-${item}`}
                             type="button"
-                            onClick={() => {
-                              setSelectedPost(null);
-                              setActiveButton("home");
-                              goTo(`/hashtag/${hashtag.id}`);
-                            }}
-                            className="w-full px-4 py-3 text-left border-b border-zinc-900/70 hover:bg-zinc-900/80 transition"
+                            onClick={() => handleRecentSearchSelect(item)}
+                            className="rounded-full border border-zinc-800 bg-black/40 px-3 py-2 text-sm text-zinc-200 transition hover:text-white"
                           >
-                            <p className="text-blue-400 font-medium">#{hashtag.tag}</p>
-                            <p className="mt-1 text-xs text-zinc-500">{hashtag.posts_count} posts</p>
+                            {item}
                           </button>
                         ))}
-                      </>
-                    ) : null}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-zinc-500">No recent searches yet.</p>
+                    )}
+                  </section>
 
-                    {!searchLoading && !searchError && searchResults.posts.length > 0 ? (
-                      <>
-                        <div className="px-4 py-3 border-b border-zinc-900/70">
-                          <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Posts</p>
-                        </div>
-                        {searchResults.posts.map((post) => (
-                          <div
-                            key={`desktop-search-post-${post.id}`}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => {
-                              setSelectedPost(null);
-                              handleSelectPost(post);
-                            }}
-                            onKeyDown={(e) => { if (e.key === 'Enter') { setSelectedPost(null); handleSelectPost(post); } }}
-                            className="w-full px-4 py-3 text-left border-b border-zinc-900/70 hover:bg-zinc-900/80 transition cursor-pointer"
-                          >
-                            <div className="flex items-center justify-between gap-3">
-                              <p className="text-white font-medium truncate">{post.display_name || post.username}</p>
-                              <p className="text-xs text-zinc-500 shrink-0">@{post.username}</p>
-                            </div>
-                            <p className="mt-2 max-h-16 overflow-hidden whitespace-pre-wrap text-sm text-zinc-300">{post.content}</p>
-                          </div>
-                        ))}
-                      </>
-                    ) : null}
+                  <section className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
+                    <div className="mb-4">
+                      <h2 className="text-sm font-semibold text-white">Trending</h2>
+                      <p className="mt-1 text-xs text-zinc-500">Popular hashtags right now.</p>
+                    </div>
 
-                    {!searchLoading && !searchError && matchingPeople.length === 0 && searchResults.hashtags.length === 0 && searchResults.posts.length === 0 ? (
-                      <p className="px-4 py-6 text-sm text-zinc-500">No posts, hashtags, or users matched this search.</p>
-                    ) : null}
-                  </div>
-                </section>
-              ) : null}
-              <section className="w-[90%] rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 mx-5 mt-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <h3 className="text-sm font-semibold text-white">Recent Searches</h3>
-                  {recentSearches.length > 0 ? (
-                    <button
-                      type="button"
-                      onClick={handleClearRecentSearches}
-                      className="text-xs text-zinc-500 transition hover:text-white"
-                    >
-                      Clear all
-                    </button>
-                  ) : null}
+                    <TrendingHashtags />
+                  </section>
                 </div>
+              ) : !searchPerformed ? (
+                <section className="flex-1 overflow-y-auto posts-scrollbar">
+                  {matchingPeople.length > 0 ? (
+                    <div className="flex flex-col">
+                      {matchingPeople.map((person) => {
+                        const imageSrc = person.profileImage
+                          ? (person.profileImage.startsWith("http") ? person.profileImage : `${API_BASE}${person.profileImage}`)
+                          : "";
 
-                {recentSearches.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {recentSearches.map((item) => (
-                      <button
-                        key={`desktop-recent-search-${item}`}
-                        type="button"
-                        onClick={() => handleRecentSearchSelect(item)}
-                        className="rounded-full border border-zinc-800 bg-black/40 px-3 py-2 text-sm text-zinc-200 transition hover:text-white"
-                      >
-                        {item}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-zinc-500">No recent searches yet.</p>
-                )}
-              </section>
-              <section className="trending-section flex w-full mt-5 flex-col" >
-                <div className="text-lg w-full border-b-[0.5px] border-zinc-800 p-5 font-bold text-left ">Trending</div>
-              </section>
+                        return (
+                          <Link
+                            key={`home-search-user-${person.username}`}
+                            to={`/profile/${person.username}`}
+                            className="flex items-center gap-3 px-4 py-4 transition hover:bg-zinc-950 md:px-6 lg:px-8"
+                          >
+                            <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-zinc-800">
+                              {imageSrc ? <img src={imageSrc} alt={person.username} className="h-full w-full object-cover" /> : null}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate font-medium text-white">{person.displayName || person.username}</p>
+                              <p className="truncate text-sm text-zinc-500">@{person.username}</p>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center text-zinc-500">No matching users found.</div>
+                  )}
+                </section>
+              ) : (
+                <>
+                  <header className="flex w-full h-12">
+                    <button
+                      className={`text-zinc-400 transition-all duration-200 hover:text-white w-1/3 ${searchTab === "top" ? "bg-linear-to-r from-zinc-950 to-zinc-900" : "bg-black"}`}
+                      onClick={() => setSearchTab("top")}
+                    >
+                      Top
+                    </button>
+                    <button
+                      className={`text-zinc-400 transition-all duration-200 hover:text-white w-1/3 ${searchTab === "latest" ? "bg-linear-to-r from-zinc-950 to-zinc-900" : "bg-black"}`}
+                      onClick={() => setSearchTab("latest")}
+                    >
+                      Latest
+                    </button>
+                    <button
+                      className={`text-zinc-400 transition-all duration-200 hover:text-white w-1/3 ${searchTab === "users" ? "bg-linear-to-r from-zinc-950 to-zinc-900" : "bg-black"}`}
+                      onClick={() => setSearchTab("users")}
+                    >
+                      Users
+                    </button>
+                  </header>
+
+                  <section className="flex-1 overflow-y-auto posts-scrollbar">
+                    {searchLoading ? (
+                      <div className="p-6 text-center text-zinc-500">Loading search results...</div>
+                    ) : searchError ? (
+                      <div className="p-6 text-center text-red-400">{searchError}</div>
+                    ) : searchTab === "users" ? (
+                      matchingPeople.length > 0 ? (
+                        <div className="flex flex-col">
+                          {matchingPeople.map((person) => {
+                            const imageSrc = person.profileImage
+                              ? (person.profileImage.startsWith("http") ? person.profileImage : `${API_BASE}${person.profileImage}`)
+                              : "";
+
+                            return (
+                              <Link
+                                key={`home-search-user-${person.username}`}
+                                to={`/profile/${person.username}`}
+                                className="flex items-center gap-3 px-4 py-4 transition hover:bg-zinc-950 md:px-6 lg:px-8"
+                              >
+                                <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-zinc-800">
+                                  {imageSrc ? <img src={imageSrc} alt={person.username} className="h-full w-full object-cover" /> : null}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate font-medium text-white">{person.displayName || person.username}</p>
+                                  <p className="truncate text-sm text-zinc-500">@{person.username}</p>
+                                </div>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="p-6 text-center text-zinc-500">No matching users found.</div>
+                      )
+                    ) : (
+                      <>
+                        <div className="px-4 py-3 text-xs uppercase tracking-[0.18em] text-zinc-500 md:px-6 lg:px-8">
+                          {searchTab === "latest" ? "LATEST POSTS" : "TOP SEARCHES"}
+                        </div>
+                        {(searchTab === "latest" ? latestPosts : topPosts).length > 0 ? (
+                          (searchTab === "latest" ? latestPosts : topPosts).map((post) => (
+                            <PostCard
+                              key={`home-search-${searchTab}-${post.id}`}
+                              post={post}
+                              onClick={handleSelectPost}
+                              currentUsername={currentUsername}
+                              currentUserId={currentUserId}
+                              onDeletePost={handleDeletePost}
+                              onPostUpdated={handlePostUpdated}
+                              onSharePost={handleSharePost}
+                              isDeletingPost={deletingPostIds.includes(post.id)}
+                            />
+                          ))
+                        ) : (
+                          <div className="p-6 text-center text-zinc-500">
+                            {searchTab === "latest" ? "No latest posts found for this search." : "No top results found."}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </section>
+                </>
+              )}
             </>
           )}
       </aside>
       </section>
 
-      {activeButton === "search" ? (
+      {isMobileView && activeButton === "search" ? (
         <div
-          className="fixed inset-x-0 top-16 z-30 flex flex-col bg-black"
-          style={isMobileView ? { bottom: "40px" } : { bottom: "70px" }}
+          className="fixed inset-x-0 top-16 z-30 flex flex-col  bg-black"
+          style={isMobileView ? { bottom: "45px" } : { bottom: "70px" }}
         >
           <div className="sticky top-0 z-10 border-b border-zinc-800 bg-black/95 px-4 py-4 backdrop-blur">
             <form onSubmit={handleSearchSubmit} className="mx-auto flex w-full max-w-3xl items-center gap-3">

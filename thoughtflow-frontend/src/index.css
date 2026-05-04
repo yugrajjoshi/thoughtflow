@@ -41,7 +41,6 @@ body {
   /* Main layout - stack vertically */
   main.responsive-layout {
     flex-direction: column;
-    padding-top: 64px;
     padding-bottom: 70px;
   }
 
