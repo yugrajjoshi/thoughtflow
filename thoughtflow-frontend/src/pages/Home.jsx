@@ -197,7 +197,7 @@ function Home() {
   const [sharePickerState, setSharePickerState] = useState({ open: false, post: null, query: "" });
   const [mobileCreatePostOpen, setMobileCreatePostOpen] = useState(false);
 
-  const MOBILE_CREATE_POST_BUTTON_CLASS = "show-mobile-only  pl-4 text-zinc-400 fixed left-1/2 -translate-x-1/2 z-50 flex h-16 w-16 items-center justify-center rounded-full bg-black border border-zinc-800 text-white shadow-2xl shadow-black/40 hover:bg-zinc-900 transition";
+  const MOBILE_CREATE_POST_BUTTON_CLASS = "show-mobile-only  pl-4 text-zinc-400 fixed right-5 -mb-8 z-50 flex h-16 w-16 items-center justify-center rounded-full bg-white border border-zinc-800 text-black shadow-2xl shadow-black/40 hover:bg-zinc-900 transition";
 
   const showUiNotice = useCallback((type, message) => {
     setUiNotice({ type, message });
@@ -1301,7 +1301,10 @@ function Home() {
 
 
   return (
-    <main className="responsive-layout bg-black w-full h-screen overflow-hidden">
+    <main
+      className="responsive-layout bg-black w-full min-h-dvh overflow-hidden"
+      style={isMobileView ? { paddingTop: "64px", paddingBottom: "70px" } : undefined}
+    >
       {uiNotice.message ? (
         <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl border text-sm shadow-lg ${uiNotice.type === "error" ? "border-red-500/40 bg-red-900/40 text-red-200" : "border-green-500/40 bg-green-900/40 text-green-200"}`}>
           {uiNotice.message}
@@ -1319,7 +1322,7 @@ function Home() {
           className={MOBILE_CREATE_POST_BUTTON_CLASS}
           aria-label="Create post"
           disabled={activeButton !== "home"}
-          style={{ bottom: '38px', opacity: activeButton === "home" ? 1 : 0.6, pointerEvents: activeButton === "home" ? "auto" : "none" }}
+          style={{ bottom: "86px", opacity: activeButton === "home" ? 1 : 0.6, pointerEvents: activeButton === "home" ? "auto" : "none" }}
         >
           <Plus className="h-8 w-8 font-bold" />
         </button>
@@ -1328,7 +1331,7 @@ function Home() {
       {mobileChatScreen}
 
       {isMobileView && mobileCreatePostOpen ? (
-        <div className="show-mobile-only fixed inset-x-0 top-16 z-40 bg-black text-white" style={{ bottom: '70px' }}>
+        <div className="show-mobile-only fixed inset-x-0 z-40 bg-black text-white" style={{ top: "64px", bottom: "70px" }}>
           <div className="flex h-full flex-col">
             <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-4">
               <div>
@@ -1357,8 +1360,8 @@ function Home() {
         </div>
       ) : null}
 
-      <section className={`responsive-main-section ml-[20%] flex h-screen w-[80%] overflow-hidden ${isProfileView ? "profile-view-section" : ""}`} style={isProfileView ? { marginTop: 0 } : {}}>
-        <article className="responsive-feed flex flex-col h-screen w-[60%] text-white border-zinc-900 border-l border-r overflow-hidden">
+      <section className={`responsive-main-section ml-[20%] flex h-full min-h-0 w-[80%] overflow-hidden ${isProfileView ? "profile-view-section" : ""}`} style={isProfileView ? { marginTop: 0 } : {}}>
+        <article className="responsive-feed flex min-h-0 h-full w-[60%] flex-col text-white border-zinc-900 border-l border-r overflow-hidden">
         {isMassangerView ? (
           <MassangerSection
             selectedUser={selectedChatUser}
@@ -1449,7 +1452,7 @@ function Home() {
           </>
         )}
         </article>
-        <aside className="responsive-aside flex flex-col border items-center w-[40%] h-screen text-white border-zinc-800 overflow-y-auto posts-scrollbar">
+        <aside className="responsive-aside flex min-h-0 h-full w-[40%] flex-col items-center border text-white border-zinc-800 overflow-y-auto posts-scrollbar">
           {isMassangerView ? (
             <section className="w-full h-full flex flex-col">
               {isMobileView && selectedChatUser ? (
@@ -1748,7 +1751,10 @@ function Home() {
       </section>
 
       {activeButton === "search" ? (
-        <div className="fixed inset-x-0 top-16 z-30 flex flex-col bg-black" style={{ bottom: '70px' }}>
+        <div
+          className="fixed inset-x-0 top-16 z-30 flex flex-col bg-black"
+          style={isMobileView ? { bottom: "40px" } : { bottom: "70px" }}
+        >
           <div className="sticky top-0 z-10 border-b border-zinc-800 bg-black/95 px-4 py-4 backdrop-blur">
             <form onSubmit={handleSearchSubmit} className="mx-auto flex w-full max-w-3xl items-center gap-3">
             

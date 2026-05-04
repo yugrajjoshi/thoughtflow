@@ -41,6 +41,8 @@ body {
   /* Main layout - stack vertically */
   main.responsive-layout {
     flex-direction: column;
+    padding-top: 64px;
+    padding-bottom: 70px;
   }
 
   /* Sidebar becomes fixed bottom navigation */
@@ -103,10 +105,11 @@ body {
   section.responsive-main-section {
     margin-left: 0 !important;
     width: 100% !important;
-    margin-bottom: 70px;
-    margin-top: 64px !important;
-    height: calc(100vh - 134px) !important;
+    margin-bottom: 0;
+    margin-top: 0 !important;
+    height: 100% !important;
     flex-direction: column;
+    min-height: 0;
   }
 
   /* Profile view section on mobile - no top margin for black bar */
@@ -118,9 +121,9 @@ body {
   div.profile-main-container {
     margin-left: 0 !important;
     width: 100% !important;
-    margin-bottom: 70px !important;
+    margin-bottom: 0 !important;
     margin-top: 0 !important;
-    height: calc(100vh - 70px) !important;
+    height: 100% !important;
   }
 
   /* Feed article - full width */
@@ -137,7 +140,7 @@ body {
     bottom: 70px;
     left: 0;
     right: 0;
-    top: 0;
+    top: 64px;
     width: 100% !important;
     height: auto !important;
     max-height: calc(100vh - 70px);
