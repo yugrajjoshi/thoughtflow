@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Eye, EyeOff } from "lucide-react";
 
 // Simple modal for password reset
@@ -70,6 +70,23 @@ function PasswordResetModal({ open, onClose }) {
 }
 
 function AuthPage() {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    const provider = params.get("provider");
+    const isNew = params.get("new") === "true";
+
+    if (!token || provider !== "google") {
+      return;
+    }
+
+    localStorage.setItem("token", token);
+
+    // Clean callback params from URL before redirecting.
+    window.history.replaceState({}, document.title, window.location.pathname);
+    window.location.href = isNew ? "/profilesetup" : "/home";
+  }, []);
+
   function handleSubmit(event) {
     event.preventDefault();
     // Handle form submission logic here

@@ -15,7 +15,9 @@ from django.utils.encoding import force_bytes, force_str
 import json
 import urllib.request
 import urllib.parse
+import urllib.error
 import os
+import secrets
 from django.core.mail import send_mail, EmailMessage
 from django.conf import settings
 
@@ -258,40 +260,51 @@ def password_reset_confirm(request):
     return Response({'detail': 'Password has been reset.'})
 
 
-@api_view(['GET'])
 def google_oauth_redirect(request):
-    client_id = os.getenv('GOOGLE_CLIENT_ID')
-    redirect_uri = os.getenv('GOOGLE_REDIRECT_URI') or os.getenv('BACKEND_URL', 'http://127.0.0.1:8000') + '/api/auth/google/callback/'
+    from django.shortcuts import redirect
+    from django.http import JsonResponse
+    client_id = (os.getenv('GOOGLE_CLIENT_ID') or '').strip()
+    redirect_uri = (os.getenv('GOOGLE_REDIRECT_URI') or f"{settings.BACKEND_URL.rstrip('/')}/api/auth/google/callback/").strip()
 
     if not client_id:
-        return Response({'error': 'GOOGLE_CLIENT_ID not configured on server.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return JsonResponse({'error': 'GOOGLE_CLIENT_ID not configured on server.'}, status=500)
+
+    state = secrets.token_urlsafe(24)
+    request.session['google_oauth_state'] = state
 
     params = {
         'client_id': client_id,
         'redirect_uri': redirect_uri,
         'response_type': 'code',
         'scope': 'openid email profile',
+        'state': state,
         'access_type': 'offline',
         'prompt': 'consent',
     }
     url = 'https://accounts.google.com/o/oauth2/v2/auth?' + urllib.parse.urlencode(params)
-    from django.shortcuts import redirect
     return redirect(url)
 
 
-@api_view(['GET'])
 def google_oauth_callback(request):
+    from django.shortcuts import redirect
+    from django.http import JsonResponse
     # Exchange code for tokens, verify id_token, create or get user, return auth token
     code = request.GET.get('code')
-    if not code:
-        return Response({'error': 'Missing code'}, status=status.HTTP_400_BAD_REQUEST)
+    state = request.GET.get('state')
 
-    client_id = os.getenv('GOOGLE_CLIENT_ID')
-    client_secret = os.getenv('GOOGLE_CLIENT_SECRET')
-    redirect_uri = os.getenv('GOOGLE_REDIRECT_URI') or os.getenv('BACKEND_URL', 'http://127.0.0.1:8000') + '/api/auth/google/callback/'
+    session_state = request.session.pop('google_oauth_state', None)
+    if not state or not session_state or state != session_state:
+        return JsonResponse({'error': 'Invalid OAuth state.'}, status=400)
+
+    if not code:
+        return JsonResponse({'error': 'Missing code'}, status=400)
+
+    client_id = (os.getenv('GOOGLE_CLIENT_ID') or '').strip()
+    client_secret = (os.getenv('GOOGLE_CLIENT_SECRET') or '').strip()
+    redirect_uri = (os.getenv('GOOGLE_REDIRECT_URI') or f"{settings.BACKEND_URL.rstrip('/')}/api/auth/google/callback/").strip()
 
     if not client_id or not client_secret:
-        return Response({'error': 'Google OAuth credentials not configured on server.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return JsonResponse({'error': 'Google OAuth credentials not configured on server.'}, status=500)
 
     token_url = 'https://oauth2.googleapis.com/token'
     data = urllib.parse.urlencode({
@@ -306,11 +319,15 @@ def google_oauth_callback(request):
         req = urllib.request.Request(token_url, data=data, method='POST', headers={'Content-Type': 'application/x-www-form-urlencoded'})
         resp = urllib.request.urlopen(req)
         resp_data = json.loads(resp.read().decode())
+    except urllib.error.HTTPError as e:
+        details = e.read().decode(errors='replace')
+        return JsonResponse({'error': 'Failed to exchange code for token', 'details': details or str(e)}, status=400)
     except Exception as e:
-        return Response({'error': 'Failed to exchange code for token', 'details': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({'error': 'Failed to exchange code for token', 'details': str(e)}, status=400)
 
     id_token = resp_data.get('id_token')
-    access_token = resp_data.get('access_token')
+    if not id_token:
+        return JsonResponse({'error': 'Google response did not include id_token.'}, status=400)
 
     # Verify id_token via Google's tokeninfo endpoint
     try:
@@ -318,14 +335,14 @@ def google_oauth_callback(request):
         verify_resp = urllib.request.urlopen(verify_url)
         verify_data = json.loads(verify_resp.read().decode())
     except Exception as e:
-        return Response({'error': 'Failed to verify id_token', 'details': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({'error': 'Failed to verify id_token', 'details': str(e)}, status=400)
 
     email = verify_data.get('email')
     name = verify_data.get('name') or email.split('@')[0]
     picture = verify_data.get('picture')
 
     if not email:
-        return Response({'error': 'Google account has no email'}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({'error': 'Google account has no email'}, status=400)
 
     username_base = email.split('@')[0]
     username = username_base
@@ -338,12 +355,11 @@ def google_oauth_callback(request):
     if created:
         user.set_unusable_password()
         user.save()
-        Profile.objects.get_or_create(user=user, defaults={'name': name, 'profile_image': picture})
+        Profile.objects.get_or_create(user=user, defaults={'name': name})
 
     token, _ = Token.objects.get_or_create(user=user)
 
-    # Redirect back to frontend with token
-    frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5174')
-    redirect_to = frontend_url.rstrip('/') + f"/?token={token.key}"
-    from django.shortcuts import redirect
+    # Redirect back to frontend with token and a hint for onboarding route.
+    frontend_url = settings.FRONTEND_URL
+    redirect_to = frontend_url.rstrip('/') + f"/?token={token.key}&provider=google&new={str(created).lower()}"
     return redirect(redirect_to)
