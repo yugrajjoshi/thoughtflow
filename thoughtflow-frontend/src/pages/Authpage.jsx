@@ -33,9 +33,9 @@ function PasswordResetModal({ open, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-      <div className="bg-white p-6 rounded-lg w-full max-w-md">
-        <h3 className="text-lg font-semibold mb-2">Reset Password</h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+      <div className="bg-white p-4 sm:p-6 rounded-lg w-full max-w-sm">
+        <h3 className="text-lg sm:text-xl font-semibold mb-2">Reset Password</h3>
         {!sent ? (
           <form onSubmit={submit} className="flex flex-col gap-2">
             <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="p-2 border rounded" />
@@ -118,17 +118,17 @@ function AuthPage() {
   const [resetOpen, setResetOpen] = useState(false);
 
   return (
-    <div className="flex items-center justify-center h-screen bg-black">
-      <div className=" flex items-center justify-around bg-black rounded-lg -mt-10 w-full h-screen">
+    <div className="flex items-center justify-center min-h-screen bg-black p-4">
+      <div className="flex flex-col items-center justify-center w-full max-w-md">
         <img
           src="src/assets/logo.svg"
           alt="Logo Image"
-          className="w-[30%] h-[50%] object-cover rounded-lg"
+          className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 object-cover rounded-lg mb-6"
         />
-        <div className="bg-black rounded-lg justify-center items-center shadow-lg pt-3 w-full max-w-md h-[80%]">
-          <div className="bg-white flex flex-col items-center justify-center rounded-2xl p-4 w-full ">
-            <div className=" border w-full  rounded-2xl p-10 m-5">
-              <h3 className="text-2xl font-bold text-black text-shadow-black ">WELCOME!</h3>
+        <div className="bg-black rounded-lg justify-center items-center shadow-lg pt-3 w-full">
+          <div className="bg-white flex flex-col items-center justify-center rounded-2xl p-4 sm:p-6 md:p-8 w-full">
+            <div className="border w-full rounded-2xl p-6 sm:p-8 md:p-10 m-2 sm:m-4 md:m-5">
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-black text-shadow-black">WELCOME!</h3>
               <br />
               <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
                 <label htmlFor="username" className="text-black text-left ">
@@ -184,7 +184,7 @@ function AuthPage() {
                 Dont have an account ? <a href="/signup" className="text-blue-500 hover:underline">Sign up</a>
               </div>
               <button
-                className="bg-black hover:bg-gray-800 transition duration-200 rounded-4xl w-[70%] mt-7 text-white font-bold p-4 mx-auto block"
+                className="bg-black hover:bg-gray-800 transition duration-200 rounded-4xl w-4/5 sm:w-3/4 md:w-[70%] mt-6 sm:mt-7 text-white font-bold p-3 sm:p-4 mx-auto block text-sm sm:text-base"
                 onClick={() => { window.location.href = 'http://127.0.0.1:8000/api/auth/google/redirect/'; }}
                 type="button"
               >

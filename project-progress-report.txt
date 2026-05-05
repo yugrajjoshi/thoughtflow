@@ -1,9 +1,9 @@
 FLOWTHOUGHT PROJECT PROGRESS REPORT
-Date: May 4, 2026
+Date: May 5, 2026
 
 1. Overall Progress
 - Core social app (auth + profile + posts + interactions + search/trending + mobile UX): about 92% complete
-- Full project including chat, testing, and production readiness: about 78-82% complete
+- Full project including chat, testing, and production readiness: about 80-84% complete
 
 2. What Is Completed
 2.1 Backend
@@ -122,6 +122,13 @@ Date: May 4, 2026
 - Made the `For You` / `Following` feed header sticky so it stays visible while scrolling the feed.
 - Fixed several responsive spacing issues and rebalanced header heights for web to match the design.
 
+6.2 Recent Changes (May 5, 2026)
+- Profile section now has a real Posts / Replies tab bar directly under the bio.
+- Replies in the profile view open the parent post view instead of acting like dead content.
+- Comment cards now behave like interactive reply cards with keyboard support and an explicit open-post action.
+- The main router now shows the selected post view before the profile shell, so post clicks open correctly.
+- Auth, signup, profile setup, and reset password pages remain responsive and use safe placeholder/template env handling.
+
 6.1 Notes on recent fixes (May 4)
 - Resolved an Uncaught ReferenceError for `topPosts` by adding defensive `useMemo` derivations and helper scoring functions in `thoughtflow-frontend/src/pages/Home.jsx`.
 - The desktop search sidebar was simplified and replaced with a feed-style middle-column layout for web.
@@ -176,6 +183,13 @@ Date: May 4, 2026
 9.4 Current Blockers / Risks
 - Limited automated tests increase regression risk for rapid UI/search iteration
 - Large search result windows can hurt response time on bigger datasets
+
+9.5 Push Readiness / Confidentials
+- Real environment secrets are not tracked in the repository.
+- `thoughtflow/.env.example` keeps placeholder values only, and the real local `.env` file is ignored.
+- Frontend `.env` files are ignored in the frontend `.gitignore`.
+- A secret scan across the current workspace did not find exposed secret values in source files.
+- Current code is safe to push for the non-production development snapshot, assuming ignored local env files are kept out of the commit.
 
 9.5 Tracking Cadence
 - Update this report at the end of each working session

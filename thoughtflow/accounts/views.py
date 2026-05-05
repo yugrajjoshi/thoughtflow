@@ -18,6 +18,7 @@ import urllib.parse
 import urllib.error
 import os
 import secrets
+from django.core import signing
 from django.core.mail import send_mail, EmailMessage
 from django.conf import settings
 
@@ -269,8 +270,12 @@ def google_oauth_redirect(request):
     if not client_id:
         return JsonResponse({'error': 'GOOGLE_CLIENT_ID not configured on server.'}, status=500)
 
-    state = secrets.token_urlsafe(24)
-    request.session['google_oauth_state'] = state
+    state = signing.dumps(
+        {
+            'nonce': secrets.token_urlsafe(24),
+        },
+        salt='google-oauth-state',
+    )
 
     params = {
         'client_id': client_id,
@@ -292,9 +297,15 @@ def google_oauth_callback(request):
     code = request.GET.get('code')
     state = request.GET.get('state')
 
-    session_state = request.session.pop('google_oauth_state', None)
-    if not state or not session_state or state != session_state:
+    if not state:
         return JsonResponse({'error': 'Invalid OAuth state.'}, status=400)
+
+    try:
+        signing.loads(state, salt='google-oauth-state', max_age=600)
+    except signing.BadSignature:
+        return JsonResponse({'error': 'Invalid OAuth state.'}, status=400)
+    except signing.SignatureExpired:
+        return JsonResponse({'error': 'OAuth state expired. Please try again.'}, status=400)
 
     if not code:
         return JsonResponse({'error': 'Missing code'}, status=400)

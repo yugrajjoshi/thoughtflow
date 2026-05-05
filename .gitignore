@@ -12,9 +12,8 @@ ENV/
 thoughtflow/db.sqlite3
 thoughtflow/media/
 
-# Local environment files
+# Local environment files (ignore real .env, but keep .env.example as template)
 .env
-*.env
 thoughtflow/.env
 
 # Tooling and test caches

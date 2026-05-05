@@ -38,7 +38,12 @@ function ResetPassword() {
   };
 
   return (
-    <main className="min-h-screen bg-black flex items-center justify-center text-white">
+    <main className="min-h-screen bg-black flex flex-col items-center justify-center text-white p-4">
+      <img
+        src="src/assets/logo.svg"
+        alt="Logo Image"
+        className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 object-cover rounded-lg mb-6"
+      />
       <div className="bg-zinc-900 p-6 rounded-lg w-full max-w-md">
         <h2 className="text-xl font-semibold mb-4">Set a new password</h2>
         {message ? <p className="mb-3 text-sm">{message}</p> : null}

@@ -1370,6 +1370,19 @@ function Home() {
             currentUserId={currentUserId}
             onConversationChanged={fetchChatConversations}
           />
+        ) : selectedPost ? (
+          <section className="flex-1 overflow-y-auto posts-scrollbar">
+            <PostView
+              post={selectedPost}
+              onBack={handleClosePostView}
+              currentUsername={currentUsername}
+              currentUserId={currentUserId}
+              currentUserProfilePicture={profilePicture}
+              onDeletePost={handleDeletePost}
+              onPostUpdated={handlePostUpdated}
+              isDeletingPost={deletingPostIds.includes(selectedPost?.id)}
+            />
+          </section>
         ) : isProfileView ? (
           <ProfileSection
             viewedUsername={routeUsername || ""}
@@ -1388,19 +1401,6 @@ function Home() {
             deletingPostIds={deletingPostIds}
             onOwnProfileUpdated={handleOwnProfileUpdate}
           />
-        ) : selectedPost ? (
-          <section className="flex-1 overflow-y-auto posts-scrollbar">
-            <PostView
-              post={selectedPost}
-              onBack={handleClosePostView}
-              currentUsername={currentUsername}
-              currentUserId={currentUserId}
-              currentUserProfilePicture={profilePicture}
-              onDeletePost={handleDeletePost}
-              onPostUpdated={handlePostUpdated}
-              isDeletingPost={deletingPostIds.includes(selectedPost?.id)}
-            />
-          </section>
         ) : (
           <>
             {isFeedView && !isBookmarksView ? (

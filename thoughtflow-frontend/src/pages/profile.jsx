@@ -37,6 +37,8 @@ function Profile() {
     const [userData, setUserData] = useState(null);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [userPosts, setUserPosts] = useState([]);
+    const [userReplies, setUserReplies] = useState([]);
+    const [postTab, setPostTab] = useState("posts");
     const [relationshipTab, setRelationshipTab] = useState(null);
     const [followingPeople, setFollowingPeople] = useState([]);
     const [followersPeople, setFollowersPeople] = useState([]);
@@ -80,6 +82,31 @@ function Profile() {
         }
     }, []);
 
+    // Fetches all comments and keeps only those created by the current profile user.
+    const loadUserReplies = useCallback(async (username) => {
+        const token = getCleanToken();
+        if (!token || !username) return;
+
+        try {
+            const response = await fetch(`${API_BASE}/api/comments/`, {
+                method: "GET",
+                headers: {
+                    Authorization: "Token " + token,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Request failed with status ${response.status}`);
+            }
+
+            const allComments = await response.json();
+            const onlyUserReplies = allComments.filter((comment) => comment.username === username);
+            setUserReplies(onlyUserReplies);
+        } catch (error) {
+            console.error("Failed to fetch user replies:", error);
+        }
+    }, []);
+
     // Fetches current user profile, then loads posts for that user.
     const loadProfile = useCallback(async () => {
         const token = getCleanToken();
@@ -100,11 +127,12 @@ function Profile() {
             const data = await response.json();
             applyProfileData(data);
             await loadUserPosts(data.username);
+            await loadUserReplies(data.username);
             await loadRelationshipLists(data.username);
         } catch (error) {
             console.error("Failed to fetch user profile:", error);
         }
-    }, [loadUserPosts, loadRelationshipLists]);
+    }, [loadUserPosts, loadUserReplies, loadRelationshipLists]);
 
     const loadRelationshipLists = useCallback(async (username) => {
         const token = getCleanToken();
@@ -178,6 +206,7 @@ function Profile() {
     const handleProfileUpdated = (data) => {
         applyProfileData(data);
         loadUserPosts(data.username);
+        loadUserReplies(data.username);
         loadRelationshipLists(data.username);
     };
 
@@ -315,16 +344,46 @@ function Profile() {
                                 ) : null}
                             </div>
                         </section>
+
+                        <section className="w-full border-b border-zinc-800 bg-black/40">
+                            <div className="px-5 pt-4 flex items-center gap-8">
+                                <button
+                                    onClick={() => setPostTab("posts")}
+                                    className={`pb-3 text-base sm:text-lg font-semibold border-b-2 transition ${
+                                        postTab === "posts"
+                                            ? "text-white border-blue-500"
+                                            : "text-zinc-500 border-transparent hover:text-zinc-300"
+                                    }`}
+                                >
+                                    Posts
+                                </button>
+                                <button
+                                    onClick={() => setPostTab("replies")}
+                                    className={`pb-3 text-base sm:text-lg font-semibold border-b-2 transition ${
+                                        postTab === "replies"
+                                            ? "text-white border-blue-500"
+                                            : "text-zinc-500 border-transparent hover:text-zinc-300"
+                                    }`}
+                                >
+                                    Replies
+                                </button>
+                            </div>
+                        </section>
                     </section>
 
                     <section className="w-full">
-                        <div className="px-5 py-4 border-b border-zinc-800">
-                            <h2 className="text-xl font-semibold">Posts</h2>
-                        </div>
-                        {userPosts.length > 0 ? (
-                            userPosts.map((post) => <PostCard key={post.id} post={post} />)
+                        {postTab === "posts" ? (
+                            userPosts.length > 0 ? (
+                                userPosts.map((post) => <PostCard key={post.id} post={post} />)
+                            ) : (
+                                <p className="px-5 py-6 text-zinc-500">No posts yet.</p>
+                            )
                         ) : (
-                            <p className="px-5 py-6 text-zinc-500">No posts yet.</p>
+                            userReplies.length > 0 ? (
+                                userReplies.map((reply) => <PostCard key={reply.id} post={reply} />)
+                            ) : (
+                                <p className="px-5 py-6 text-zinc-500">No replies yet.</p>
+                            )
                         )}
                     </section>
                     <div><PostCard /></div>

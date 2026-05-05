@@ -9,7 +9,7 @@ const getCleanToken = () => {
     return rawToken ? rawToken.replace(/^"|"$/g, "").trim() : "";
 };
 
-function CommentCard({ comment, postOwnerUsername, currentUsername, postId, onCommentDeleted }) {
+function CommentCard({ comment, postOwnerUsername, currentUsername, postId, onCommentDeleted, onClick }) {
     const createdAt = comment?.created_at ? new Date(comment.created_at).toLocaleString() : "";
     const [showDeleteMenu, setShowDeleteMenu] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -18,6 +18,12 @@ function CommentCard({ comment, postOwnerUsername, currentUsername, postId, onCo
         currentUsername === comment.author_name || 
         currentUsername === postOwnerUsername
     );
+
+    const handleOpenPost = () => {
+        if (typeof onClick === "function") {
+            onClick(comment);
+        }
+    };
 
     const handleDeleteComment = async () => {
         if (!postId || !comment?.id || isDeleting) return;
@@ -54,7 +60,19 @@ function CommentCard({ comment, postOwnerUsername, currentUsername, postId, onCo
 
     return (
         <main>
-            <div className="w-full h-auto flex flex-col gap-2 p-4 rounded-lg border border-zinc-700 bg-zinc-950/50 shadow relative">
+            <div
+                className={`w-full h-auto flex flex-col gap-2 p-4 rounded-lg border border-zinc-700 bg-zinc-950/50 shadow relative transition ${typeof onClick === "function" ? "cursor-pointer hover:bg-zinc-900/70" : ""}`}
+                role={typeof onClick === "function" ? "button" : undefined}
+                tabIndex={typeof onClick === "function" ? 0 : undefined}
+                onClick={handleOpenPost}
+                onKeyDown={(event) => {
+                    if (typeof onClick !== "function") return;
+                    if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        handleOpenPost();
+                    }
+                }}
+            >
                 {postOwnerUsername && (
                     <div className="text-xs text-zinc-500 mb-2">
                         Replying to{" "}
@@ -64,6 +82,18 @@ function CommentCard({ comment, postOwnerUsername, currentUsername, postId, onCo
                         >
                             @{postOwnerUsername}
                         </a>
+
+                        {typeof onClick === "function" ? (
+                            <button
+                                type="button"
+                                className="mt-1 self-start text-xs font-semibold text-blue-400 hover:text-blue-300 transition"
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleOpenPost();
+                                }}
+                            >
+                            </button>
+                        ) : null}
                     </div>
                 )}
                 <div className="flex items-start gap-3 justify-between">

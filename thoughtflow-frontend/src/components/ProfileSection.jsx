@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CalendarClockIcon, Balloon, Search } from "lucide-react";
 import PostCard from "./PostCard";
+import CommentCard from "./commentcard";
 import ProfileEditCard from "./profileeditcard";
 import FollowingList from "./followinglist";
 
@@ -48,6 +49,7 @@ function ProfileSection({
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isProfileSearchActive, setIsProfileSearchActive] = useState(false);
     const [profileSearchQuery, setProfileSearchQuery] = useState("");
+    const [postTab, setPostTab] = useState("posts");
 
     const isOwnProfile = !viewedUsername || viewedUsername === currentUsername;
     const usernameForPosts = userData?.username || "";
@@ -92,6 +94,32 @@ function ProfileSection({
             return content.includes(query);
         });
     }, [userPosts, isProfileSearchActive, profileSearchQuery]);
+
+    const userReplies = useMemo(() => {
+        if (!usernameForPosts) {
+            return [];
+        }
+
+        return posts.flatMap((post) => {
+            const comments = Array.isArray(post?.comments) ? post.comments : [];
+            return comments
+                .filter((comment) => comment.author_name === usernameForPosts)
+                .map((comment) => ({
+                    ...comment,
+                    post_id: post.id,
+                    post_owner_username: post.username,
+                }));
+        });
+    }, [posts, usernameForPosts]);
+
+    const filteredProfileReplies = useMemo(() => {
+        if (!isProfileSearchActive || !profileSearchQuery.trim()) {
+            return userReplies;
+        }
+
+        const query = profileSearchQuery.toLowerCase();
+        return userReplies.filter((reply) => (reply.content || "").toLowerCase().includes(query));
+    }, [userReplies, isProfileSearchActive, profileSearchQuery]);
 
     const loadRelationshipLists = useCallback(async (targetUsername) => {
         const token = getCleanToken();
@@ -272,7 +300,7 @@ function ProfileSection({
                                     </button>
                                 ) : (
                                     <button
-                                        className={`px-4 py-2 rounded-3xl bg-black border border-zinc-600 font-extrabold hover:text-white text-zinc-400 transition duration-300 ${following ? "text-zinc-400 border-none" : ""}`}
+                                        className={`px-4 py-2 rounded-3xl bg-black  font-extrabold hover:text-white text-zinc-400 transition duration-300 ${following ? "text-zinc-400 border-none" : ""}`}
                                         onClick={handleFollowAction}
                                         disabled={isFollowLoading}
                                     >
@@ -330,27 +358,72 @@ function ProfileSection({
                 </section>
 
                 <section className="w-full">
-                    <div className="px-5 py-4 border-b border-zinc-800">
-                        <h2 className="text-xl font-semibold">Posts</h2>
+                    <div className="px-5 py-4 border-b border-zinc-800 flex items-center gap-8 bg-black/50">
+                        <button
+                            type="button"
+                            onClick={() => setPostTab("posts")}
+                            className={`pb-2 text-xl font-semibold border-b-2 transition ${
+                                postTab === "posts"
+                                    ? "text-white border-blue-500"
+                                    : "text-zinc-500 border-transparent hover:text-zinc-300"
+                            }`}
+                        >
+                            Posts
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setPostTab("replies")}
+                            className={`pb-2 text-xl font-semibold border-b-2 transition ${
+                                postTab === "replies"
+                                    ? "text-white border-blue-500"
+                                    : "text-zinc-500 border-transparent hover:text-zinc-300"
+                            }`}
+                        >
+                            Replies
+                        </button>
                     </div>
 
-                    {filteredProfilePosts.length > 0 ? (
-                        filteredProfilePosts.map((post) => (
-                            <PostCard
-                                key={post.id}
-                                post={post}
-                                onClick={onOpenPost}
-                                currentUsername={currentUsername}
-                                currentUserId={currentUserId}
-                                onDeletePost={onDeletePost}
-                                onPostUpdated={onPostUpdated}
-                                isDeletingPost={deletingPostIds.includes(post.id)}
-                            />
-                        ))
+                    {postTab === "posts" ? (
+                        filteredProfilePosts.length > 0 ? (
+                            filteredProfilePosts.map((post) => (
+                                <PostCard
+                                    key={post.id}
+                                    post={post}
+                                    onClick={onOpenPost}
+                                    currentUsername={currentUsername}
+                                    currentUserId={currentUserId}
+                                    onDeletePost={onDeletePost}
+                                    onPostUpdated={onPostUpdated}
+                                    isDeletingPost={deletingPostIds.includes(post.id)}
+                                />
+                            ))
+                        ) : (
+                            <p className="px-5 py-6 text-zinc-500">
+                                {isProfileSearchActive ? "No posts found matching your search." : "No posts yet."}
+                            </p>
+                        )
                     ) : (
-                        <p className="px-5 py-6 text-zinc-500">
-                            {isProfileSearchActive ? "No posts found matching your search." : "No posts yet."}
-                        </p>
+                        filteredProfileReplies.length > 0 ? (
+                            filteredProfileReplies.map((reply) => (
+                                <CommentCard
+                                    key={reply.id}
+                                    comment={reply}
+                                    postOwnerUsername={reply.post_owner_username}
+                                    currentUsername={currentUsername}
+                                    postId={reply.post_id}
+                                    onClick={() => {
+                                        const parentPost = posts.find((post) => post.id === reply.post_id);
+                                        if (parentPost && typeof onOpenPost === "function") {
+                                            onOpenPost(parentPost);
+                                        }
+                                    }}
+                                />
+                            ))
+                        ) : (
+                            <p className="px-5 py-6 text-zinc-500">
+                                {isProfileSearchActive ? "No replies found matching your search." : "No replies yet."}
+                            </p>
+                        )
                     )}
                 </section>
             </article>
