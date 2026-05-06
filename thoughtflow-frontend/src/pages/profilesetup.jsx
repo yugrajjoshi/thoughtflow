@@ -132,13 +132,14 @@ function Profilesetup() {
     }
 
     return (
-        <main className="bg-black w-full min-h-screen flex flex-col items-center justify-center p-4">
+        <main className="bg-black w-full min-h-screen flex flex-col md:flex-row items-center justify-center">
             <img 
                 src="src/assets/logo.svg" 
                 alt="Logo Image" 
-                className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 object-cover rounded-lg mb-6" 
+                className="w-24 h-24 md:w-1/2 md:h-screen object-cover rounded-lg md:rounded-none shrink-0 mb-4 md:mb-0" 
             />
 
+            <div className="w-full md:w-1/2 flex items-center justify-center p-4 md:p-8">
             <div className="w-full max-w-md">
                 <div className="flex bg-zinc-700 p-6 sm:p-8 rounded-2xl justify-center items-center">
                     <div className="flex flex-col w-full p-4 sm:p-6 rounded-lg bg-zinc-800 shadow-lg items-center">
@@ -224,6 +225,7 @@ function Profilesetup() {
                         </form>
                     </div>
                 </div>
+            </div>
             </div>
         </main>
     );

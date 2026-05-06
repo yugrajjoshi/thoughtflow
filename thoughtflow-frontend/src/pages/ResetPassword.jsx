@@ -38,26 +38,30 @@ function ResetPassword() {
   };
 
   return (
-    <main className="min-h-screen bg-black flex flex-col items-center justify-center text-white p-4">
+    <main className="min-h-screen bg-black flex flex-col md:flex-row items-center justify-center text-white">
       <img
         src="src/assets/logo.svg"
         alt="Logo Image"
-        className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 object-cover rounded-lg mb-6"
+        className="w-24 h-24 md:w-1/2 md:h-screen object-cover rounded-lg md:rounded-none shrink-0 mb-4 md:mb-0"
       />
-      <div className="bg-zinc-900 p-6 rounded-lg w-full max-w-md">
-        <h2 className="text-xl font-semibold mb-4">Set a new password</h2>
-        {message ? <p className="mb-3 text-sm">{message}</p> : null}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <input
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="New password (min 8 chars)"
-            className="p-2 rounded bg-black text-white"
-          />
-          <button type="submit" disabled={newPassword.length < 8} className="px-4 py-2 bg-green-700 rounded disabled:opacity-50">Set password</button>
-          {newPassword.length > 0 && newPassword.length < 8 ? <p className="text-sm text-zinc-400">Password must be at least 8 characters.</p> : null}
-        </form>
+      <div className="w-full md:w-1/2 flex items-center justify-center p-4 md:p-8">
+      <div className="bg-zinc-700 p-6 rounded-lg w-full max-w-md border border-zinc-600">
+        <div className="bg-zinc-800 p-6 rounded-lg">
+          <h2 className="text-xl font-semibold mb-4 text-white">Set a new password</h2>
+          {message ? <p className="mb-3 text-sm text-zinc-300">{message}</p> : null}
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="New password (min 8 chars)"
+              className="p-3 rounded-lg bg-zinc-700 text-white placeholder:text-zinc-400 border border-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button type="submit" disabled={newPassword.length < 8} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50 transition">Set password</button>
+            {newPassword.length > 0 && newPassword.length < 8 ? <p className="text-sm text-zinc-400">Password must be at least 8 characters.</p> : null}
+          </form>
+        </div>
+      </div>
       </div>
     </main>
   );

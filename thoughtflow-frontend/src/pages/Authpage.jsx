@@ -118,32 +118,33 @@ function AuthPage() {
   const [resetOpen, setResetOpen] = useState(false);
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-black p-4">
-      <div className="flex flex-col items-center justify-center w-full max-w-md">
+    <div className="flex items-center justify-center min-h-screen bg-black">
+      <div className="flex flex-col md:flex-row items-center justify-center w-full">
         <img
           src="src/assets/logo.svg"
           alt="Logo Image"
-          className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 object-cover rounded-lg mb-6"
+          className="w-24 h-24 md:w-1/2 md:h-screen object-cover rounded-lg md:rounded-none shrink-0 mb-4 md:mb-0"
         />
-        <div className="bg-black rounded-lg justify-center items-center shadow-lg pt-3 w-full">
-          <div className="bg-white flex flex-col items-center justify-center rounded-2xl p-4 sm:p-6 md:p-8 w-full">
-            <div className="border w-full rounded-2xl p-6 sm:p-8 md:p-10 m-2 sm:m-4 md:m-5">
-              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-black text-shadow-black">WELCOME!</h3>
+        <div className="w-full md:w-1/2 flex items-center justify-center p-4 md:p-8">
+        <div className="bg-zinc-700 rounded-2xl justify-center items-center shadow-lg w-full max-w-md">
+          <div className="bg-zinc-800 flex flex-col items-center justify-center rounded-2xl p-4 sm:p-6 md:p-8 w-full">
+            <div className="w-full rounded-lg p-6 sm:p-8 md:p-10">
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white text-center">WELCOME!</h3>
               <br />
               <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
-                <label htmlFor="username" className="text-black text-left ">
+                <label htmlFor="username" className="text-zinc-300 text-left text-sm font-medium">
                   Username
                 </label>
                 <input
                   id="username"
                   type="text"
                   placeholder="Username"
-                  className="w-full rounded-2xl p-3 bg-black text-white placeholder:text-gray-400 border border-black focus:outline-none focus:ring-2 focus:ring-black"
+                  className="w-full rounded-lg p-3 bg-zinc-700 text-white placeholder:text-zinc-400 border border-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                 />
                 <div className="flex flex-col">
-                  <label htmlFor="password" className="text-black text-left">
+                  <label htmlFor="password" className="text-zinc-300 text-left text-sm font-medium mb-2">
                     Password
                   </label>
 
@@ -152,7 +153,7 @@ function AuthPage() {
                       id="password"
                       type={showPassword ? "text" : "password"}
                       placeholder="Password"
-                      className="rounded-2xl p-3 w-full bg-black text-white placeholder:text-gray-400 border border-black focus:outline-none focus:ring-2 focus:ring-black pr-10"
+                      className="rounded-lg p-3 w-full bg-zinc-700 text-white placeholder:text-zinc-400 border border-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                     />
@@ -168,23 +169,23 @@ function AuthPage() {
                   </div>
 
                   {/* Forgot Password */}
-                  <button type="button" onClick={() => setResetOpen(true)} className="text-blue-500 hover:underline text-sm self-end mt-1">
+                  <button type="button" onClick={() => setResetOpen(true)} className="text-blue-400 hover:text-blue-300 hover:underline text-sm self-end mt-2">
                     Forgot password?
                   </button>
                 </div>
                 <button
                   type="submit"
-                  className="bg-gray-500 hover:bg-gray-700 transition duration-200 text-white font-bold py-2 px-4 rounded-2xl"
+                  className="w-full bg-blue-600 hover:bg-blue-700 transition duration-200 text-white font-bold py-2 px-4 rounded-lg mt-4"
                 >
                   Login
                 </button>
               </form>
               <br />
-              <div className="text-center">
-                Dont have an account ? <a href="/signup" className="text-blue-500 hover:underline">Sign up</a>
+              <div className="text-center text-zinc-300 text-sm">
+                Don't have an account? <a href="/signup" className="text-blue-400 hover:underline font-semibold">Sign up</a>
               </div>
               <button
-                className="bg-black hover:bg-gray-800 transition duration-200 rounded-4xl w-4/5 sm:w-3/4 md:w-[70%] mt-6 sm:mt-7 text-white font-bold p-3 sm:p-4 mx-auto block text-sm sm:text-base"
+                className="w-full bg-zinc-700 hover:bg-zinc-600 transition duration-200 rounded-lg mt-6 text-white font-bold p-3 text-sm"
                 onClick={() => { window.location.href = 'http://127.0.0.1:8000/api/auth/google/redirect/'; }}
                 type="button"
               >
@@ -192,6 +193,7 @@ function AuthPage() {
               </button>
             </div>
           </div>
+        </div>
         </div>
       </div>
       <PasswordResetModal open={resetOpen} onClose={() => setResetOpen(false)} />

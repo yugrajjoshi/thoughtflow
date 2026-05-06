@@ -1,223 +1,38 @@
-FLOWTHOUGHT PROJECT PROGRESS REPORT
-Date: May 5, 2026
+FLOWTHOUGHT PROGRESS REPORT
+Date: May 6, 2026
 
-1. Overall Progress
-- Core social app (auth + profile + posts + interactions + search/trending + mobile UX): about 92% complete
-- Full project including chat, testing, and production readiness: about 80-84% complete
+1. Status
+- Core app: about 92% done
+- Full project: about 80-84% done
 
-2. What Is Completed
-2.1 Backend
-- User registration and login APIs are working
-- User/profile fetch and profile update APIs are working
-- Follow and unfollow APIs are implemented
-- Followers and following list APIs are implemented
-- Posts API supports create, list, and delete
-- Post interactions are implemented: like, bookmark, repost, views increment
-- Comment APIs are implemented: create, list, delete
-- Hashtag and trending APIs are implemented:
-	- Auto-extract hashtags from new posts
-	- Trending hashtag list endpoint
-	- Hashtag search and hashtag detail/posts endpoints
-	- Unified search endpoint for posts, hashtags, and users
-- Chat APIs are implemented:
-	- List conversations
-	- Start conversation
-	- List/send messages in a conversation
-	- Mark message as seen
-	- Delete message for me
-	- Delete message for everyone
-	- Search users for chat
+2. Done
+- Auth, signup, profile setup, profiles
+- Posts, comments, likes, bookmarks, reposts, views
+- Follow/unfollow and followers/following
+- Hashtags, trending, unified search
+- Chat APIs and chat UI
+- Responsive mobile/web UI
 
-2.2 Frontend
-- Login page is connected to backend
-- Signup page is connected to backend
-- Profile setup page is connected to backend
-- Home feed loads posts
-- Create post is working (text + media)
-- Post card interactions are wired (like/bookmark/repost)
-- Post detail view is present
-- Create comment and comment listing are present
-- Own profile page is implemented
-- Other user profile page is implemented with follow/unfollow
-- Profile-specific search implemented in both ProfileSection and profileview:
-	- Search icon toggles search mode
-	- Filters posts by content for that specific user only
-	- Shows "No posts found" or "No posts yet" messages
-- Responsive mobile search screen is implemented with:
-	- Full-screen search layout
-	- Recent searches with delete/clear actions
-	- Trending hashtags section
-	- Unified search results for posts, hashtags, and users
-- Chat UI is integrated with backend endpoints and supports:
-	- Conversation loading
-	- Sending messages
-	- Polling and message refresh
-	- Replying to messages
-	- Delete for me / delete for everyone actions
-- Mobile-specific UX improvements:
-	- Fixed top bar with profile avatar, logo/search, and settings icon
-	- Slide-out vertical navigation drawer on avatar click
-	- Floating create post button (black with white border, larger white plus icon)
-	- Button centered in bottom nav bar, always visible but disabled outside home
-	- Fixed mobile chat screen with prior conversations
-	- Responsive layout with proper spacing (no flickering transitions)
-	- Black bar/spacing issues removed on profile screens
-	- Responsive PostCard interaction spacing tuned for small-width devices (including 350px viewport testing)
-	- Sidebar logout button anchored to bottom on desktop nav
-	- Desktop web search sidebar now shows unified result groups (people, hashtags, posts) and recent searches
+3. Left
+- Tests for auth, posts, chat, search
+- Settings feature
+- Search pagination/ranking
+- Better error handling and edge cases
+- Deployment prep
 
-2.3 Data Model Coverage
-- Post model includes counters and media fields
-- Comment model includes text and media fields
-- Profile model includes bio, name, images, DOB, followers/following
-- Chat models include conversation, participants, and message states
-- Hashtag model and through table support trending/search discovery
+4. Current Focus
+- Keep auth pages consistent
+- Fix responsive layout issues
+- Improve reliability before push
 
-2.4 Search Reliability Improvements (May 2)
-- Backend search limit expanded to include older matching content
-- Frontend search request limit increased for deeper retrieval of old posts
-- User search matching improved to include profile-name-based user discovery
-- Desktop people list now merges API search users with local post-derived users
-- Web and responsive search behavior aligned around the same unified search data source
+5. Next Priority
+1) Tests
+2) Search ranking/pagination
+3) Settings
+4) Chat polish
+5) Deployment prep
 
-3. What Is Still Left
-3.1 Major Remaining Work
-- Automated tests are still mostly empty in accounts/posts/chat apps
-- Search and hashtag edge-case coverage still needs automated tests
-- Some chat UX polish remains (error states, empty states, delivery/read indicators refinement)
-- API pagination and filtering need to be standardized where response sizes can grow
-- Settings feature (currently placeholder)
-- Search performance tuning is needed after increasing result window sizes (introduce ranking/pagination strategy)
-
-3.2 Product Quality Work
-- Improve validation and error handling consistency across endpoints
-- Handle edge cases better (expired token, upload failures, network retries)
-- Clean placeholder/unused frontend sections and naming consistency
-- Confirm mobile/desktop search parity after the latest web sidebar search updates
-- Add API contract documentation for frontend-backend integration clarity
-- Mobile form validation and better error messaging
-
-3.3 Production Readiness
-- Security and permissions audit
-- Deployment and environment hardening
-- Monitoring/logging setup
-- Performance checks and optimization
-
-4. Time Estimate Left
-- To finish a stable MVP (with chat, search/trending, mobile UX, basic quality checks): about 5-7 days
-- To finish with strong test coverage and production quality: about 3-4 weeks
-
-5. Current Direction Summary
-- The project now has comprehensive mobile UX with most major social features working.
-- Mobile-first responsive design is implemented with fixed navigation patterns.
-- Profile search functionality provides user-specific post filtering.
-- The largest risks remain low automated test coverage and a few integration edge cases.
-- Next priority is reliability hardening, test coverage, and production readiness.
-
-6. Recent Changes (May 4, 2026)
-- Added inline web search rendering in `Home.jsx` (desktop now renders search results in the middle column instead of forcing `/search` navigation).
-- Implemented `topPosts` and `latestPosts` ranking helpers and `useMemo` derivations to safely compute search result lists and avoid runtime ReferenceErrors.
-- Restored the desktop search input above the search results and preserved mobile full-screen search behavior.
-- Live user suggestions while typing were restored; full tabbed results (Top/Latest/Users) now appear only after an explicit search (Enter or recent search selection).
-- Made the `For You` / `Following` feed header sticky so it stays visible while scrolling the feed.
-- Fixed several responsive spacing issues and rebalanced header heights for web to match the design.
-
-6.2 Recent Changes (May 5, 2026)
-- Profile section now has a real Posts / Replies tab bar directly under the bio.
-- Replies in the profile view open the parent post view instead of acting like dead content.
-- Comment cards now behave like interactive reply cards with keyboard support and an explicit open-post action.
-- The main router now shows the selected post view before the profile shell, so post clicks open correctly.
-- Auth, signup, profile setup, and reset password pages remain responsive and use safe placeholder/template env handling.
-
-6.1 Notes on recent fixes (May 4)
-- Resolved an Uncaught ReferenceError for `topPosts` by adding defensive `useMemo` derivations and helper scoring functions in `thoughtflow-frontend/src/pages/Home.jsx`.
-- The desktop search sidebar was simplified and replaced with a feed-style middle-column layout for web.
-- Mobile search overlay and `/search` page remain available for small screens and direct navigation.
-
-6. Previous Changes (April 30, 2026)
-- Implemented profile-specific search in ProfileSection and profileview components
-- Moved floating create post button to center of mobile bottom nav bar
-- Styled button with black background, white border, larger white plus icon (8x8)
-- Fixed button visibility to stay present across all mobile sections (not just home)
-- Removed button flickering by using opacity/pointerEvents instead of conditional rendering
-- Fixed black bar spacing on profile views with targeted CSS rules
-- Added responsive CSS class for profile-view-section to handle mobile layout properly
-
-7. Suggested Next Priority Order
-1) Add automated tests for accounts, posts, chat, and search/trending critical flows
-2) Implement Settings feature UI and functionality
-3) Standardize API pagination/filtering and improve error responses (especially search)
-4) Finish chat UX polish (state handling, indicators, empty/error views)
-5) Production hardening and deployment setup
-
-8. Tracking Checklist (Next 2 Weeks)
-- [ ] Write auth/profile API tests (success + failure paths)
-- [ ] Write post/comment interaction API tests
-- [ ] Write chat conversation/message API tests
-- [ ] Write search and hashtag API tests
-- [ ] Implement Settings feature
-- [ ] Mobile form validation improvements
-- [ ] API error handling standardization
-- [ ] Add pagination to high-volume list endpoints
-- [ ] Normalize frontend error handling for API failures
-- [x] Verify responsive search/trending behavior on mobile and desktop (manual pass in progress)
-- [ ] Run end-to-end smoke pass before deployment prep
-- [ ] Add search pagination/ranking to keep old-post discoverability without large payloads
-
-9. Live Tracking Board (May 2, 2026)
-9.1 Done Recently
-- Unified backend search expanded to include old posts and broader user discovery
-- Desktop search sidebar upgraded to show users, hashtags, posts, and recent searches
-- Profile search and mobile UX updates stabilized
-- Sidebar logout button pinned to bottom on desktop
-
-9.2 In Progress
-- Search relevance and performance balance (high limits currently improve coverage but need ranking/pagination)
-- Mobile and desktop search consistency verification across multiple viewport widths
-
-9.3 Next 3 Action Items
-- Implement backend pagination/ranking for search results and update frontend query parameters
-- Add API tests for search (old posts, no-post users, hashtag matches)
-- Complete Settings feature scaffold (UI entry + placeholder route + state handling)
-
-9.4 Current Blockers / Risks
-- Limited automated tests increase regression risk for rapid UI/search iteration
-- Large search result windows can hurt response time on bigger datasets
-
-9.5 Push Readiness / Confidentials
-- Real environment secrets are not tracked in the repository.
-- `thoughtflow/.env.example` keeps placeholder values only, and the real local `.env` file is ignored.
-- Frontend `.env` files are ignored in the frontend `.gitignore`.
-- A secret scan across the current workspace did not find exposed secret values in source files.
-- Current code is safe to push for the non-production development snapshot, assuming ignored local env files are kept out of the commit.
-
-9.5 Tracking Cadence
-- Update this report at the end of each working session
-- Move items from "In Progress" to "Done Recently" only after code + manual verification
-
-10. Scan Snapshot (May 3, 2026)
-- Backend
-	- Django project: `thoughtflow` (contains `manage.py`, `requirements.txt`, `db.sqlite3`).
-	- Installed apps seen in `thoughtflow/settings.py`: `accounts`, `posts`, `chat`, plus standard Django and DRF apps.
-	- Migrations exist for `accounts`, `chat`, and `posts` (multiple numbered migration files present).
-	- Tests present: `accounts/tests.py`, `chat/tests.py`, `posts/tests.py` with API-style tests (APITestCase).
-
-- Frontend
-	- Frontend app: `thoughtflow-frontend` using React + Vite (`package.json`, `vite.config.js`).
-	- Entry points: `src/main.jsx`, `src/App.jsx` with routes for `/`, `/home`, `/profile`, `/signup`, `/profilesetup`, `/hashtag/:hashtagId`.
-	- Pages: `Home.jsx`, `Authpage.jsx`, `signup.jsx`, `profilesetup.jsx`, `profile.jsx`, `HashtagPage.jsx`.
-	- Major components under `src/components`: `Createpost.jsx`, `PostCard.jsx`, `PostView`/`postview.jsx`, `SidebarNav.jsx`, `ProfileSection.jsx`, `ProfileView`/`profileview.jsx`, `MassangerSection`/`massangersection.jsx`, `TrendingHashtags.jsx`, `followinglist.jsx`, `commentcard.jsx`, and others.
-	- Assets: `src/assets/logo.svg` referenced across pages.
-
-- Notes / Observations
-	- Backend uses SQLite for local development (`db.sqlite3`).
-	- Requirements pinned in `requirements.txt` (Django 6.0.3, DRF, corsheaders, Pillow).
-	- Frontend references backend at `http://127.0.0.1:8000` in many components.
-	- Search/migration/test artifacts confirm active development and reasonable test scaffolding, but many tests assert API behaviors rather than exhaustive edge cases.
-
-11. Immediate Next Steps (I can run now)
-- Append this scan snapshot to the live tracker (done).
-- Expand the frontend components inventory into a CSV or markdown list (optional).
-- Expand backend migration/test status into a detailed table (optional).
-
--- End of Scan Snapshot --
+6. Notes
+- Use `npm run dev` for the frontend
+- `npm run server` is not defined
+- Real env files are kept out of the repo
