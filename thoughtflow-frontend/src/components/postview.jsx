@@ -10,29 +10,31 @@ function PostView({ post, onBack, currentUsername, currentUserId, currentUserPro
 	const postData = {
 		...post,
 		comments,
-		comments_count: comments.length,
+		comments_count: typeof post?.comments_count === "number" ? post.comments_count : comments.length,
 	};
 
 	const handleCommentCreated = async (result) => {
 		if (result?.comment) {
-			setComments((currentComments) => {
-				const nextComments = [result.comment, ...currentComments];
-				if (typeof onPostUpdated === "function" && post?.id) {
-					onPostUpdated(post.id, {
-						comments_count: result?.comments_count ?? nextComments.length,
-					});
-				}
-				return nextComments;
-			});
+			const isReply = Boolean(result.comment.parent_comment_id);
+
+			if (!isReply) {
+				setComments((currentComments) => [result.comment, ...currentComments]);
+			}
+
+			if (typeof onPostUpdated === "function" && post?.id) {
+				onPostUpdated(post.id, {
+					comments_count: result?.comments_count ?? postData.comments_count,
+				});
+			}
 		}
 	};
 
-	const handleCommentDeleted = (deletedCommentId) => {
+	const handleCommentDeleted = (deletedCommentId, updatedCommentsCount) => {
 		setComments((currentComments) => {
 			const nextComments = currentComments.filter((comment) => comment.id !== deletedCommentId);
 			if (typeof onPostUpdated === "function" && post?.id) {
 				onPostUpdated(post.id, {
-					comments_count: nextComments.length,
+					comments_count: typeof updatedCommentsCount === "number" ? updatedCommentsCount : nextComments.length,
 				});
 			}
 			return nextComments;
@@ -93,6 +95,7 @@ function PostView({ post, onBack, currentUsername, currentUserId, currentUserPro
 								currentUsername={currentUsername}
 								postId={post?.id}
 								onCommentDeleted={handleCommentDeleted}
+								onCommentCreated={handleCommentCreated}
 							/>
 						))}
 					</div>

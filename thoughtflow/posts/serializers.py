@@ -4,9 +4,13 @@ from .models import Post, Comment, Hashtag, PostHashtag
 class CommentSerializer(serializers.ModelSerializer):
     author_name = serializers.CharField(source='user.username', read_only=True)
     author_id = serializers.CharField(source='user.id', read_only=True)
+    parent_comment_id = serializers.SerializerMethodField()
     profile_image = serializers.SerializerMethodField()
     image_url = serializers.SerializerMethodField()
     video_url = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField()
+    reply_count = serializers.SerializerMethodField()
+    replies = serializers.SerializerMethodField()
 
     def get_profile_image(self, obj):
         profile = getattr(obj.user, 'profile', None)
@@ -33,10 +37,26 @@ class CommentSerializer(serializers.ModelSerializer):
             return obj.video.url
         return None
 
+    def get_is_liked(self, obj):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if not user or not user.is_authenticated:
+            return False
+        return obj.likes.filter(id=user.id).exists()
+
+    def get_parent_comment_id(self, obj):
+        return obj.parent_comment_id
+
+    def get_reply_count(self, obj):
+        return obj.replies.count()
+
+    def get_replies(self, obj):
+        return CommentSerializer(obj.replies.all(), many=True, context=self.context).data
+
     class Meta:
         model = Comment
-        fields = ['id', 'author_name', 'author_id', 'profile_image', 'content', 'image_url', 'video_url', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'author_name', 'author_id', 'profile_image', 'image_url', 'video_url', 'created_at', 'updated_at']
+        fields = ['id', 'author_name', 'author_id', 'parent_comment_id', 'profile_image', 'content', 'image_url', 'video_url', 'likes_count', 'is_liked', 'reply_count', 'replies', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'author_name', 'author_id', 'parent_comment_id', 'profile_image', 'image_url', 'video_url', 'likes_count', 'is_liked', 'reply_count', 'replies', 'created_at', 'updated_at']
 
 class HashtagSerializer(serializers.ModelSerializer):
     class Meta:
@@ -61,8 +81,12 @@ class PostSerializer(serializers.ModelSerializer):
     is_liked = serializers.SerializerMethodField()
     is_bookmarked = serializers.SerializerMethodField()
     is_reposted = serializers.SerializerMethodField()
-    comments = CommentSerializer(source='comments_set', many=True, read_only=True)
+    comments = serializers.SerializerMethodField()
     hashtags = HashtagSerializer(many=True, read_only=True)
+
+    def get_comments(self, obj):
+        comments = obj.comments_set.filter(parent_comment__isnull=True).select_related('user', 'user__profile', 'parent_comment').prefetch_related('likes', 'replies')
+        return CommentSerializer(comments, many=True, context=self.context).data
 
     def get_is_liked(self, obj):
         request = self.context.get('request')

@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
-from .models import Post
+from .models import Post, Comment
 
 
 class PostsApiTests(APITestCase):
@@ -82,3 +82,38 @@ class PostsApiTests(APITestCase):
 
 		post.refresh_from_db()
 		self.assertEqual(post.comments_count, 0)
+
+	def test_comment_like_endpoint_toggles_like_count(self):
+		post = Post.objects.create(user=self.user, content="comments")
+		comment = Comment.objects.create(post=post, user=self.user, content="Nice post")
+
+		like_response = self.client.post(f"/api/posts/{post.id}/comments/{comment.id}/like/")
+		self.assertEqual(like_response.status_code, status.HTTP_200_OK)
+		self.assertTrue(like_response.data["liked"])
+		self.assertEqual(like_response.data["likes_count"], 1)
+
+		unlike_response = self.client.post(f"/api/posts/{post.id}/comments/{comment.id}/like/")
+		self.assertEqual(unlike_response.status_code, status.HTTP_200_OK)
+		self.assertFalse(unlike_response.data["liked"])
+		self.assertEqual(unlike_response.data["likes_count"], 0)
+
+	def test_comment_reply_creates_nested_comment(self):
+		post = Post.objects.create(user=self.user, content="comments")
+		parent_comment = Comment.objects.create(post=post, user=self.user, content="Top level")
+
+		reply_response = self.client.post(
+			f"/api/posts/{post.id}/comments/",
+			{"content": "Nested reply", "parent_comment_id": parent_comment.id},
+			format="multipart",
+		)
+
+		self.assertEqual(reply_response.status_code, status.HTTP_201_CREATED)
+		self.assertEqual(reply_response.data["comment"]["parent_comment_id"], parent_comment.id)
+
+		post.refresh_from_db()
+		self.assertEqual(post.comments_count, 2)
+
+		list_response = self.client.get(f"/api/posts/{post.id}/comments/")
+		self.assertEqual(list_response.status_code, status.HTTP_200_OK)
+		self.assertEqual(len(list_response.data), 1)
+		self.assertEqual(len(list_response.data[0]["replies"]), 1)

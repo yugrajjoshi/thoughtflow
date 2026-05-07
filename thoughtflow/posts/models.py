@@ -29,9 +29,12 @@ class Post(models.Model):
 class Comment(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments_set')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    parent_comment = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
     content = models.TextField()
     image = models.ImageField(upload_to='comments/', null=True, blank=True)
     video = models.FileField(upload_to='comments/videos/', null=True, blank=True)
+    likes = models.ManyToManyField(User, related_name='liked_comments', blank=True)
+    likes_count = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

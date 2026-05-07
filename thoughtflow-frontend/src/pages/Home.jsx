@@ -1304,7 +1304,7 @@ function Home() {
 
   return (
     <main
-      className="responsive-layout bg-black w-full min-h-dvh overflow-hidden"
+      className="responsive-layout bg-black w-full min-h-dvh overflow-auto"
       style={isMobileView ? { paddingTop: isProfileView ? "0" : "64px", paddingBottom: "70px" } : undefined}
     >
       {uiNotice.message ? (
@@ -1362,7 +1362,7 @@ function Home() {
       ) : null}
 
       <section className={`responsive-main-section ml-[20%] flex h-full min-h-0 w-[80%] overflow-hidden ${isProfileView ? "profile-view-section" : ""}`} style={isProfileView ? { marginTop: 0 } : {}}>
-        <article className="responsive-feed flex min-h-0 h-full w-[60%] flex-col text-white border-zinc-900 border-l border-r overflow-hidden">
+        <article className="responsive-feed flex min-h-0 h-full w-[60%] flex-col text-white border-zinc-900 border-l border-r overflow-y-auto posts-scrollbar">
         {isMassangerView ? (
           <MassangerSection
             selectedUser={selectedChatUser}
@@ -1608,9 +1608,9 @@ function Home() {
               </div>
 
               { !normalizedSearchQuery ? (
-                <div className="px-4 md:px-6 lg:px-8 py-3 flex flex-col gap-4">
-                  <section className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
-                    <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="px-4 md:px-6 lg:px-8 py-3 w-full flex flex-col gap-4">
+                  <section className="rounded-2xl border  border-zinc-800 bg-zinc-950/70 p-4">
+                    <div className="mb-3 flex  items-center justify-between gap-3">
                       <h3 className="text-sm font-semibold text-white">Recent Searches</h3>
                       {recentSearches.length > 0 ? (
                         <button
@@ -1740,7 +1740,7 @@ function Home() {
                       <>
                         <div className="px-4 py-3 text-xs uppercase tracking-[0.18em] text-zinc-500 md:px-6 lg:px-8">
                           {searchTab === "latest" ? "LATEST POSTS" : "TOP SEARCHES"}
-                        </div>
+                        </div><div className="flex flex-col">
                         {(searchTab === "latest" ? latestPosts : topPosts).length > 0 ? (
                           (searchTab === "latest" ? latestPosts : topPosts).map((post) => (
                             <PostCard
@@ -1760,6 +1760,7 @@ function Home() {
                             {searchTab === "latest" ? "No latest posts found for this search." : "No top results found."}
                           </div>
                         )}
+                        </div>
                       </>
                     )}
                   </section>
@@ -1920,9 +1921,9 @@ function Home() {
                             removeRecentSearch(item);
                             refreshRecentSearches();
                           }}
-                          className="text-xs text-zinc-500 transition hover:text-red-400"
+                          className="text-xs text-zinc-500  rounded-full transition hover:text-red-400"
                         >
-                          Delete
+                          x
                         </button>
                       </div>
                     ))}

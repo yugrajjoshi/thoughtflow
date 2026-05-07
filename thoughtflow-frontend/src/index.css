@@ -14,6 +14,7 @@ body {
 .posts-scrollbar {
 	scrollbar-width: thin;
 	scrollbar-color: #52525b #09090b;
+  overscroll-behavior: contain;
 }
 
 .posts-scrollbar::-webkit-scrollbar {
@@ -42,6 +43,10 @@ body {
   main.responsive-layout {
     flex-direction: column;
     padding-bottom: 70px;
+    height: 100vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
 
   /* Sidebar becomes fixed bottom navigation */
@@ -57,7 +62,7 @@ body {
     flex-direction: row;
     justify-content: space-around;
     border-top: 1px solid #27272a;
-    z-index: 40;
+    z-index: 90;
     overflow-x: auto;
   }
 
@@ -100,6 +105,11 @@ body {
     display: none;
   }
 
+  /* Ensure fixed top bars stay above content when scrolling */
+  .show-mobile-only.fixed {
+    z-index: 100 !important;
+  }
+
   /* Main content area - full width with bottom margin for nav */
   section.responsive-main-section {
     margin-left: 0 !important;
@@ -109,6 +119,12 @@ body {
     height: 100% !important;
     flex-direction: column;
     min-height: 0;
+  }
+
+  /* Prevent body from scrolling on mobile; main handles vertical scroll */
+  html, body {
+    height: 100%;
+    overflow: hidden;
   }
 
   /* Profile view section on mobile - no top margin for black bar */
@@ -218,6 +234,22 @@ body {
 
 /* ===== DESKTOP (1024px and above) ===== */
 @media (min-width: 1024px) {
+  /* Desktop: make the main layout fixed height and let feed/aside scroll independently */
+  main.responsive-layout {
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  article.responsive-feed {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  aside.responsive-aside {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
   /* Keep original layout */
   nav.responsive-sidebar {
     width: 20% !important;

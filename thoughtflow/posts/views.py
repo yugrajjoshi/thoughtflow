@@ -361,6 +361,7 @@ def create_comment(request, post_id):
 
     if request.method == 'POST':
         content = request.data.get('content', '').strip()
+        parent_comment_id = request.data.get('parent_comment_id')
         
         if not content:
             return response.Response(
@@ -368,7 +369,14 @@ def create_comment(request, post_id):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        comment = Comment(post=post, user=request.user, content=content)
+        parent_comment = None
+        if parent_comment_id not in (None, '', 'null', 'undefined'):
+            try:
+                parent_comment = Comment.objects.get(id=parent_comment_id, post=post)
+            except Comment.DoesNotExist:
+                return response.Response({'error': 'Parent comment not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        comment = Comment(post=post, user=request.user, parent_comment=parent_comment, content=content)
 
         if 'image' in request.FILES:
             comment.image = request.FILES['image']
@@ -386,7 +394,7 @@ def create_comment(request, post_id):
         )
 
     elif request.method == 'GET':
-        comments = post.comments_set.all()
+        comments = post.comments_set.filter(parent_comment__isnull=True)
         serializer = CommentSerializer(comments, many=True, context={'request': request})
         return response.Response(serializer.data)
 
@@ -416,6 +424,35 @@ def delete_comment(request, post_id, comment_id):
 
     return response.Response(
         {'message': 'Comment deleted successfully', 'comments_count': post.comments_count},
+        status=status.HTTP_200_OK
+    )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def like_comment(request, post_id, comment_id):
+    try:
+        post = Post.objects.get(id=post_id)
+    except Post.DoesNotExist:
+        return response.Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        comment = Comment.objects.get(id=comment_id, post=post)
+    except Comment.DoesNotExist:
+        return response.Response({'error': 'Comment not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.user in comment.likes.all():
+        comment.likes.remove(request.user)
+        liked = False
+    else:
+        comment.likes.add(request.user)
+        liked = True
+
+    comment.likes_count = comment.likes.count()
+    comment.save(update_fields=['likes_count'])
+
+    return response.Response(
+        {'comment_id': comment.id, 'liked': liked, 'likes_count': comment.likes_count},
         status=status.HTTP_200_OK
     )
 
