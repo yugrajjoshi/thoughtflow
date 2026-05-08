@@ -28,4 +28,39 @@ class Media(models.Model):
 
     def __str__(self):
         return f'Media for {self.profile.user.username}'
+
+
+class Settings(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='settings')
+    
+    # Privacy settings
+    is_private_account = models.BooleanField(default=False)
+    allow_messages_from_non_followers = models.BooleanField(default=True)
+    allow_tagging = models.BooleanField(default=True)
+    
+    # Notification settings
+    notify_likes = models.BooleanField(default=True)
+    notify_comments = models.BooleanField(default=True)
+    notify_reposts = models.BooleanField(default=True)
+    group_engagement_notifications = models.BooleanField(default=True)
+    notify_follows = models.BooleanField(default=True)
+    notify_mentions = models.BooleanField(default=True)
+    notify_messages = models.BooleanField(default=True)
+    
+    # Theme settings
+    theme = models.CharField(
+        max_length=20,
+        choices=[('dark', 'Dark'), ('light', 'Light')],
+        default='dark'
+    )
+    
+    # Other settings
+    show_online_status = models.BooleanField(default=True)
+    allow_search_indexing = models.BooleanField(default=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f'Settings for {self.user.username}'
     

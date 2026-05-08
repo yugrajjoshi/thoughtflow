@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Logo from "../components/Logo";
 
 function Signup(){
 
@@ -39,11 +40,7 @@ function Signup(){
     return(
         <main className="bg-black w-full min-h-screen flex items-center justify-center">
           <div className="flex flex-col md:flex-row items-center justify-center w-full">
-            <img
-              src="src/assets/logo.svg"
-              alt="Logo Image"
-              className="w-24 h-24 md:w-1/2 md:h-screen object-cover rounded-lg md:rounded-none shrink-0 mb-4 md:mb-0"
-            />
+                        <Logo className="w-24 h-24 md:w-1/2 md:h-screen object-cover rounded-lg md:rounded-none shrink-0 mb-4 md:mb-0" alt="Logo Image" />
             <div className="w-full md:w-1/2 flex items-center justify-center p-4 md:p-8">
             <div className="bg-zinc-700 border border-zinc-600 w-full max-w-md rounded-2xl p-6 sm:p-6">
                 <div className="bg-zinc-800 rounded-lg p-6">

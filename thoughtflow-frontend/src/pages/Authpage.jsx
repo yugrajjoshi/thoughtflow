@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Logo from "../components/Logo";
 import { Eye, EyeOff } from "lucide-react";
 
 // Simple modal for password reset
@@ -120,11 +121,7 @@ function AuthPage() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-black">
       <div className="flex flex-col md:flex-row items-center justify-center w-full">
-        <img
-          src="src/assets/logo.svg"
-          alt="Logo Image"
-          className="w-24 h-24 md:w-1/2 md:h-screen object-cover rounded-lg md:rounded-none shrink-0 mb-4 md:mb-0"
-        />
+        <Logo className="w-24 h-24 md:w-1/2 md:h-screen object-cover rounded-lg md:rounded-none shrink-0 mb-4 md:mb-0" alt="Logo Image" />
         <div className="w-full md:w-1/2 flex items-center justify-center p-4 md:p-8">
         <div className="bg-zinc-700 rounded-2xl justify-center items-center shadow-lg w-full max-w-md">
           <div className="bg-zinc-800 flex flex-col items-center justify-center rounded-2xl p-4 sm:p-6 md:p-8 w-full">

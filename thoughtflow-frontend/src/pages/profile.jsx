@@ -1,4 +1,5 @@
 import { House, UserRound, Search, Mail, LogOut, ArrowLeft, CalendarClockIcon,Balloon } from "lucide-react";
+import Logo from "../components/Logo";
 import { useCallback, useEffect, useState } from "react";
 import ProfileEditCard from "../components/profileeditcard";
 import PostCard from "../components/PostCard";
@@ -218,11 +219,7 @@ function Profile() {
         <main className="bg-black w-full h-screen">
             <nav className="fixed top-0 left-0 h-screen w-[20%] bg-black border-r border-zinc-600 overflow-hidden">
                 <div className="flex top-0 self-center w-[35%]">
-                    <img
-                        src="src/assets/logo.svg"
-                        alt="Logo Image"
-                        className="ml-1 mt-1 w-full h-full object-cover rounded-lg"
-                    />
+                    <Logo className="ml-1 mt-1 w-full h-full object-cover rounded-lg" alt="Logo Image" />
                 </div>
                 <div className="flex flex-col gap-2 mt-5">
                     <button

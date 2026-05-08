@@ -20,7 +20,7 @@ function PostView({ post, onBack, currentUsername, currentUserId, currentUserPro
 			if (!isReply) {
 				setComments((currentComments) => [result.comment, ...currentComments]);
 			}
-
+			
 			if (typeof onPostUpdated === "function" && post?.id) {
 				onPostUpdated(post.id, {
 					comments_count: result?.comments_count ?? postData.comments_count,

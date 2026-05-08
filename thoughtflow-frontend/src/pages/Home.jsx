@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
-import { Bookmark, House, LogOut, Mail, Plus, Search, Settings2, UserRound, X } from "lucide-react";
+import { Bookmark, House, LogOut, Mail, Plus, Search, Settings2, UserRound, X, Bell } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import CreatePost from "../components/Createpost";
 import PostCard from '../components/PostCard';
@@ -8,7 +8,7 @@ import MassangerSection from '../components/massangersection';
 import SidebarNav from "../components/SidebarNav";
 import ProfileSection from "../components/ProfileSection";
 import TrendingHashtags from "../components/TrendingHashtags";
-import logo from "../assets/logo.svg";
+import Logo from "../components/Logo";
 
 const API_BASE = "http://127.0.0.1:8000";
 const HOME_UI_STATE_KEY = "thoughtflow_home_ui_state";
@@ -1194,7 +1194,7 @@ function Home() {
       className="mx-auto flex items-center justify-center"
       aria-label="Go to home"
     >
-      <img src={logo} alt="ThoughtFlow" className="h-9 w-auto object-contain" />
+      <Logo className="h-9 w-auto object-contain" alt="ThoughtFlow" />
     </button>
   );
 
@@ -1208,7 +1208,7 @@ function Home() {
           aria-label="Open navigation"
         >
           {mobileProfileImageSrc ? (
-            <img src={mobileProfileImageSrc} alt={currentUsername || "Profile"} className="h-full w-full rounded-full object-cover" />
+            <img src={mobileProfileImageSrc} alt={currentUsername || "Profile"} className="h-10 w-10 rounded-full object-cover" />
           ) : (
             <UserRound className="h-5 w-5" />
           )}
@@ -1218,8 +1218,8 @@ function Home() {
 
         <button
           type="button"
-          onClick={() => showUiNotice("info", "Settings will be added later.")}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-transparent text-white"
+          onClick={() => navigate("/settings")}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-transparent text-white hover:bg-zinc-900 transition"
           aria-label="Settings"
         >
           <Settings2 className="h-5 w-5" />
@@ -1248,11 +1248,11 @@ function Home() {
       ) : null}
 
       <div
-        className={`show-mobile-only fixed left-0 top-16 z-60 h-[calc(100vh-134px)] w-[78%] max-w-xs border-r border-zinc-800 bg-black/98 shadow-2xl transition-transform duration-300 ${mobileNavOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`show-mobile-only fixed left-0 top-16 z-60 h-[calc(100vh-134px)] w-[78%] max-w-xs border-zinc-800 bg-black/98 shadow-2xl transition-transform duration-300 ${mobileNavOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
-        <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-4">
+        <div className="flex items-center justify-between  border-zinc-800 px-4 py-4">
           <div>
-            <p className="text-sm text-zinc-500">Navigation</p>
+           
             <p className="font-semibold text-white">ThoughtFlow</p>
           </div>
           <button

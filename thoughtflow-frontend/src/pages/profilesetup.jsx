@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Logo from "../components/Logo";
 
 function Profilesetup() {
     const [profilePicture, setProfilePicture] = useState(null);
@@ -133,11 +134,7 @@ function Profilesetup() {
 
     return (
         <main className="bg-black w-full min-h-screen flex flex-col md:flex-row items-center justify-center">
-            <img 
-                src="src/assets/logo.svg" 
-                alt="Logo Image" 
-                className="w-24 h-24 md:w-1/2 md:h-screen object-cover rounded-lg md:rounded-none shrink-0 mb-4 md:mb-0" 
-            />
+            <Logo className="w-24 h-24 md:w-1/2 md:h-screen object-cover rounded-lg md:rounded-none shrink-0 mb-4 md:mb-0" alt="Logo Image" />
 
             <div className="w-full md:w-1/2 flex items-center justify-center p-4 md:p-8">
             <div className="w-full max-w-md">

@@ -52,6 +52,8 @@ function ProfileSection({
     const [postTab, setPostTab] = useState("posts");
 
     const isOwnProfile = !viewedUsername || viewedUsername === currentUsername;
+    const isPrivateProfile = Boolean(userData?.is_private_account);
+    const isProfileLocked = !isOwnProfile && isPrivateProfile && !following;
     const usernameForPosts = userData?.username || "";
     const userIdForPosts = Number(userData?.user_id) || null;
 
@@ -357,6 +359,13 @@ function ProfileSection({
                     </section>
                 </section>
 
+                {isProfileLocked ? (
+                    <section className="px-5 py-6 border-b border-zinc-800 text-zinc-300">
+                        <p className="text-lg font-semibold text-white">This account is private</p>
+                        <p className="mt-2 text-sm text-zinc-400">Follow this account to see posts, replies, and activity.</p>
+                    </section>
+                ) : null}
+
                 <section className="w-full">
                     <div className="px-5 py-4 border-b border-zinc-800 flex items-center gap-8 bg-black/50">
                         <button
@@ -383,7 +392,9 @@ function ProfileSection({
                         </button>
                     </div>
 
-                    {postTab === "posts" ? (
+                    {isProfileLocked ? (
+                        <p className="px-5 py-6 text-zinc-500">Private profile content is hidden until the follow request is accepted.</p>
+                    ) : postTab === "posts" ? (
                         filteredProfilePosts.length > 0 ? (
                             filteredProfilePosts.map((post) => (
                                 <PostCard

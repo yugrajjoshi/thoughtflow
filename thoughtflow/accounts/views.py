@@ -2,11 +2,11 @@ from django.contrib.auth.models import User
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import RegisterSerializer, ProfileSerializer, ProfileSummarySerializer
+from .serializers import RegisterSerializer, ProfileSerializer, ProfileSummarySerializer, SettingsSerializer
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
-from .models import Profile
+from .models import Profile, Settings
 from django.shortcuts import get_object_or_404
 from .models import Media
 from django.contrib.auth.tokens import default_token_generator
@@ -259,6 +259,23 @@ def password_reset_confirm(request):
     user.set_password(new_password)
     user.save()
     return Response({'detail': 'Password has been reset.'})
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def get_settings(request):
+    settings_obj, _ = Settings.objects.get_or_create(user=request.user)
+    
+    if request.method == 'GET':
+        serializer = SettingsSerializer(settings_obj)
+        return Response(serializer.data)
+    
+    elif request.method == 'POST':
+        serializer = SettingsSerializer(settings_obj, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 def google_oauth_redirect(request):

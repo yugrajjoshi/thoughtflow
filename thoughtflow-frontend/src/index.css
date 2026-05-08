@@ -11,6 +11,39 @@ body {
 	margin: 0;
 }
 
+body[data-theme="light"],
+html[data-theme="light"] {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+body[data-theme="light"] main.responsive-layout {
+  background: #f8fafc !important;
+}
+
+body[data-theme="light"] nav.responsive-sidebar,
+body[data-theme="light"] article.responsive-feed,
+body[data-theme="light"] aside.responsive-aside {
+  background: #ffffff !important;
+  border-color: #d4d4d8 !important;
+}
+html[data-theme="light"] [class*="bg-black"] {
+  background-color: #ffffff !important;
+}
+
+html[data-theme="light"] [class*="bg-zinc-"] {
+  background-color: #ffffff !important;
+}
+
+html[data-theme="light"] [class*="text-white"],
+html[data-theme="light"] [class*="text-zinc-"] {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] [class*="border-zinc-"] {
+  border-color: #e5e7eb !important;
+}
+
 .posts-scrollbar {
 	scrollbar-width: thin;
 	scrollbar-color: #52525b #09090b;
@@ -45,8 +78,12 @@ body {
     padding-bottom: 70px;
     height: 100vh;
     overflow-y: auto;
+    /* ===== THEME OVERRIDES FOR LIGHT MODE ===== */
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+  html[data-theme="light"] .bg-black\/80 {
+    background-color: rgba(255,255,255,0.8) !important;
+  }
   }
 
   /* Sidebar becomes fixed bottom navigation */
@@ -433,4 +470,9 @@ body {
     overflow-x: hidden;
     width: 100vw;
   }
+}
+
+/* Hide Settings button on mobile responsive bottom nav */
+nav.responsive-sidebar .hide-settings-on-mobile {
+  display: none !important;
 }

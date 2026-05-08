@@ -1,7 +1,10 @@
-import { House, UserRound, Search, Mail, LogOut, Bookmark } from "lucide-react";
+import { House, UserRound, Search, Mail, LogOut, Bookmark, Settings } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import logo from "../assets/logo.svg";
 
 function SidebarNav({ activeButton, onSelect, onLogout }) {
+    const navigate = useNavigate();
+    
     return (
         <nav className="responsive-sidebar fixed top-0 left-0 h-screen w-[20%] bg-black overflow-hidden flex flex-col">
             <header className="flex text-white  -ml-50 top-0 self-center w-[35%]">
@@ -59,14 +62,25 @@ function SidebarNav({ activeButton, onSelect, onLogout }) {
                 </button>
             </section>
 
-            <button
-                className="text-white gap-6 text-1xl font-bold p-3 transition duration-300 ml-6 mb-4 w-[70%] hover:bg-zinc-800/30 hover:shadow-md rounded-4xl flex items-center mt-auto"
-                onClick={onLogout}
-                title="Logout"
-            >
-                <LogOut className="w-5 h-5" />
-                <span className="hide-mobile">Logout</span>
-            </button>
+            <div className="flex flex-col gap-2 mb-4 hide-settings-on-mobile">
+                <button
+                    className="text-white gap-6 text-2xl font-bold p-3 transition duration-300 ml-6 w-[70%] hover:bg-zinc-800/30 rounded-4xl flex items-center"
+                    onClick={() => navigate("/settings")}
+                    title="Settings"
+                >
+                    <Settings className="w-5 h-5" />
+                    <span className="hide-mobile">Settings</span>
+                </button>
+
+                <button
+                    className="text-white gap-6 text-1xl font-bold p-3 transition duration-300 ml-6 w-[70%] hover:bg-zinc-800/30 hover:shadow-md rounded-4xl flex items-center"
+                    onClick={onLogout}
+                    title="Logout"
+                >
+                    <LogOut className="w-5 h-5" />
+                    <span className="hide-mobile">Logout</span>
+                </button>
+            </div>
         </nav>
     );
 }

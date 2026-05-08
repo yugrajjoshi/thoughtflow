@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Logo from "../components/Logo";
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
 function ResetPassword() {
@@ -39,11 +40,7 @@ function ResetPassword() {
 
   return (
     <main className="min-h-screen bg-black flex flex-col md:flex-row items-center justify-center text-white">
-      <img
-        src="src/assets/logo.svg"
-        alt="Logo Image"
-        className="w-24 h-24 md:w-1/2 md:h-screen object-cover rounded-lg md:rounded-none shrink-0 mb-4 md:mb-0"
-      />
+      <Logo className="w-24 h-24 md:w-1/2 md:h-screen object-cover rounded-lg md:rounded-none shrink-0 mb-4 md:mb-0" alt="Logo Image" />
       <div className="w-full md:w-1/2 flex items-center justify-center p-4 md:p-8">
       <div className="bg-zinc-700 p-6 rounded-lg w-full max-w-md border border-zinc-600">
         <div className="bg-zinc-800 p-6 rounded-lg">
