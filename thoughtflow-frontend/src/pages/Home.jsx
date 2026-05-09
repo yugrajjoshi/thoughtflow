@@ -1248,7 +1248,7 @@ function Home() {
       ) : null}
 
       <div
-        className={`show-mobile-only fixed left-0 top-16 z-60 h-[calc(100vh-134px)] w-[78%] max-w-xs border-zinc-800 bg-black/98 shadow-2xl transition-transform duration-300 ${mobileNavOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`show-mobile-only fixed left-0 top-0 z-60 h-screen w-[78%] max-w-xs border-zinc-800 bg-black/98 shadow-2xl transition-transform duration-300 ${mobileNavOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex items-center justify-between  border-zinc-800 px-4 py-4">
           <div>
@@ -1406,13 +1406,13 @@ function Home() {
             {isFeedView && !isBookmarksView ? (
               <header className="sticky top-0 z-20 bg-black border-b border-zinc-900 flex w-full h-15">
                 <button
-                  className={`text-zinc-400 transition-all duration-200 hover:text-white w-[50%] ${feedTab === "For You" ? "bg-linear-to-r from-zinc-950 to-zinc-900" : "bg-black"}`}
+                  className={`text-zinc-400 transition-all duration-200 hover:text-white w-[50%] pb-3 ${feedTab === "For You" ? "font-bold border-b-2 border-blue-500 text-white" : "border-b-2 border-transparent"}`}
                   onClick={() => setFeedTab("For You")}
                 >
                   For You
                 </button>
                 <button
-                  className={`text-zinc-400 transition-all duration-200 hover:text-white w-[50%] ${feedTab === "Following" ? "bg-linear-to-l from-zinc-950 to-zinc-900" : "bg-black "}`}
+                  className={`text-zinc-400 transition-all duration-200 hover:text-white w-[50%] pb-3 ${feedTab === "Following" ? "font-bold border-b-2 border-blue-500 text-white" : "border-b-2 border-transparent"}`}
                   onClick={() => setFeedTab("Following")}
                 >
                  Following
@@ -1684,19 +1684,19 @@ function Home() {
                 <>
                   <header className="flex w-full h-12">
                     <button
-                      className={`text-zinc-400 transition-all duration-200 hover:text-white w-1/3 ${searchTab === "top" ? "bg-linear-to-r from-zinc-950 to-zinc-900" : "bg-black"}`}
+                      className={`text-zinc-400 transition-all duration-200 hover:text-white w-1/3 pb-2 ${searchTab === "top" ? "font-bold border-b-2 border-blue-500 text-white" : "border-b-2 border-transparent"}`}
                       onClick={() => setSearchTab("top")}
                     >
                       Top
                     </button>
                     <button
-                      className={`text-zinc-400 transition-all duration-200 hover:text-white w-1/3 ${searchTab === "latest" ? "bg-linear-to-r from-zinc-950 to-zinc-900" : "bg-black"}`}
+                      className={`text-zinc-400 transition-all duration-200 hover:text-white w-1/3 pb-2 ${searchTab === "latest" ? "font-bold border-b-2 border-blue-500 text-white" : "border-b-2 border-transparent"}`}
                       onClick={() => setSearchTab("latest")}
                     >
                       Latest
                     </button>
                     <button
-                      className={`text-zinc-400 transition-all duration-200 hover:text-white w-1/3 ${searchTab === "users" ? "bg-linear-to-r from-zinc-950 to-zinc-900" : "bg-black"}`}
+                      className={`text-zinc-400 transition-all duration-200 hover:text-white w-1/3 pb-2 ${searchTab === "users" ? "font-bold border-b-2 border-blue-500 text-white" : "border-b-2 border-transparent"}`}
                       onClick={() => setSearchTab("users")}
                     >
                       Users

@@ -261,7 +261,7 @@ function Profile() {
             <div className="ml-[20%] flex h-screen w-[80%] bg-black">
                 <section className="w-2/3 h-screen overflow-y-auto overscroll-none posts-scrollbar">
                     <article className="flex flex-col min-h-screen text-white border-zinc-500 border-l-[0.5px] border-r-[0.5px] relative">
-                    <header className="flex w-full h-16  bg-linear-to-r from-black-500 to-zinc-800 text-white items-center p-4">
+                    <header className="flex w-full h-16  bg-black border-b border-zinc-800 text-white items-center p-4">
                         <ArrowLeft className="w-6 h-6" onClick={() => goTo("/home")} />
                         <h1 className="text-2xl font-bold ml-4">Profile</h1>
                         <Search className="w-6 h-6 absolute right-8" />

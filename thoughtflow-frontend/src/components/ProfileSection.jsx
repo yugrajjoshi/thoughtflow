@@ -247,7 +247,7 @@ function ProfileSection({
     return (
         <section className="w-full h-full overflow-y-auto posts-scrollbar">
             <article className="flex flex-col min-h-full text-white border-zinc-900 border-l border-r relative">
-                <header className="flex w-full h-16 bg-linear-to-r from-black to-zinc-800 text-white items-center p-4 relative">
+                <header className="flex w-full h-16 bg-black border-b border-zinc-800 text-white items-center p-4 relative">
                     <ArrowLeft className="w-6 h-6 cursor-pointer" onClick={onBackHome} />
                     <h1 className="text-2xl font-bold ml-4">{userData?.name || userData?.username}</h1>
                     <Search 
@@ -265,7 +265,7 @@ function ProfileSection({
                             placeholder="Search posts..."
                             value={profileSearchQuery}
                             onChange={(e) => setProfileSearchQuery(e.target.value)}
-                            className="absolute right-16 bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-1 text-sm w-48 focus:outline-none focus:border-zinc-400"
+                            className="absolute right-16 bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-1 text-sm w-48 text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-zinc-400"
                         />
                     )}
                 </header>

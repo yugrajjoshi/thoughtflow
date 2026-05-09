@@ -1,6 +1,6 @@
 import { House, UserRound, Search, Mail, LogOut, Bookmark, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import logo from "../assets/logo.svg";
+import Logo from "./Logo";
 
 function SidebarNav({ activeButton, onSelect, onLogout }) {
     const navigate = useNavigate();
@@ -8,8 +8,7 @@ function SidebarNav({ activeButton, onSelect, onLogout }) {
     return (
         <nav className="responsive-sidebar fixed top-0 left-0 h-screen w-[20%] bg-black overflow-hidden flex flex-col">
             <header className="flex text-white  -ml-50 top-0 self-center w-[35%]">
-                <img
-                    src={logo}
+                <Logo
                     alt="Logo Image"
                     className="ml-1 mt-1 w-full h-full object-cover rounded-lg"
                 />
