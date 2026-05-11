@@ -18,6 +18,7 @@ import urllib.parse
 import urllib.error
 import os
 import secrets
+from django.db.models import Q
 from django.core import signing
 from django.core.mail import send_mail, EmailMessage
 from django.conf import settings
@@ -203,16 +204,49 @@ def following(request, username):
 
 
 @api_view(['POST'])
-def password_reset_request(request):
-    email = request.data.get('email')
-    if not email:
-        return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
+def password_reset_lookup(request):
+    identifier = (request.data.get('identifier') or request.data.get('email') or request.data.get('username') or '').strip()
 
-    try:
-        user = User.objects.get(email__iexact=email)
-    except User.DoesNotExist:
-        # Do not reveal whether email exists
-        return Response({'detail': 'If that email exists, a reset link was sent.'})
+    if not identifier:
+        return Response({'error': 'Username or email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = User.objects.filter(
+        Q(username__iexact=identifier) | Q(email__iexact=identifier)
+    ).first()
+
+    if not user:
+        return Response({'found': False, 'detail': 'No account matched that username or email.'})
+
+    email = user.email or ''
+    if email:
+        local, at, domain = email.partition('@')
+        email_hint = f"{local[:2]}***@{domain}" if at else email
+    else:
+        email_hint = ''
+
+    return Response({
+        'found': True,
+        'username': user.username,
+        'email_hint': email_hint,
+    })
+
+
+@api_view(['POST'])
+def password_reset_request(request):
+    identifier = (request.data.get('identifier') or request.data.get('email') or request.data.get('username') or '').strip()
+    if not identifier:
+        return Response({'error': 'Username or email is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = User.objects.filter(
+        Q(username__iexact=identifier) | Q(email__iexact=identifier)
+    ).first()
+
+    if not user:
+        # Do not reveal whether the account exists
+        return Response({'detail': 'If that account exists, a reset link was sent.'})
+
+    if not user.email:
+        return Response({'error': 'This account does not have an email address on file.'}, status=status.HTTP_400_BAD_REQUEST)
 
     token = default_token_generator.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
@@ -235,7 +269,7 @@ def password_reset_request(request):
     if getattr(settings, 'DEBUG', True):
         return Response({'detail': 'Password reset link generated.', 'reset_url': reset_url})
 
-    return Response({'detail': 'If that email exists, a reset link was sent.'})
+    return Response({'detail': 'If that account exists, a reset link was sent.'})
 
 
 @api_view(['POST'])

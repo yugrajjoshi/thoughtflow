@@ -1,10 +1,11 @@
 from django.urls import path
 from .views import profile_info, profile_by_username, register_user, login_user, update_profile,follow_user, unfollow_user, followers, following
 from .views import get_user, get_Profile, get_settings
-from .views import password_reset_request, password_reset_confirm, google_oauth_redirect, google_oauth_callback
+from .views import password_reset_lookup, password_reset_request, password_reset_confirm, google_oauth_redirect, google_oauth_callback
 urlpatterns = [
     path('register/', register_user),
     path('login/', login_user),
+    path('password-reset/lookup/', password_reset_lookup),
     path('password-reset/', password_reset_request),
     path('password-reset/confirm/', password_reset_confirm),
     path('user/', get_user),

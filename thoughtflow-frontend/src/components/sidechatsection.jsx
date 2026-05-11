@@ -39,7 +39,7 @@ function SideChatsection({
   return (
     <div className="w-full h-full flex flex-col bg-black text-white">
       {/* Search Bar */}
-      <div className="flex-shrink-0 p-4 border-b border-zinc-700">
+      <div className="shrink-0 p-4 border-b border-zinc-700">
         <div className="relative">
           <Search className="absolute left-3 top-3 w-4 h-4 text-zinc-500" />
           <input
@@ -78,17 +78,17 @@ function SideChatsection({
                       <img
                         src={profileImage}
                         alt={person.displayName}
-                        className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                        className="w-12 h-12 rounded-full object-cover shrink-0"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-full bg-zinc-700 flex items-center justify-center text-sm font-medium flex-shrink-0">
+                      <div className="w-12 h-12 rounded-full bg-zinc-700 flex items-center justify-center text-sm font-medium shrink-0">
                         {person.displayName?.charAt(0)?.toUpperCase() || "U"}
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline justify-between gap-2">
                         <p className="font-semibold truncate">{person.displayName}</p>
-                        <span className="text-xs text-zinc-500 flex-shrink-0">
+                        <span className="text-xs text-zinc-500 shrink-0">
                           {getTimeDisplay(person.lastMessageAt)}
                         </span>
                       </div>
@@ -97,7 +97,7 @@ function SideChatsection({
                       </p>
                     </div>
                     {person.unreadCount > 0 && (
-                      <div className="flex-shrink-0 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center text-xs font-bold">
+                      <div className="shrink-0 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center text-xs font-bold">
                         {person.unreadCount > 99 ? "99+" : person.unreadCount}
                       </div>
                     )}
@@ -130,10 +130,10 @@ function SideChatsection({
                         <img
                           src={profileImage}
                           alt={person.displayName}
-                          className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                          className="w-12 h-12 rounded-full object-cover shrink-0"
                         />
                       ) : (
-                        <div className="w-12 h-12 rounded-full bg-zinc-700 flex items-center justify-center text-sm font-medium flex-shrink-0">
+                        <div className="w-12 h-12 rounded-full bg-zinc-700 flex items-center justify-center text-sm font-medium   shrink-0">
                           {person.displayName?.charAt(0)?.toUpperCase() || "U"}
                         </div>
                       )}

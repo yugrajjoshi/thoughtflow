@@ -76,7 +76,7 @@ function Signup(){
                         
                         <div>
                             <label htmlFor="email" className="text-zinc-300 text-left text-sm font-medium block mb-1">
-                                Email
+                                Email <span className="text-red-500">*</span>
                             </label>
                             <input
                                 id="email"
@@ -87,6 +87,7 @@ function Signup(){
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
                             />
+                            <p className="text-xs text-zinc-400 mt-2">ⓘ This email will be used for password recovery</p>
                         </div>
 
                         <div>

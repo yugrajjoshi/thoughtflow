@@ -6,7 +6,9 @@ function ResetPassword() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const uid = searchParams.get('uid') || '';
   const token = searchParams.get('token') || '';
@@ -20,6 +22,16 @@ function ResetPassword() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
+    if (newPassword.length < 8) {
+      setMessage('Password must be at least 8 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setMessage('Passwords do not match.');
+      return;
+    }
+
+    setLoading(true);
     try {
       const resp = await fetch('http://127.0.0.1:8000/api/password-reset/confirm/', {
         method: 'POST',
@@ -29,12 +41,14 @@ function ResetPassword() {
       const data = await resp.json();
       if (resp.ok) {
         setMessage('Password updated. Redirecting to login...');
-        setTimeout(() => navigate('/'), 1400);
+        setTimeout(() => navigate('/', { replace: true }), 1400);
       } else {
         setMessage(data.error || data.detail || 'Failed to reset password');
       }
     } catch (err) {
       setMessage('Request failed');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -54,8 +68,18 @@ function ResetPassword() {
               placeholder="New password (min 8 chars)"
               className="p-3 rounded-lg bg-zinc-700 text-white placeholder:text-zinc-400 border border-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <button type="submit" disabled={newPassword.length < 8} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50 transition">Set password</button>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm new password"
+              className="p-3 rounded-lg bg-zinc-700 text-white placeholder:text-zinc-400 border border-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button type="submit" disabled={loading || newPassword.length < 8 || newPassword !== confirmPassword} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50 transition">
+              {loading ? 'Saving...' : 'Set password'}
+            </button>
             {newPassword.length > 0 && newPassword.length < 8 ? <p className="text-sm text-zinc-400">Password must be at least 8 characters.</p> : null}
+            {confirmPassword.length > 0 && newPassword !== confirmPassword ? <p className="text-sm text-zinc-400">Passwords do not match.</p> : null}
           </form>
         </div>
       </div>

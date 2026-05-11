@@ -29,6 +29,8 @@ node_modules/
 .idea/
 *.swp
 *.swo
+deployment-prep.md
+database-shift-procedure.md
 
 # OS files
 .DS_Store

@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 import os
 from pathlib import Path
+from urllib.parse import urlparse
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -29,7 +30,7 @@ def load_env_file(env_path):
         key, value = line.split('=', 1)
         key = key.strip()
         value = value.strip().strip('"').strip("'")
-        os.environ.setdefault(key, value)
+        os.environ[key] = value
 
 
 load_env_file(BASE_DIR / '.env')
@@ -102,12 +103,28 @@ WSGI_APPLICATION = 'thoughtflow.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+DATABASE_URL = os.getenv('DATABASE_URL', '').strip()
+
+if DATABASE_URL:
+    parsed_database_url = urlparse(DATABASE_URL)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': parsed_database_url.path.lstrip('/'),
+            'USER': parsed_database_url.username or '',
+            'PASSWORD': parsed_database_url.password or '',
+            'HOST': parsed_database_url.hostname or '',
+            'PORT': str(parsed_database_url.port or ''),
+            'CONN_MAX_AGE': int(os.getenv('DATABASE_CONN_MAX_AGE', '600') or 600),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation

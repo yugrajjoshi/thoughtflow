@@ -106,9 +106,10 @@ html[data-theme="light"] .show-mobile-only.fixed.left-0.top-16 .text-zinc-300 {
     /* ===== THEME OVERRIDES FOR LIGHT MODE ===== */
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+  }
+
   html[data-theme="light"] .bg-black\/80 {
     background-color: rgba(255,255,255,0.8) !important;
-  }
   }
 
   /* Sidebar becomes fixed bottom navigation */
