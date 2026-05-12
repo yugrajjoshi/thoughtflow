@@ -1,5 +1,5 @@
 FLOWTHOUGHT PROGRESS REPORT
-Date: May 10, 2026
+Date: May 11, 2026
 
 1. Status
 - Core app: about 95% done
@@ -22,6 +22,23 @@ Date: May 10, 2026
 - Search pagination and ranking polish
 - Add a dedicated notifications feed/page if still needed
 - Deployment prep
+
+6. Recent updates (May 11, 2026)
+- Mailtrap SMTP configured for development and tested; password reset emails are delivered to Mailtrap inbox.
+- Password reset flow redesigned and implemented: two-step lookup + confirmation UI on the frontend; backend endpoints validate tokens and set new passwords.
+- `FRONTEND_URL` `.env` issue fixed and normalized to `http://127.0.0.1:5174`.
+- Vite dev server binding made permanent in `thoughtflow-frontend/package.json` (`--host 127.0.0.1 --port 5174`) to avoid origin mismatches.
+- Google OAuth redirect URI and origin mismatch fixed; callback now redirects to the running frontend and the token is received by the app.
+- Local PostgreSQL was started for development and Django restarted to connect to it; backend and frontend servers tested together.
+- Code changes committed and pushed.
+
+7. Next Priority (updated)
+1) Prepare Render backend app and add production env vars (DB, email, OAuth keys).
+2) Deploy backend to Render and run production migrations.
+3) Build frontend and deploy to Vercel; set production `FRONTEND_URL`.
+4) Configure production email provider (SendGrid/SES) and rotate Mailtrap usage to staging only.
+5) Secure Postgres credentials and restore `pg_hba.conf` to secure auth.
+6) Run full end-to-end smoke tests in staging/prod and enable basic monitoring.
 
 4. Current Focus
 - Final integration and bug fixing

@@ -530,9 +530,8 @@ html[data-theme="light"] header button:not(.font-bold) {
   border-bottom: 2px solid #e5e7eb !important;
 }
 
-/* Light mode SidebarNav buttons: background + left border for ACTIVE state only */
+/* Light mode SidebarNav buttons: background for ACTIVE state only */
 html[data-theme="light"] .responsive-sidebar button.bg-zinc-800\/30 {
   background-color: #f3f4f6 !important;
-  border-left: 3px solid #3b82f6 !important;
   font-weight: 700 !important;
 }

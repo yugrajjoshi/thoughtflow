@@ -1,6 +1,8 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
+from django.conf import settings
 from .models import Profile, Settings
+from .models import Notification
 
 class RegisterSerializer(serializers.ModelSerializer):
 
@@ -91,3 +93,22 @@ class ProfileSummarySerializer(serializers.ModelSerializer):
 
         my_profile, _ = Profile.objects.get_or_create(user=request.user)
         return my_profile.following.filter(id=obj.id).exists()
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    actor_username = serializers.SerializerMethodField()
+    actor_profile_image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Notification
+        fields = ['id', 'actor_username', 'actor_profile_image', 'verb', 'data', 'unread', 'created_at']
+
+    def get_actor_username(self, obj):
+        return obj.actor.username if obj.actor else None
+    
+    def get_actor_profile_image(self, obj):
+        if obj.actor and hasattr(obj.actor, 'profile') and obj.actor.profile.profile_image:
+            relative_url = obj.actor.profile.profile_image.url
+            backend_url = settings.BACKEND_URL.rstrip('/') if hasattr(settings, 'BACKEND_URL') else 'http://127.0.0.1:8000'
+            return f"{backend_url}{relative_url}"
+        return None

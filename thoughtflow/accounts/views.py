@@ -22,6 +22,9 @@ from django.db.models import Q
 from django.core import signing
 from django.core.mail import send_mail, EmailMessage
 from django.conf import settings
+from .models import Notification
+from .serializers import NotificationSerializer
+from .notification_utils import create_notification
 
 @api_view(['POST'])
 def register_user(request):
@@ -142,6 +145,14 @@ def follow_user(request, username):
    
     my_profile.following.add(target_profile)
     target_profile.followers.add(my_profile)
+
+    create_notification(
+        user=target_profile.user,
+        actor=request.user,
+        verb='followed you',
+        data={'username': request.user.username},
+        setting_field='notify_follows',
+    )
     
     return Response({
         'followed': True,
@@ -310,6 +321,42 @@ def get_settings(request):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_notifications(request):
+    user = request.user
+    qs = Notification.objects.filter(user=user).order_by('-created_at')[:100]
+    serializer = NotificationSerializer(qs, many=True)
+    return Response({'results': serializer.data})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def unread_count(request):
+    user = request.user
+    count = Notification.objects.filter(user=user, unread=True).count()
+    return Response({'unread_count': count})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def mark_notifications_read(request):
+    ids = request.data.get('ids') or []
+    user = request.user
+    if not isinstance(ids, list):
+        return Response({'error': 'ids must be a list'}, status=status.HTTP_400_BAD_REQUEST)
+    updated = Notification.objects.filter(user=user, id__in=ids, unread=True).update(unread=False)
+    return Response({'updated': updated})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def mark_all_notifications_read(request):
+    user = request.user
+    updated = Notification.objects.filter(user=user, unread=True).update(unread=False)
+    return Response({'updated': updated})
 
 
 def google_oauth_redirect(request):

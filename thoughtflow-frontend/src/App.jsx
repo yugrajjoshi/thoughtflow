@@ -9,6 +9,7 @@ import ResetRequest from "./pages/ResetRequest";
 import ResetPassword from "./pages/ResetPassword";
 import SearchPage from "./pages/SearchPage";
 import Settings from "./pages/Settings";
+import Notifications from "./pages/Notifications";
 
 function App() {
   useEffect(() => {
@@ -36,6 +37,7 @@ function App() {
         <Route path="/forgot-password" element={<ResetRequest />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/search" element={<SearchPage />} />
+        <Route path="/notifications" element={<Notifications />} />
         <Route path="/settings" element={<Settings />} />
       </Routes>
     </Router>

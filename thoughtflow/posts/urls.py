@@ -6,6 +6,7 @@ from . views import (get_posts, like_post, comments_count, get_likes, bookmark_p
 
 urlpatterns = [
     path('posts/', views.get_posts, name='get_posts'),
+    path('posts/<int:post_id>/detail/', views.get_post_detail, name='get_post_detail'),
     path('posts/<int:post_id>/', views.delete_post, name='delete_post'),
     path('posts/<int:post_id>/like/', views.like_post, name='like_post'),
     path('posts/<int:post_id>/repost/', views.repost_post, name='repost_post'),

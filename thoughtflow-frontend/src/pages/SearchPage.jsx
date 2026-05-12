@@ -279,48 +279,20 @@ function SearchPage() {
       </div>
 
       <section className="mx-auto min-h-dvh w-full max-w-6xl px-0 pt-16 pb-14">
-        {!query ? (
+        {activeTab !== "users" && !query ? (
           <div className="px-4 py-6 text-sm text-zinc-400 md:px-6 lg:px-8">
             Type a query and press Enter to open a dedicated results page.
           </div>
         ) : null}
 
-        {isLoading ? (
+        {activeTab !== "users" && isLoading ? (
           <div className="flex items-center justify-center py-16 text-zinc-400">
             <Loader className="mr-3 h-5 w-5 animate-spin" />
             Loading results...
           </div>
-        ) : error ? (
+        ) : activeTab !== "users" && error ? (
           <div className="px-4 py-6 text-sm text-red-200 md:px-6 lg:px-8">{error}</div>
-        ) : activeTab === "users" ? (
-          <div className="flex flex-col">
-            {normalizedUsers.length > 0 ? (
-              normalizedUsers.map((user) => {
-                const imageSrc = user?.profile_image
-                  ? (user.profile_image.startsWith("http") ? user.profile_image : `${API_BASE}${user.profile_image}`)
-                  : "";
-
-                return (
-                  <Link
-                    key={`search-user-${user.id || user.username}`}
-                    to={`/profile/${user.username}`}
-                    className="flex items-center gap-3 px-4 py-4 transition hover:bg-zinc-950 md:px-6 lg:px-8"
-                  >
-                    <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-zinc-800">
-                      {imageSrc ? <img src={imageSrc} alt={user.username} className="h-full w-full object-cover" /> : null}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium text-white">{user.display_name || user.username}</p>
-                      <p className="truncate text-sm text-zinc-500">@{user.username}</p>
-                    </div>
-                  </Link>
-                );
-              })
-            ) : (
-              <div className="px-4 py-6 text-sm text-zinc-500 md:px-6 lg:px-8">No matching users found.</div>
-            )}
-          </div>
-        ) : (
+        ) : activeTab !== "users" ? (
           <div className="flex flex-col">
             <div className="px-4 py-3 text-xs uppercase tracking-[0.18em] text-zinc-500 md:px-6 lg:px-8">
               {activeTabDescription}
@@ -344,8 +316,40 @@ function SearchPage() {
               </div>
             )}
           </div>
-        )}
+        ) : null}
       </section>
+
+      {activeTab === "users" && (
+        <div className="w-full px-4 pt-16 pb-14 md:px-6 lg:px-8">
+          {normalizedUsers.length > 0 ? (
+            <>
+              {normalizedUsers.map((user) => {
+                const imageSrc = user?.profile_image
+                  ? (user.profile_image.startsWith("http") ? user.profile_image : `${API_BASE}${user.profile_image}`)
+                  : "";
+
+                return (
+                  <Link
+                    key={`search-user-${user.id || user.username}`}
+                    to={`/profile/${user.username}`}
+                    className="flex items-center gap-3 py-4 transition hover:bg-zinc-950 w-full"
+                  >
+                    <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-zinc-800">
+                      {imageSrc ? <img src={imageSrc} alt={user.username} className="h-full w-full object-cover" /> : null}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-white">{user.display_name || user.username}</p>
+                      <p className="truncate text-sm text-zinc-500">@{user.username}</p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </>
+          ) : (
+            <div className="py-6 text-sm text-zinc-500">No matching users found.</div>
+          )}
+        </div>
+      )}
     </main>
   );
 }

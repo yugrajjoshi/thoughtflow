@@ -2,6 +2,7 @@ from django.urls import path
 from .views import profile_info, profile_by_username, register_user, login_user, update_profile,follow_user, unfollow_user, followers, following
 from .views import get_user, get_Profile, get_settings
 from .views import password_reset_lookup, password_reset_request, password_reset_confirm, google_oauth_redirect, google_oauth_callback
+from .views import list_notifications, unread_count, mark_notifications_read, mark_all_notifications_read
 urlpatterns = [
     path('register/', register_user),
     path('login/', login_user),
@@ -20,5 +21,9 @@ urlpatterns = [
     path('settings/', get_settings),
     path('auth/google/redirect/', google_oauth_redirect),
     path('auth/google/callback/', google_oauth_callback),
+    path('notifications/', list_notifications),
+    path('notifications/unread-count/', unread_count),
+    path('notifications/mark-read/', mark_notifications_read),
+    path('notifications/mark-all-read/', mark_all_notifications_read),
 
 ]

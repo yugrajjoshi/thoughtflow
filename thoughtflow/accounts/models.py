@@ -63,4 +63,21 @@ class Settings(models.Model):
 
     def __str__(self):
         return f'Settings for {self.user.username}'
+
+
+class Notification(models.Model):
+    """Simple notification model for user-facing notifications."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    actor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='notifications_from')
+    verb = models.CharField(max_length=255)
+    data = models.JSONField(null=True, blank=True)
+    unread = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        actor = self.actor.username if self.actor else 'system'
+        return f"Notification for {self.user.username}: {actor} {self.verb}"
     
