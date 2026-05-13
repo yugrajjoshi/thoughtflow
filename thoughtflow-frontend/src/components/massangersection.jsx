@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import SharedPostPreview from "./SharedPostPreview";
 import { Reply, Trash2, Trash, Paperclip, X } from "lucide-react";
 
 
@@ -19,7 +20,7 @@ const getUserImage = (selectedUser) => {
     return image.startsWith("http") ? image : `${API_BASE}${image}`;
 };
 
-function MassangerSection({ selectedUser, selectedConversationId, onConversationChanged }) {
+function MassangerSection({ selectedUser, selectedConversationId, onConversationChanged, onOpenPost }) {
     const profileImage = getUserImage(selectedUser);
     const displayName = selectedUser?.displayName || selectedUser?.name || selectedUser?.username || "";
     const username = selectedUser?.username || "";
@@ -327,14 +328,10 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
     };
 
     return (
-        <main className="w-full p-2 h-full flex flex-col">
-            {notice.message ? (
-                <div className={`mb-2 px-3 py-2 rounded-lg text-sm border ${notice.type === "error" ? "border-red-500/40 bg-red-900/30 text-red-200" : "border-green-500/40 bg-green-900/30 text-green-200"}`}>
-                    {notice.message}
-                </div>
-            ) : null}
+        <main className="w-full p-2 h-full flex flex-col min-h-0">
+           
             <div className="border border-zinc-800 w-full min-h-20 px-4 py-3 flex items-center justify-between">
-                {selectedUser ? (
+            
                     <div className="flex items-center gap-3 min-w-0">
                         <div className="w-12 h-12 rounded-full overflow-hidden bg-zinc-800 shrink-0">
                             {profileImage ? (
@@ -360,12 +357,10 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
                             )}
                         </div>
                     </div>
-                ) : (
-                    <p className="text-zinc-500 text-sm">Search and select a user to start chatting.</p>
-                )}
+        
             </div>
 
-            <section className="flex-1 border-l border-r border-b border-zinc-800 bg-zinc-950/60 p-4 overflow-y-auto posts-scrollbar">
+            <section className="flex-1 min-h-0 border-l border-r border-b border-zinc-800 bg-zinc-950/60 p-4  overflow-y-auto posts-scrollbar">
                 {selectedUser ? (
                     isLoadingMessages ? (
                         <div className="h-full w-full flex items-center justify-center text-zinc-500 text-sm">
@@ -399,19 +394,7 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
                                         ) : null}
 
                                         {message.shared_post ? (
-                                            <div className="mt-2 rounded-xl border border-white/20 bg-black/25 p-2">
-                                                <p className="text-[11px] uppercase tracking-[0.08em] opacity-70">Shared Post</p>
-                                                <Link to={`/profile/${message.shared_post.username}`} className="text-xs opacity-80 mt-1 block underline">@{message.shared_post.username}</Link>
-                                                <p className="text-sm mt-1 whitespace-pre-wrap">{message.shared_post.content}</p>
-                                                {message.shared_post.image ? (
-                                                    <img src={message.shared_post.image} alt="Shared post" className="rounded-lg mt-2 max-h-60 w-full object-cover" />
-                                                ) : null}
-                                                {message.shared_post.video ? (
-                                                    <video controls className="rounded-lg mt-2 max-h-60 w-full">
-                                                        <source src={message.shared_post.video} />
-                                                    </video>
-                                                ) : null}
-                                            </div>
+                                            <SharedPostPreview post={message.shared_post} onOpenPost={onOpenPost} />
                                         ) : null}
 
                                         <div className="text-[11px] opacity-70 flex items-center justify-between gap-4">

@@ -187,3 +187,23 @@ def search_users(request):
 	users = users.order_by('username')[:30]
 	serializer = UserSummarySerializer(users, many=True, context={'request': request})
 	return response.Response(serializer.data)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_conversation(request, conversation_id):
+	conversation = get_object_or_404(Conversation, id=conversation_id)
+	# Ensure the user is a participant
+	participant = ConversationParticipant.objects.filter(conversation=conversation, user=request.user).first()
+	if not participant:
+		return response.Response({'error': 'You are not a participant in this conversation'}, status=status.HTTP_403_FORBIDDEN)
+
+	# Remove the participant so the conversation no longer appears for this user
+	participant.delete()
+
+	# If conversation has no participants left, delete it
+	remaining = ConversationParticipant.objects.filter(conversation=conversation).count()
+	if remaining == 0:
+		conversation.delete()
+
+	return response.Response({'deleted': True}, status=status.HTTP_200_OK)

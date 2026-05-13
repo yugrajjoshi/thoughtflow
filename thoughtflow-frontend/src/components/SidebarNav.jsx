@@ -2,7 +2,7 @@ import { House, UserRound, Search, Mail, LogOut, Bookmark, Settings } from "luci
 import { useNavigate } from "react-router-dom";
 import Logo from "./Logo";
 
-function SidebarNav({ activeButton, onSelect, onLogout }) {
+function SidebarNav({ activeButton, onSelect, onLogout, chatUnreadCount = 0, chatSingleUnread = null }) {
     const navigate = useNavigate();
     
     return (
@@ -43,11 +43,24 @@ function SidebarNav({ activeButton, onSelect, onLogout }) {
                 </button>
 
                 <button
-                    className={`text-white gap-6 text-2xl font-bold p-3 transition duration-300 ml-6 w-[70%] ${activeButton === "chats" ? "bg-zinc-800/30" : "hover:bg-zinc-800/30"} rounded-4xl flex items-center`}
+                    className={`text-white gap-6 text-2xl font-bold p-3 transition duration-300 ml-6 w-[70%] ${activeButton === "chats" ? "bg-zinc-800/30" : "hover:bg-zinc-800/30"} rounded-4xl flex items-center relative`}
                     onClick={() => onSelect("chats")}
                     title="Chats"
                 >
-                    <Mail className="w-9 h-9" />
+                    <div className="relative">
+                        <Mail className="w-9 h-9" />
+                        {chatUnreadCount > 0 ? (
+                            <div className="absolute -top-1 -right-2 flex items-center justify-center">
+                                {chatSingleUnread && chatUnreadCount === 1 ? (
+                                    <img src={chatSingleUnread.profileImage || ""} alt={chatSingleUnread.username || ""} className="h-6 w-6 rounded-full ring-1 ring-black object-cover" />
+                                ) : (
+                                    <div className="w-5 h-5 rounded-full bg-red-600 text-white text-xs font-medium flex items-center justify-center px-1">
+                                        {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                                    </div>
+                                )}
+                            </div>
+                        ) : null}
+                    </div>
                     <span className="hide-mobile">Chats</span>
                 </button>
 

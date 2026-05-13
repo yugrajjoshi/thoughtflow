@@ -1,5 +1,5 @@
-import React from "react";
-import { Search, X } from "lucide-react";
+import React, { useState } from "react";
+import { Search, X, MoreHorizontal } from "lucide-react";
 
 const API_BASE = "http://127.0.0.1:8000";
 
@@ -12,7 +12,21 @@ function SideChatsection({
   newChatPeople = [],
   onStartNewChat = () => {},
   isLoadingPeople = false,
+  onDeleteConversation = () => {},
+  onToggleMuteConversation = () => {},
 }) {
+  const [openMenuFor, setOpenMenuFor] = useState(null);
+  const containerRef = React.useRef(null);
+  React.useEffect(() => {
+    function handleDocClick(e) {
+      if (!containerRef.current) return;
+      if (!containerRef.current.contains(e.target)) {
+        setOpenMenuFor(null);
+      }
+    }
+    document.addEventListener('mousedown', handleDocClick);
+    return () => document.removeEventListener('mousedown', handleDocClick);
+  }, [containerRef]);
   const getProfileImageUrl = (imagePath) => {
     if (!imagePath) return "";
     if (imagePath.startsWith("http")) return imagePath;
@@ -37,7 +51,7 @@ function SideChatsection({
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-black text-white">
+    <div ref={containerRef} className="w-full h-full flex flex-col bg-black text-white">
       {/* Search Bar */}
       <div className="shrink-0 p-4 border-b border-zinc-700">
         <div className="relative">
@@ -66,12 +80,12 @@ function SideChatsection({
                 : "No messages yet";
 
               return (
-                <button
+                <div
                   key={person.conversationId}
                   onClick={() => onSelectUser(person)}
-                  className={`w-full p-3 hover:bg-zinc-900/50 transition text-left ${
-                    isSelected ? "bg-zinc-900" : ""
-                  }`}
+                  role="button"
+                  tabIndex={0}
+                  className={`w-full p-3 transition ${isSelected ? "bg-zinc-900" : "hover:bg-zinc-900/50"}`}
                 >
                   <div className="flex items-center gap-3">
                     {profileImage ? (
@@ -96,13 +110,46 @@ function SideChatsection({
                         {lastMessagePreview}
                       </p>
                     </div>
-                    {person.unreadCount > 0 && (
-                      <div className="shrink-0 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center text-xs font-bold">
-                        {person.unreadCount > 99 ? "99+" : person.unreadCount}
+
+                    <div className="ml-2 flex items-center gap-2">
+                      {person.unreadCount > 0 && (
+                        <div className="shrink-0 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center text-xs font-bold">
+                          {person.unreadCount > 99 ? "99+" : person.unreadCount}
+                        </div>
+                      )}
+
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setOpenMenuFor(openMenuFor === person.conversationId ? null : person.conversationId); }}
+                          className="p-2 rounded-full hover:bg-zinc-800/60"
+                          aria-label="Conversation options"
+                        >
+                          <MoreHorizontal className="w-4 h-4 text-zinc-400" />
+                        </button>
+
+                        {openMenuFor === person.conversationId ? (
+                          <div className="absolute right-0 top-full mt-2 z-50 w-40 rounded-lg border border-zinc-800 bg-black p-2 flex flex-col gap-1">
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setOpenMenuFor(null); onToggleMuteConversation(person.conversationId); }}
+                              className="text-sm text-zinc-200 text-left px-2 py-2 hover:bg-zinc-900/60 rounded"
+                            >
+                              {person.muted ? 'Unmute' : 'Mute'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setOpenMenuFor(null); onDeleteConversation(person.conversationId); }}
+                              className="text-sm text-zinc-200 text-left px-2 py-2 hover:bg-zinc-900/60 rounded"
+                            >
+                              Delete Chat
+                            </button>
+                          </div>
+                        ) : null}
                       </div>
-                    )}
+                    </div>
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>

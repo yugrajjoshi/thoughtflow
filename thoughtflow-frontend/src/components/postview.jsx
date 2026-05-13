@@ -4,7 +4,7 @@ import PostCard from "./PostCard";
 import CommentCard from "./commentcard";
 import CreateCommentCard from "./CreateCommentCard";
 
-function PostView({ post, onBack, currentUsername, currentUserId, currentUserProfilePicture, onDeletePost, onPostUpdated, isDeletingPost }) {
+function PostView({ post, onBack, currentUsername, currentUserId, currentUserProfilePicture, onDeletePost, onPostUpdated, onSharePost, isDeletingPost }) {
 	const [comments, setComments] = useState(post?.comments || []);
 	const createdAt = post?.created_at ? new Date(post.created_at).toLocaleString() : "";
 	const postData = {
@@ -42,8 +42,8 @@ function PostView({ post, onBack, currentUsername, currentUserId, currentUserPro
 	};
 
 	return (
-		<main className="w-full h-full flex flex-col gap-4 p-4 text-white">
-			<div className="flex items-center gap-3 sticky top-0 z-10 bg-black/95 backdrop-blur border-b border-zinc-800 pb-3">
+		<main className="w-full h-full flex flex-col gap-4 p-4 pb-24 md:pb-4 text-white">
+			<div className="flex items-center gap-3 sticky -top-5 z-10 bg-black/95 backdrop-blur border-b border-zinc-800 pb-3">
 				<button
 					type="button"
 					onClick={onBack}
@@ -62,6 +62,7 @@ function PostView({ post, onBack, currentUsername, currentUserId, currentUserPro
 				currentUsername={currentUsername}
 				currentUserId={currentUserId}
 				onDeletePost={onDeletePost}
+				onSharePost={onSharePost}
 				onPostUpdated={(postId, changes) => {
 					if (typeof onPostUpdated === "function") {
 						onPostUpdated(postId, changes);

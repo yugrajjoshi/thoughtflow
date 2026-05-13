@@ -250,8 +250,8 @@ export default function ProfileView() {
     }, [loadVisitedProfile]);
 
     return (
-        <main className="bg-black w-full h-screen">
-            <nav className="fixed top-0 left-0 h-screen w-[20%] bg-black border-r border-zinc-600 overflow-hidden">
+        <main className="bg-black w-full h-screen ">
+            <nav className="fixed top-0  left-0 h-screen w-[20%] bg-black border-r border-zinc-600 overflow-hidden">
                 <div className="flex top-0 self-center w-[35%]">
                     <img
                         src={logo}

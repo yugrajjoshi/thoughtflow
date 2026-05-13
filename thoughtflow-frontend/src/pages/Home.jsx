@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
-import { Bookmark, House, LogOut, Mail, Plus, Search, Settings2, UserRound, X, Bell } from "lucide-react";
+import { Bookmark, House, LogOut, Mail, Plus, Search, Settings2, UserRound, X, Bell, ArrowLeft, MoreHorizontal } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import CreatePost from "../components/Createpost";
 import PostCard from '../components/PostCard';
@@ -9,6 +9,8 @@ import SidebarNav from "../components/SidebarNav";
 import ProfileSection from "../components/ProfileSection";
 import TrendingHashtags from "../components/TrendingHashtags";
 import Logo from "../components/Logo";
+import SideChatsection from '../components/sidechatsection';
+import MobileChatView from '../components/MobileChatView';
 
 const API_BASE = "http://127.0.0.1:8000";
 const HOME_UI_STATE_KEY = "thoughtflow_home_ui_state";
@@ -213,6 +215,7 @@ function Home() {
 
   const [isMobileView, setIsMobileView] = useState(() => typeof window !== "undefined" ? window.innerWidth < 768 : false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [openMenuFor, setOpenMenuFor] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState({ posts: [], hashtags: [], users: [] });
   const [searchLoading, setSearchLoading] = useState(false);
@@ -511,7 +514,7 @@ function Home() {
     return normalizeConversation(conversationData);
   };
 
-  const sharePostToUser = async ({ post, targetUsername }) => {
+  const sharePostToUser = async ({ post, targetUsername, conversationId = null }) => {
     if (!post?.id || !targetUsername) {
       return;
     }
@@ -521,7 +524,11 @@ function Home() {
       return;
     }
 
-    const normalizedConversation = await ensureConversationWithUsername(targetUsername);
+    const resolvedConversationId = conversationId || (selectedChatUser?.username === targetUsername ? selectedConversationId : null);
+    const normalizedConversation = resolvedConversationId
+      ? { conversationId: resolvedConversationId }
+      : await ensureConversationWithUsername(targetUsername);
+
     if (!normalizedConversation?.conversationId) {
       throw new Error("Conversation was not created");
     }
@@ -542,9 +549,6 @@ function Home() {
       throw new Error(`Failed to share post in chat: ${sendResponse.status}`);
     }
 
-    setSelectedConversationId(normalizedConversation.conversationId);
-    setSelectedChatUser(normalizedConversation);
-    setActiveButton("chats");
     await fetchChatConversations();
   };
 
@@ -566,7 +570,11 @@ function Home() {
     }
 
     try {
-      await sharePostToUser({ post: sharePickerState.post, targetUsername });
+      await sharePostToUser({
+        post: sharePickerState.post,
+        targetUsername,
+        conversationId: person?.conversationId || null,
+      });
       showUiNotice("success", `Post shared with @${targetUsername}`);
       setSharePickerState({ open: false, post: null, query: "" });
     } catch (error) {
@@ -752,6 +760,57 @@ function Home() {
       setSelectedConversationId(null);
     }
   }, []);
+
+  const [mutedConversations, setMutedConversations] = useState(() => new Set());
+
+  const handleDeleteConversation = async (conversationId) => {
+    if (!conversationId) return;
+    const token = getCleanToken();
+    // Optimistic update
+    setChatConversations((current) => current.filter((c) => c.conversationId !== conversationId));
+    if (selectedConversationId === conversationId) {
+      setSelectedConversationId(null);
+      setSelectedChatUser(null);
+    }
+    try {
+      if (!token) return;
+      const response = await fetch(`${API_BASE}/api/chat/conversations/${conversationId}/`, {
+        method: 'DELETE',
+        headers: { Authorization: 'Token ' + token },
+      });
+      if (!response.ok) {
+        throw new Error('Failed to delete conversation');
+      }
+      showUiNotice('success', 'Chat deleted');
+      await fetchChatConversations();
+    } catch (err) {
+      console.error(err);
+      showUiNotice('error', 'Could not delete chat');
+      // revert fetch
+      await fetchChatConversations();
+    }
+  };
+
+  const handleToggleMuteConversation = async (conversationId) => {
+    if (!conversationId) return;
+    setMutedConversations((prev) => {
+      const copy = new Set(Array.from(prev));
+      if (copy.has(conversationId)) copy.delete(conversationId);
+      else copy.add(conversationId);
+      return copy;
+    });
+    showUiNotice('success', 'Chat mute toggled');
+    // Optionally call backend endpoint if implemented
+    try {
+      const token = getCleanToken();
+      if (!token) return;
+      await fetch(`${API_BASE}/api/chat/conversations/${conversationId}/mute/`, {
+        method: 'POST', headers: { Authorization: 'Token ' + token },
+      });
+    } catch (err) {
+      // ignore if endpoint missing
+    }
+  };
 
   const fetchChatPeople = useCallback(async (query) => {
     const token = getCleanToken();
@@ -959,6 +1018,10 @@ function Home() {
       .map((person) => (person?.username || "").toLowerCase())
       .filter(Boolean)
   );
+
+  const totalChatUnread = chatConversations.reduce((sum, c) => sum + Number(c?.unreadCount || 0), 0);
+  const unreadConversations = chatConversations.filter((c) => Number(c?.unreadCount || 0) > 0);
+  const singleUnreadConversation = unreadConversations.length === 1 ? unreadConversations[0] : null;
   const filteredNewChatPeople = filteredPeopleSuggestions.filter((person) => {
     const username = (person?.username || "").toLowerCase();
     if (!username) {
@@ -980,6 +1043,17 @@ function Home() {
     const username = (person?.username || "").toLowerCase();
     const displayName = (person?.displayName || "").toLowerCase();
     return username.includes(query) || displayName.includes(query);
+  });
+  const sortedShareRecipients = [...filteredShareRecipients].sort((left, right) => {
+    const selectedUsername = (selectedChatUser?.username || "").toLowerCase();
+    const leftIsSelected = (left?.username || "").toLowerCase() === selectedUsername;
+    const rightIsSelected = (right?.username || "").toLowerCase() === selectedUsername;
+
+    if (leftIsSelected === rightIsSelected) {
+      return 0;
+    }
+
+    return leftIsSelected ? -1 : 1;
   });
   const visiblePosts = isBookmarksView
     ? filteredPosts.filter((post) => Boolean(post?.is_bookmarked))
@@ -1034,6 +1108,7 @@ function Home() {
 
   const handleSelectPost = (post) => {
     setSelectedPost(post);
+    setActiveButton("home");
 
     if (!post?.id) {
       return;
@@ -1270,6 +1345,33 @@ function Home() {
             const Icon = item.icon;
             const isActive = activeButton === item.key;
 
+            if (item.key === 'chats') {
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => handleButtonClick(item.key)}
+                  className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${isActive ? "border-zinc-700 bg-zinc-900 text-white" : "border-zinc-800 bg-transparent text-zinc-300 hover:bg-zinc-900/70"}`}
+                >
+                  <div className="relative">
+                    <Icon className="h-5 w-5" />
+                    {totalChatUnread > 0 ? (
+                      <div className="absolute -top-1 -right-2 flex items-center justify-center">
+                        {singleUnreadConversation && totalChatUnread === 1 ? (
+                          <img src={singleUnreadConversation.profileImage || ""} alt={singleUnreadConversation.username || ""} className="h-5 w-5 rounded-full ring-1 ring-black object-cover" />
+                        ) : (
+                          <div className="w-4 h-4 rounded-full bg-red-600 text-white text-xs font-medium flex items-center justify-center px-1">
+                            {totalChatUnread > 99 ? '99+' : totalChatUnread}
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                  <span className="font-medium">{item.label}</span>
+                </button>
+              );
+            }
+
             return (
               <button
                 key={item.key}
@@ -1305,27 +1407,72 @@ function Home() {
   return (
     <main
       className="responsive-layout bg-black w-full min-h-dvh overflow-auto"
-      style={isMobileView ? { paddingTop: isProfileView ? "0" : "64px", paddingBottom: "70px" } : undefined}
+      style={isMobileView ? { paddingTop: isProfileView ? "0" : "64px", paddingBottom: "0" } : undefined}
     >
       {uiNotice.message ? (
         <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl border text-sm shadow-lg ${uiNotice.type === "error" ? "border-red-500/40 bg-red-900/40 text-red-200" : "border-green-500/40 bg-green-900/40 text-green-200"}`}>
           {uiNotice.message}
         </div>
       ) : null}
-      <SidebarNav activeButton={activeButton} onSelect={handleButtonClick} onLogout={handleLogout} />
+      <SidebarNav activeButton={activeButton} onSelect={handleButtonClick} onLogout={handleLogout} chatUnreadCount={totalChatUnread} chatSingleUnread={singleUnreadConversation} />
 
       {mobileTopBar}
 
       {mobileNavDrawer}
 
-      {isMobileView ? (
+      {isMobileView && activeButton === "chats" ? (
+        <MobileChatView
+          selectedChatUser={selectedChatUser}
+          filteredChatConversations={filteredChatConversations}
+          filteredNewChatPeople={filteredNewChatPeople}
+          chatSearchQuery={chatSearchQuery}
+          onSearchChange={(q) => setChatSearchQuery(q)}
+          onSelectUser={(person) => handleSelectChatUser(person)}
+          onDeleteConversation={handleDeleteConversation}
+          onToggleMuteConversation={handleToggleMuteConversation}
+        />
+      ) : null}
+
+      {isMobileView && activeButton === "chats" && selectedChatUser ? (
+        <div className="show-mobile-only fixed inset-x-0 z-40 bg-black text-white" style={{ top: "64px", bottom: "40px" }}>
+          <div className="flex h-full flex-col">
+            <div className="flex items-center h-15 gap-3 border-b border-zinc-800 px-4 py-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedChatUser(null);
+                  setSelectedConversationId(null);
+                }}
+                className="rounded-full p-4 -ml-4 text-zinc-300 hover:bg-zinc-900"
+                aria-label="Back to conversations"
+              >
+                <ArrowLeft className="h-6 w-6" />
+              </button>
+              <div className="min-w-0">
+                <p className="truncate text-2xl font-bold  text-zinc-500">Conversation</p>
+              </div>
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-y-auto posts-scrollbar">
+              <MassangerSection
+                selectedUser={selectedChatUser}
+                selectedConversationId={selectedConversationId}
+                currentUserId={currentUserId}
+                onConversationChanged={fetchChatConversations}
+                onOpenPost={handleSelectPost}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isMobileView && activeButton === "home" ? (
         <button
           type="button"
           onClick={handleMobileCreatePostOpen}
           className={MOBILE_CREATE_POST_BUTTON_CLASS}
           aria-label="Create post"
-          disabled={activeButton !== "home"}
-          style={{ bottom: "86px", opacity: activeButton === "home" ? 1 : 0.6, pointerEvents: activeButton === "home" ? "auto" : "none" }}
+          style={{ bottom: "86px" }}
         >
           <Plus className="h-8 w-8 font-bold" />
         </button>
@@ -1361,15 +1508,19 @@ function Home() {
         </div>
       ) : null}
 
+      {!(isMobileView && activeButton === "chats") ? (
       <section className={`responsive-main-section ml-[20%] flex h-full min-h-0 w-[80%] overflow-hidden ${isProfileView ? "profile-view-section" : ""}`} style={isProfileView ? { marginTop: 0 } : {}}>
         <article className="responsive-feed flex min-h-0 h-full w-[60%] flex-col text-white border-zinc-900 border-l border-r overflow-y-auto posts-scrollbar">
         {isMassangerView ? (
-          <MassangerSection
-            selectedUser={selectedChatUser}
-            selectedConversationId={selectedConversationId}
-            currentUserId={currentUserId}
-            onConversationChanged={fetchChatConversations}
-          />
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <MassangerSection
+              selectedUser={selectedChatUser}
+              selectedConversationId={selectedConversationId}
+              currentUserId={currentUserId}
+              onConversationChanged={fetchChatConversations}
+              onOpenPost={handleSelectPost}
+            />
+          </div>
         ) : selectedPost ? (
           <section className="flex-1 overflow-y-auto posts-scrollbar">
             <PostView
@@ -1380,6 +1531,7 @@ function Home() {
               currentUserProfilePicture={profilePicture}
               onDeletePost={handleDeletePost}
               onPostUpdated={handlePostUpdated}
+              onSharePost={handleSharePost}
               isDeletingPost={deletingPostIds.includes(selectedPost?.id)}
             />
           </section>
@@ -1419,7 +1571,7 @@ function Home() {
                 </button>
               </header>
             ) : null}
-            <section className="flex-1 overflow-y-auto posts-scrollbar">
+            <section className="flex-1 overflow-y-auto posts-scrollbar pb-28">
               {!isBookmarksView && !isMobileView ? (
                 <CreatePost
                   profilePicture={profilePicture}
@@ -1453,9 +1605,10 @@ function Home() {
           </>
         )}
         </article>
+        {!(isMobileView && isMassangerView) ? (
         <aside className="responsive-aside flex min-h-0 h-full w-[40%] flex-col items-center border text-white border-zinc-800 overflow-y-auto posts-scrollbar">
           {isMassangerView ? (
-            <section className="w-full h-full flex flex-col">
+            <section className="w-full flex flex-col h-full min-h-0 overflow-hidden">
               {isMobileView && selectedChatUser ? (
                 <div className="w-full h-full flex flex-col">
                   <div className="w-full border-b border-zinc-800 px-5 py-3 flex items-center gap-3">
@@ -1471,13 +1624,8 @@ function Home() {
                     </button>
                     <h2 className="text-lg font-bold">Conversation</h2>
                   </div>
-                  <div className="flex-1 pb-24">
-                    <MassangerSection
-                      selectedUser={selectedChatUser}
-                      selectedConversationId={selectedConversationId}
-                      currentUserId={currentUserId}
-                      onConversationChanged={fetchChatConversations}
-                    />
+                  <div className="flex-1 min-h-0 overflow-y-auto">
+                   
                   </div>
                 </div>
               ) : (
@@ -1511,8 +1659,10 @@ function Home() {
                       return (
                         <div
                           key={person.conversationId ? `conversation-${person.conversationId}` : `conversation-${person.username}`}
-                          onClick={() => handleSelectChatUser(person)}
                           className={`w-full flex items-center gap-3 px-4 py-3 text-left border-b border-zinc-900/70 transition ${isSelected ? "bg-zinc-900" : "hover:bg-zinc-900/80"}`}
+                          onClick={() => handleSelectChatUser(person)}
+                          role="button"
+                          tabIndex={0}
                         >
                           <div className="w-12 h-12 rounded-full overflow-hidden bg-zinc-800 shrink-0">
                             {imageSrc ? <img src={imageSrc} alt={person.username} className="w-full h-full object-cover" /> : null}
@@ -1533,12 +1683,43 @@ function Home() {
                               @{person.username}
                             </Link>
                           </div>
-                          {Number(person.unreadCount) > 0 ? (
-                            <div className="ml-2 flex items-center gap-2 shrink-0">
-                              <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                              <span className="text-[11px] font-semibold text-blue-300">{person.unreadCount}</span>
+                          <div className="ml-2 flex items-center gap-2 shrink-0">
+                            {Number(person.unreadCount) > 0 ? (
+                              <div className="ml-2 flex items-center gap-2 shrink-0">
+                                <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                                <span className="text-[11px] font-semibold text-blue-300">{person.unreadCount}</span>
+                              </div>
+                            ) : null}
+
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); setOpenMenuFor(openMenuFor === person.conversationId ? null : person.conversationId); }}
+                                className="p-2 rounded-full transition-all duration-500 hover:bg-zinc-900 text-zinc-400"
+                                aria-label="Conversation options"
+                              >
+                                <MoreHorizontal className="w-4 h-4" />
+                              </button>
+                              {openMenuFor === person.conversationId ? (
+                                <div className="absolute right-0 top-full mt-2 z-50 w-40 rounded-lg border border-zinc-800 bg-black p-2 flex flex-col gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); setOpenMenuFor(null); handleToggleMuteConversation(person.conversationId); }}
+                                    className="text-sm text-zinc-200 text-left px-2 py-2 hover:bg-zinc-900/60 rounded"
+                                  >
+                                    {mutedConversations.has(person.conversationId) ? 'Unmute' : 'Mute'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); setOpenMenuFor(null); handleDeleteConversation(person.conversationId); }}
+                                    className="text-sm text-zinc-200 text-left px-2 py-2 hover:bg-zinc-900/60 rounded"
+                                  >
+                                    Delete Chat
+                                  </button>
+                                </div>
+                              ) : null}
                             </div>
-                          ) : null}
+                          </div>
                         </div>
                       );
                     })}
@@ -1769,7 +1950,9 @@ function Home() {
             </>
           )}
       </aside>
+        ) : null}
       </section>
+      ) : null}
 
       {isMobileView && activeButton === "search" ? (
         <div
@@ -1969,8 +2152,8 @@ function Home() {
             />
 
             <div className="mt-4 max-h-72 overflow-y-auto posts-scrollbar flex flex-col gap-2">
-              {filteredShareRecipients.length > 0 ? (
-                filteredShareRecipients.map((person) => {
+              {sortedShareRecipients.length > 0 ? (
+                sortedShareRecipients.map((person) => {
                   const imageSrc = person.profileImage
                     ? (person.profileImage.startsWith("http") ? person.profileImage : `${API_BASE}${person.profileImage}`)
                     : "";
