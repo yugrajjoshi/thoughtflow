@@ -9,6 +9,8 @@ from rest_framework.permissions import IsAuthenticated
 from .models import Conversation, ConversationParticipant, Message
 from .serializers import ConversationSerializer, MessageSerializer, UserSummarySerializer
 from posts.models import Post
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 
 def _user_in_conversation(conversation, user):
@@ -126,6 +128,36 @@ def conversation_messages(request, conversation_id):
 	conversation.save(update_fields=['last_message_at', 'updated_at'])
 
 	serializer = MessageSerializer(message, context={'request': request})
+
+	# Broadcast new message to conversation group and notify participants
+	try:
+		channel_layer = get_channel_layer()
+		payload = serializer.data
+		# send to conversation group
+		async_to_sync(channel_layer.group_send)(
+			f'conversation_{conversation.id}',
+			{
+				'type': 'new_message',
+				'payload': payload,
+			}
+		)
+		# notify each participant (except sender) on their user group for unread updates
+		participant_users = [p.user for p in conversation.participants.exclude(user=request.user).select_related('user')]
+		for participant in participant_users:
+			async_to_sync(channel_layer.group_send)(
+				f'user_{participant.id}',
+				{
+					'type': 'user_notification',
+					'payload': {
+						'event': 'new_message',
+						'conversation_id': conversation.id,
+						'message': payload,
+					}
+				}
+			)
+	except Exception:
+		# Non-fatal: if channel layer isn't available, continue
+		pass
 	return response.Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
@@ -207,3 +239,22 @@ def delete_conversation(request, conversation_id):
 		conversation.delete()
 
 	return response.Response({'deleted': True}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def toggle_mute_conversation(request, conversation_id):
+	conversation = get_object_or_404(Conversation, id=conversation_id)
+	participant = ConversationParticipant.objects.filter(conversation=conversation, user=request.user).first()
+	if not participant:
+		return response.Response({'error': 'You are not a participant in this conversation'}, status=status.HTTP_403_FORBIDDEN)
+
+	# toggle or set explicit state
+	explicit = request.data.get('muted')
+	if explicit is None:
+		participant.muted = not participant.muted
+	else:
+		participant.muted = bool(explicit)
+
+	participant.save(update_fields=['muted'])
+	return response.Response({'conversation_id': conversation_id, 'muted': participant.muted}, status=status.HTTP_200_OK)

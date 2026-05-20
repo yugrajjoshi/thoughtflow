@@ -289,7 +289,7 @@ function PostCard({ post, onClick, currentUsername, currentUserId, onDeletePost,
                                 <Ellipsis className=" rotate-90  w-7 h-7 ml-9 " />
                             </button>
                             {showSettingsHover ? (
-                                <div className="absolute right-0 top-full mt-2 z-20" onClick={handleStopPropagation}>
+                                <div className="absolute z-20 top-full mt-2 -right-12 sm:right-0 shadow-lg" onClick={handleStopPropagation}>
                                     <PostSettingHover
                                         canDelete={canDeletePost}
                                         onDelete={handleDeletePost}

@@ -29,6 +29,7 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
     const [messages, setMessages] = useState([]);
     const [replyToMessage, setReplyToMessage] = useState(null);
     const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+    const wsRef = useRef(null);
     const [sending, setSending] = useState(false);
     const [attachmentFile, setAttachmentFile] = useState(null);
     const [attachmentPreviewUrl, setAttachmentPreviewUrl] = useState("");
@@ -111,6 +112,61 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
         clearAttachment();
         fetchMessages();
     }, [selectedConversationId, clearAttachment, fetchMessages]);
+
+    // Open a websocket for this conversation to receive real-time messages
+    useEffect(() => {
+        const token = getCleanToken();
+        if (!selectedConversationId || !token) {
+            if (wsRef.current) {
+                try { wsRef.current.close(); } catch (e) {}
+                wsRef.current = null;
+            }
+            return;
+        }
+
+        const wsUrl = `${API_BASE.replace(/^http/, 'ws')}/ws/conversations/${selectedConversationId}/?token=${token}`;
+        try {
+            const socket = new WebSocket(wsUrl);
+            wsRef.current = socket;
+
+            socket.onopen = () => {
+                // console.log('Conversation websocket opened', selectedConversationId);
+            };
+
+            socket.onmessage = (ev) => {
+                try {
+                    const data = JSON.parse(ev.data || '{}');
+                    if (data?.type === 'new_message' && data.payload) {
+                        const newMsg = data.payload;
+                        setMessages((current) => {
+                            // avoid duplicate if message already present
+                            if (current.some((m) => m.id === newMsg.id)) return current;
+                            return [...current, newMsg];
+                        });
+                        if (typeof onConversationChanged === 'function') {
+                            onConversationChanged();
+                        }
+                    }
+                } catch (err) {
+                    // ignore parse errors
+                }
+            };
+
+            socket.onclose = () => {
+                wsRef.current = null;
+            };
+        } catch (err) {
+            console.error('Failed to open conversation websocket', err);
+            wsRef.current = null;
+        }
+
+        return () => {
+            if (wsRef.current) {
+                try { wsRef.current.close(); } catch (e) {}
+                wsRef.current = null;
+            }
+        };
+    }, [selectedConversationId, onConversationChanged]);
 
     useEffect(() => {
         return () => {

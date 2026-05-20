@@ -24,6 +24,7 @@ class ConversationParticipant(models.Model):
         related_name='conversation_memberships',
     )
     joined_at = models.DateTimeField(auto_now_add=True)
+    muted = models.BooleanField(default=False)
 
     class Meta:
         constraints = [

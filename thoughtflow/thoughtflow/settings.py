@@ -55,6 +55,7 @@ ALLOWED_HOSTS = [
 # Application definition
 
 INSTALLED_APPS = [
+    'channels',
     'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -98,6 +99,20 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'thoughtflow.wsgi.application'
+
+# Channels ASGI application
+ASGI_APPLICATION = 'thoughtflow.asgi.application'
+
+# Channel layers (Redis)
+REDIS_URL = os.getenv('REDIS_URL', 'redis://127.0.0.1:6379')
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [REDIS_URL],
+        },
+    },
+}
 
 
 # Database

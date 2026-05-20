@@ -129,18 +129,18 @@ function SideChatsection({
                         </button>
 
                         {openMenuFor === person.conversationId ? (
-                          <div className="absolute right-0 top-full mt-2 z-50 w-40 rounded-lg border border-zinc-800 bg-black p-2 flex flex-col gap-1">
+                          <div className="absolute z-50 top-full mt-2 left-0 sm:right-0 sm:left-auto w-44 sm:w-40 rounded-lg border border-zinc-800 bg-black p-2 flex flex-col gap-1 shadow-lg">
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); setOpenMenuFor(null); onToggleMuteConversation(person.conversationId); }}
-                              className="text-sm text-zinc-200 text-left px-2 py-2 hover:bg-zinc-900/60 rounded"
+                              className="text-sm text-zinc-200 text-left px-3 py-2 hover:bg-zinc-900/80 rounded transition-colors"
                             >
-                              {person.muted ? 'Unmute' : 'Mute'}
+                              {person.muted ? '✓ Unmute' : 'Mute'}
                             </button>
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); setOpenMenuFor(null); onDeleteConversation(person.conversationId); }}
-                              className="text-sm text-zinc-200 text-left px-2 py-2 hover:bg-zinc-900/60 rounded"
+                              className="text-sm text-red-400 text-left px-3 py-2 hover:bg-zinc-900/80 rounded transition-colors"
                             >
                               Delete Chat
                             </button>

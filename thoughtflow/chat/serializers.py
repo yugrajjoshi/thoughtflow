@@ -156,10 +156,11 @@ class ConversationSerializer(serializers.ModelSerializer):
     other_user = serializers.SerializerMethodField()
     unread_count = serializers.SerializerMethodField()
     last_message = serializers.SerializerMethodField()
+    muted = serializers.SerializerMethodField()
 
     class Meta:
         model = Conversation
-        fields = ['id', 'created_at', 'updated_at', 'last_message_at', 'other_user', 'unread_count', 'last_message']
+        fields = ['id', 'created_at', 'updated_at', 'last_message_at', 'other_user', 'unread_count', 'last_message', 'muted']
 
     def _get_current_user(self):
         request = self.context.get('request')
@@ -192,3 +193,12 @@ class ConversationSerializer(serializers.ModelSerializer):
         if not last_message:
             return None
         return MessageSerializer(last_message, context=self.context).data
+
+    def get_muted(self, obj):
+        user = self._get_current_user()
+        if not user or not user.is_authenticated:
+            return False
+        participant = obj.participants.filter(user=user).first()
+        if not participant:
+            return False
+        return bool(participant.muted)

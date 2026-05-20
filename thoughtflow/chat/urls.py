@@ -11,4 +11,5 @@ urlpatterns = [
     path('chat/messages/<int:message_id>/delete-for-everyone/', views.delete_message_for_everyone, name='chat_delete_for_everyone'),
     path('chat/users/search/', views.search_users, name='chat_search_users'),
     path('chat/conversations/<int:conversation_id>/', views.delete_conversation, name='chat_delete_conversation'),
+    path('chat/conversations/<int:conversation_id>/mute/', views.toggle_mute_conversation, name='chat_toggle_mute_conversation'),
 ]

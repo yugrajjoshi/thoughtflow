@@ -1,5 +1,5 @@
 FLOWTHOUGHT PROGRESS REPORT
-Date: May 11, 2026
+Date: May 13, 2026
 
 1. Status
 - Core app: about 95% done
@@ -10,11 +10,14 @@ Date: May 11, 2026
 - Posts, comments, likes, bookmarks, reposts, views
 - Follow/unfollow and followers/following
 - Hashtags, trending, unified search
-- Chat APIs and responsive chat UI
+- Chat APIs, unread badges, and responsive chat UI
 - Settings backend + frontend
 - Reset password flow
 - Light theme polish, including active nav/tab states
 - Responsive mobile/web shell
+- Shared post preview cards in chats
+- Mobile chat list/list-vs-messenger separation
+- Responsive feed and post view bottom padding cleanup
 
 3. Left
 - Final testing across auth, posts, chat, settings, reset password, and search
@@ -23,7 +26,12 @@ Date: May 11, 2026
 - Add a dedicated notifications feed/page if still needed
 - Deployment prep
 
-6. Recent updates (May 11, 2026)
+6. Recent updates (May 13, 2026)
+- Shared-post messages in chats now render as a compact clickable preview card with username, pfp, text, and media.
+- Chat shared-post clicks now open the post view for both sender and receiver.
+- Mobile chats now stay list-only until a chat is selected, with the messenger opened separately.
+- Web messenger height was restored to full column height; responsive/mobile chat sizing was kept separate.
+- Added extra bottom padding to the responsive feed and post view so content clears the bottom navigation.
 - Mailtrap SMTP configured for development and tested; password reset emails are delivered to Mailtrap inbox.
 - Password reset flow redesigned and implemented: two-step lookup + confirmation UI on the frontend; backend endpoints validate tokens and set new passwords.
 - `FRONTEND_URL` `.env` issue fixed and normalized to `http://127.0.0.1:5174`.

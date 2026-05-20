@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import { Bookmark, House, LogOut, Mail, Plus, Search, Settings2, UserRound, X, Bell, ArrowLeft, MoreHorizontal } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import CreatePost from "../components/Createpost";
@@ -37,6 +37,7 @@ const normalizeChatPerson = (person) => {
     unreadCount: Number(person.unreadCount || person.unread_count || 0),
     lastMessage: person.lastMessage || person.last_message || "",
     lastMessageAt: person.lastMessageAt || person.last_message_at || "",
+    muted: Boolean(person.muted || false),
   };
 };
 
@@ -50,6 +51,7 @@ const normalizeConversation = (conversation) => {
     ...otherUser,
     conversationId: conversation.id,
     unreadCount: conversation.unread_count,
+    muted: conversation.muted,
     lastMessage: conversation?.last_message?.content || "",
     lastMessageAt: conversation?.last_message_at || conversation?.last_message?.created_at || "",
   });
@@ -748,6 +750,12 @@ function Home() {
         : [];
 
       setChatConversations(normalizedConversations);
+      // initialize mutedConversations set from API data
+      const mutedSet = new Set();
+      normalizedConversations.forEach((c) => {
+        if (c && c.conversationId && c.muted) mutedSet.add(c.conversationId);
+      });
+      setMutedConversations(mutedSet);
       setSelectedConversationId((currentId) => {
         if (currentId && normalizedConversations.some((item) => item.conversationId === currentId)) {
           return currentId;
@@ -760,6 +768,60 @@ function Home() {
       setSelectedConversationId(null);
     }
   }, []);
+
+  // Notifications websocket for per-user events (unread counts, new conversations)
+  const notificationsWsRef = useRef(null);
+  useEffect(() => {
+    const token = getCleanToken();
+    if (!token) return;
+
+    const wsUrl = `${API_BASE.replace(/^http/, 'ws')}/ws/notifications/?token=${token}`;
+    let socket = null;
+    try {
+      socket = new WebSocket(wsUrl);
+      notificationsWsRef.current = socket;
+
+      socket.onmessage = (ev) => {
+        try {
+          const data = JSON.parse(ev.data || '{}');
+          if (data?.type === 'notification' && data.payload) {
+            const payload = data.payload;
+            if (payload.event === 'new_message') {
+              const convId = Number(payload.conversation_id || payload.conversationId);
+              const senderId = payload?.message?.sender || payload?.message?.sender_id || null;
+              setChatConversations((current) => {
+                return current.map((c) => {
+                  if (!c || !c.conversationId) return c;
+                  if (Number(c.conversationId) !== convId) return c;
+                  // If this conversation is currently open, backend will mark messages as read when fetched.
+                  if (selectedConversationId && Number(selectedConversationId) === convId) {
+                    return { ...c, unreadCount: 0 };
+                  }
+                  const currentCount = Number(c.unreadCount || 0);
+                  return { ...c, unreadCount: currentCount + 1 };
+                });
+              });
+            }
+          }
+        } catch (err) {
+          // ignore
+        }
+      };
+
+      socket.onclose = () => {
+        notificationsWsRef.current = null;
+      };
+    } catch (err) {
+      console.error('Failed to open notifications websocket', err);
+    }
+
+    return () => {
+      if (notificationsWsRef.current) {
+        try { notificationsWsRef.current.close(); } catch (e) {}
+        notificationsWsRef.current = null;
+      }
+    };
+  }, [selectedConversationId]);
 
   const [mutedConversations, setMutedConversations] = useState(() => new Set());
 
@@ -793,22 +855,30 @@ function Home() {
 
   const handleToggleMuteConversation = async (conversationId) => {
     if (!conversationId) return;
-    setMutedConversations((prev) => {
-      const copy = new Set(Array.from(prev));
-      if (copy.has(conversationId)) copy.delete(conversationId);
-      else copy.add(conversationId);
-      return copy;
-    });
-    showUiNotice('success', 'Chat mute toggled');
-    // Optionally call backend endpoint if implemented
     try {
       const token = getCleanToken();
       if (!token) return;
-      await fetch(`${API_BASE}/api/chat/conversations/${conversationId}/mute/`, {
-        method: 'POST', headers: { Authorization: 'Token ' + token },
+      const response = await fetch(`${API_BASE}/api/chat/conversations/${conversationId}/mute/`, {
+        method: 'POST',
+        headers: { Authorization: 'Token ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to toggle mute');
+      }
+
+      const data = await response.json();
+      const isMuted = Boolean(data?.muted);
+      setMutedConversations((prev) => {
+        const copy = new Set(Array.from(prev));
+        if (isMuted) copy.add(conversationId); else copy.delete(conversationId);
+        return copy;
+      });
+      showUiNotice('success', isMuted ? 'Chat muted' : 'Chat unmuted');
     } catch (err) {
-      // ignore if endpoint missing
+      console.error('Failed to toggle mute:', err);
+      showUiNotice('error', 'Could not toggle chat mute');
     }
   };
 

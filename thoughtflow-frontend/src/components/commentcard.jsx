@@ -29,6 +29,16 @@ function CommentCard({ comment, postOwnerUsername, currentUsername, postId, onCo
         setReplies(Array.isArray(comment?.replies) ? comment.replies : []);
     }, [comment]);
 
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (showDeleteMenu && !event.target.closest('.comment-menu')) {
+                setShowDeleteMenu(false);
+            }
+        };
+        document.addEventListener('click', handleClickOutside);
+        return () => document.removeEventListener('click', handleClickOutside);
+    }, [showDeleteMenu]);
+
     const canDeleteComment = currentUsername && (
         currentUsername === comment.author_name || 
         currentUsername === postOwnerUsername
@@ -241,26 +251,24 @@ function CommentCard({ comment, postOwnerUsername, currentUsername, postId, onCo
 
                     {canDeleteComment && (
                         <div 
-                            className="relative"
-                            onMouseEnter={() => setShowDeleteMenu(true)}
-                            onMouseLeave={() => setShowDeleteMenu(false)}
+                            className="relative comment-menu"
                         >
                             <button
                                 type="button"
                                 className="p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition"
-                                onClick={() => setShowDeleteMenu(!showDeleteMenu)}
+                                onClick={(e) => { e.stopPropagation(); setShowDeleteMenu(!showDeleteMenu); }}
                             >
                                 <Ellipsis className="w-4 h-4" />
                             </button>
                             
                             {showDeleteMenu && (
-                                <div className="absolute right-0 top-full mt-1 z-20">
+                                <div className="absolute z-20 top-full mt-1 -right-8 sm:right-0">
                                     <div className="bg-zinc-900 border border-zinc-700 rounded-lg shadow-lg py-1">
                                         <button
                                             type="button"
-                                            onClick={handleDeleteComment}
+                                            onClick={(e) => { e.stopPropagation(); handleDeleteComment(); }}
                                             disabled={isDeleting}
-                                            className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-zinc-800 hover:text-red-300 transition disabled:opacity-50 cursor-pointer"
+                                            className="px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-red-400 hover:bg-zinc-800 hover:text-red-300 transition disabled:opacity-50 cursor-pointer whitespace-nowrap"
                                         >
                                             {isDeleting ? "Deleting..." : "Delete"}
                                         </button>
