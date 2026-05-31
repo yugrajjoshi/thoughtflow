@@ -12,6 +12,11 @@ from django.db.models import Q, Count
 from chat.serializers import UserSummarySerializer
 from django.contrib.auth.models import User
 from accounts.models import Profile
+from django.conf import settings
+
+TRENDING_WINDOW_HOURS_DEFAULT = 4
+TRENDING_MIN_POSTS_DEFAULT = 3
+TRENDING_LIMIT_DEFAULT = 10
 
 
 def _safe_int(value):
@@ -36,6 +41,20 @@ def _create_hashtags_for_post(post, content):
         PostHashtag.objects.get_or_create(post=post, hashtag=hashtag)
         hashtag.posts_count = hashtag.posts_set.count()
         hashtag.save(update_fields=['posts_count'])
+
+
+def _refresh_hashtag_counts(hashtags):
+    for hashtag in hashtags:
+        if hashtag is None:
+            continue
+
+        remaining_posts_count = hashtag.posts_set.count()
+        if remaining_posts_count <= 0:
+            hashtag.delete()
+            continue
+
+        hashtag.posts_count = remaining_posts_count
+        hashtag.save(update_fields=['posts_count', 'updated_at'])
 
 
 def _compute_global_feed_score(post, now):
@@ -206,7 +225,11 @@ def delete_post(request, post_id):
     if post.user_id != request.user.id:
         return response.Response({'error': 'You can only delete your own posts'}, status=status.HTTP_403_FORBIDDEN)
 
+    hashtags = list(post.hashtags.all())
     post.delete()
+    _refresh_hashtag_counts(hashtags)
+
+    return response.Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @api_view(['GET'])
@@ -481,13 +504,36 @@ def like_comment(request, post_id, comment_id):
 def get_trending_hashtags(request):
     """Get trending hashtags ordered by post count"""
     limit_param = request.query_params.get('limit')
-    try:
-        limit = int(limit_param) if limit_param is not None else 10
-    except (TypeError, ValueError):
-        limit = 10
-    limit = max(1, min(limit, 50))
+    min_posts_param = request.query_params.get('min_posts')
+    window_hours_param = request.query_params.get('window_hours')
 
-    trending = Hashtag.objects.filter(posts_count__gt=0).order_by('-posts_count')[:limit]
+    limit_cap = max(5, min(int(getattr(settings, 'TRENDING_HASHTAG_LIMIT', TRENDING_LIMIT_DEFAULT)), 10))
+
+    try:
+        limit = int(limit_param) if limit_param is not None else limit_cap
+    except (TypeError, ValueError):
+        limit = limit_cap
+    limit = max(5, min(limit, limit_cap))
+
+    try:
+        min_posts = int(min_posts_param) if min_posts_param is not None else int(getattr(settings, 'TRENDING_HASHTAG_MIN_POSTS', TRENDING_MIN_POSTS_DEFAULT))
+    except (TypeError, ValueError):
+        min_posts = int(getattr(settings, 'TRENDING_HASHTAG_MIN_POSTS', TRENDING_MIN_POSTS_DEFAULT))
+    min_posts = max(1, min(min_posts, 1000))
+
+    try:
+        window_hours = int(window_hours_param) if window_hours_param is not None else int(getattr(settings, 'TRENDING_HASHTAG_WINDOW_HOURS', TRENDING_WINDOW_HOURS_DEFAULT))
+    except (TypeError, ValueError):
+        window_hours = int(getattr(settings, 'TRENDING_HASHTAG_WINDOW_HOURS', TRENDING_WINDOW_HOURS_DEFAULT))
+    window_hours = max(3, min(window_hours, 5))
+
+    window_start = timezone.now() - timedelta(hours=window_hours)
+
+    trending = (
+        Hashtag.objects
+        .filter(posts_count__gte=min_posts, updated_at__gte=window_start)
+        .order_by('-posts_count', '-updated_at', 'tag')[:limit]
+    )
     serializer = HashtagSerializer(trending, many=True)
     return response.Response(serializer.data)
 
@@ -500,7 +546,7 @@ def search_hashtags(request):
     if not query:
         return response.Response({'error': 'Query parameter "q" is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-    hashtags = Hashtag.objects.filter(tag__icontains=query).order_by('-posts_count')[:20]
+    hashtags = Hashtag.objects.filter(tag__icontains=query).order_by('-posts_count', '-updated_at', 'tag')[:20]
     serializer = HashtagSerializer(hashtags, many=True)
     return response.Response(serializer.data)
 
@@ -580,7 +626,7 @@ def search_content(request):
     hashtags = (
         Hashtag.objects
         .filter(Q(tag__icontains=normalized_query) | Q(tag__icontains=query.lstrip('#')))
-        .order_by('-posts_count', 'tag')[:limit]
+        .order_by('-posts_count', '-updated_at', 'tag')[:limit]
     )
 
     profile_user_ids = Profile.objects.filter(name__icontains=normalized_query).values_list('user_id', flat=True)

@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import API_BASE from '../config';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 
-const API_BASE = 'http://127.0.0.1:8000';
 
 const getToken = () => {
   const raw = localStorage.getItem('token');

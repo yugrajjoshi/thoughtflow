@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import API_BASE from '../config';
 
-const API_BASE = "http://127.0.0.1:8000";
 
 const getCleanToken = () => {
   const rawToken = localStorage.getItem("token");

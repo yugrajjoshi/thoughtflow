@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from "../components/Logo";
+import API_BASE from '../config';
 import { Eye, EyeOff } from "lucide-react";
 
 function AuthPage() {
@@ -25,7 +26,7 @@ function AuthPage() {
   function handleSubmit(event) {
     event.preventDefault();
     // Handle form submission logic here
-    fetch("http://127.0.0.1:8000/api/login/", {
+    fetch(`${API_BASE}/api/login/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -123,7 +124,7 @@ function AuthPage() {
               </div>
               <button
                 className="w-full bg-zinc-700 hover:bg-zinc-600 transition duration-200 rounded-lg mt-6 text-white font-bold p-3 text-sm"
-                onClick={() => { window.location.href = 'http://127.0.0.1:8000/api/auth/google/redirect/'; }}
+                onClick={() => { window.location.href = `${API_BASE}/api/auth/google/redirect/`; }}
                 type="button"
               >
                 Sign in with Google

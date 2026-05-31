@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Logo from "../components/Logo";
+import API_BASE from '../config';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
 function ResetPassword() {
@@ -33,7 +34,7 @@ function ResetPassword() {
 
     setLoading(true);
     try {
-      const resp = await fetch('http://127.0.0.1:8000/api/password-reset/confirm/', {
+      const resp = await fetch(`${API_BASE}/api/password-reset/confirm/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ uid, token, new_password: newPassword }),

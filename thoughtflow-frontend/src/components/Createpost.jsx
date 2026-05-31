@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ImagePlus, X } from "lucide-react";
+import API_BASE from '../config';
 
 function CreatePost({ profilePicture, onPostCreated }) {
   const [postText, setPostText] = useState("");
@@ -60,7 +61,7 @@ function CreatePost({ profilePicture, onPostCreated }) {
 
     try {
       setIsSubmitting(true);
-      const response = await fetch("http://127.0.0.1:8000/api/posts/", {
+      const response = await fetch(`${API_BASE}/api/posts/`, {
         method: "POST",
         headers: {
           Authorization: "Token " + token,

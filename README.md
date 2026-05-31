@@ -26,6 +26,12 @@ python manage.py migrate
 python manage.py runserver
 ```
 
+If websocket notifications still fail in development, start the ASGI server directly instead:
+
+```bash
+python -m daphne -b 127.0.0.1 -p 8000 thoughtflow.asgi:application
+```
+
 Frontend (React / Vite)
 
 1. Install dependencies and start the dev server:
@@ -36,7 +42,25 @@ npm install
 npm run dev
 ```
 
-The frontend expects the backend API at `http://127.0.0.1:8000` by default. Adjust `API_BASE` in the frontend files if needed.
+The frontend reads the API base from the Vite env variable `VITE_API_BASE` at build/runtime.
+By default the project falls back to `http://127.0.0.1:8000`.
+
+To run locally with the default backend, you don't need to set anything. To point the frontend at a different backend, set the env var before running or when deploying (Vercel/Netlify):
+
+```bash
+# Linux / macOS
+export VITE_API_BASE=https://api.example.com
+# Windows (PowerShell)
+$env:VITE_API_BASE = 'https://api.example.com'
+```
+
+Trending hashtags can also be tuned from Django env vars:
+
+```bash
+TRENDING_HASHTAG_WINDOW_HOURS=4
+TRENDING_HASHTAG_MIN_POSTS=3
+TRENDING_HASHTAG_LIMIT=10
+```
 
 ## Dev commands
 

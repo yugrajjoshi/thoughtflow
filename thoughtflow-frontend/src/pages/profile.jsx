@@ -5,9 +5,9 @@ import ProfileEditCard from "../components/profileeditcard";
 import PostCard from "../components/PostCard";
 import RepostedPost from "../components/repostedpost";
 import FollowingList from "../components/followinglist";
+import API_BASE from '../config';
 
 // Backend API root used for profile and posts requests.
-const API_BASE = "http://127.0.0.1:8000";
 
 // Reads auth token from localStorage and removes accidental wrapping quotes.
 const getCleanToken = () => {

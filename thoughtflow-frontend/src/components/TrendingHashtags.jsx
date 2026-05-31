@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { TrendingUp } from "lucide-react";
-
-const API_BASE = "http://127.0.0.1:8000";
+import API_BASE from '../config';
 
 const getCleanToken = () => {
     const rawToken = localStorage.getItem("token");
@@ -28,7 +27,7 @@ function TrendingHashtags() {
 
         try {
             setLoading(true);
-            const response = await fetch(`${API_BASE}/api/hashtags/trending/?limit=5`, {
+            const response = await fetch(`${API_BASE}/api/hashtags/trending/?limit=10`, {
                 headers: {
                     Authorization: "Token " + token,
                 },

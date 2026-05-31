@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react'
 import { Bookmark, House, LogOut, Mail, Plus, Search, Settings2, UserRound, X, Bell, ArrowLeft, MoreHorizontal } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import CreatePost from "../components/Createpost";
+import API_BASE from "../config";
 import PostCard from '../components/PostCard';
 import PostView from "../components/postview";
 import MassangerSection from '../components/massangersection';
@@ -12,7 +13,6 @@ import Logo from "../components/Logo";
 import SideChatsection from '../components/sidechatsection';
 import MobileChatView from '../components/MobileChatView';
 
-const API_BASE = "http://127.0.0.1:8000";
 const HOME_UI_STATE_KEY = "thoughtflow_home_ui_state";
 
 const getCleanToken = () => {
@@ -144,6 +144,31 @@ const isWithinLast30Days = (value) => {
   const timestamp = new Date(value || 0).getTime();
   if (!Number.isFinite(timestamp)) return false;
   return Date.now() - timestamp <= THIRTY_DAYS_MS;
+};
+
+const closeSocketSafely = (socket) => {
+  if (!socket) {
+    return;
+  }
+
+  if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CLOSING) {
+    try {
+      socket.close();
+    } catch (error) {
+      // ignore
+    }
+    return;
+  }
+
+  if (socket.readyState === WebSocket.CONNECTING) {
+    socket.onopen = () => {
+      try {
+        socket.close();
+      } catch (error) {
+        // ignore
+      }
+    };
+  }
 };
 
 function Home() {
@@ -817,7 +842,7 @@ function Home() {
 
     return () => {
       if (notificationsWsRef.current) {
-        try { notificationsWsRef.current.close(); } catch (e) {}
+        closeSocketSafely(notificationsWsRef.current);
         notificationsWsRef.current = null;
       }
     };
@@ -1506,20 +1531,34 @@ function Home() {
       {isMobileView && activeButton === "chats" && selectedChatUser ? (
         <div className="show-mobile-only fixed inset-x-0 z-40 bg-black text-white" style={{ top: "64px", bottom: "40px" }}>
           <div className="flex h-full flex-col">
-            <div className="flex items-center h-15 gap-3 border-b border-zinc-800 px-4 py-4">
+            <div className="flex items-center gap-3 px-4 pt-3 pb-2">
               <button
                 type="button"
                 onClick={() => {
                   setSelectedChatUser(null);
                   setSelectedConversationId(null);
                 }}
-                className="rounded-full p-4 -ml-4 text-zinc-300 hover:bg-zinc-900"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-zinc-300 hover:bg-white/5"
                 aria-label="Back to conversations"
               >
-                <ArrowLeft className="h-6 w-6" />
+                <ArrowLeft className="h-5 w-5" />
               </button>
-              <div className="min-w-0">
-                <p className="truncate text-2xl font-bold  text-zinc-500">Conversation</p>
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-zinc-800">
+                  {selectedChatUser?.profileImage || selectedChatUser?.profile_image ? (
+                    <img
+                      src={selectedChatUser.profileImage || selectedChatUser.profile_image}
+                      alt={selectedChatUser?.displayName || selectedChatUser?.username || "Selected user"}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : null}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-base font-semibold text-white">
+                    {selectedChatUser?.displayName || selectedChatUser?.name || selectedChatUser?.username || "Conversation"}
+                  </p>
+                  <p className="truncate text-sm text-zinc-400">@{selectedChatUser?.username || ""}</p>
+                </div>
               </div>
             </div>
 
@@ -1530,6 +1569,7 @@ function Home() {
                 currentUserId={currentUserId}
                 onConversationChanged={fetchChatConversations}
                 onOpenPost={handleSelectPost}
+                compactHeader
               />
             </div>
           </div>

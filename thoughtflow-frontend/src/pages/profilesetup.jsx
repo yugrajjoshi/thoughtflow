@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Logo from "../components/Logo";
+import API_BASE from '../config';
 
 function Profilesetup() {
     const [profilePicture, setProfilePicture] = useState(null);
@@ -22,7 +23,7 @@ function Profilesetup() {
         return;
     }
 
-    fetch("http://127.0.0.1:8000/api/user/", {
+    fetch(`${API_BASE}/api/user/`, {
         method: "GET",
         headers: {
             "Authorization": `Token ${token}`,
@@ -70,7 +71,7 @@ function Profilesetup() {
     // 5️⃣ Fetch request
     setIsSubmitting(true);
 
-    fetch("http://127.0.0.1:8000/api/profile/update/", {
+    fetch(`${API_BASE}/api/profile/update/`, {
         method: "POST",
         headers: {
             "Authorization": `Token ${token}`

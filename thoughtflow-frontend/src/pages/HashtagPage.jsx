@@ -2,8 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader } from "lucide-react";
 import PostCard from "../components/PostCard";
-
-const API_BASE = "http://127.0.0.1:8000";
+import API_BASE from '../config';
 
 const getCleanToken = () => {
     const rawToken = localStorage.getItem("token");

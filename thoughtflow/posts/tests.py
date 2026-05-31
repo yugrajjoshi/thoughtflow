@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
-from .models import Post, Comment
+from .models import Post, Comment, Hashtag
 
 
 class PostsApiTests(APITestCase):
@@ -62,6 +62,61 @@ class PostsApiTests(APITestCase):
 		self.assertEqual(post.likes_count, 1)
 		self.assertEqual(post.bookmarks_count, 1)
 		self.assertEqual(post.reposts_count, 1)
+
+	def test_repost_endpoint_toggles_own_post(self):
+		post = Post.objects.create(user=self.user, content="my own post")
+
+		first_response = self.client.post(f"/api/posts/{post.id}/repost/")
+		self.assertEqual(first_response.status_code, status.HTTP_200_OK)
+		self.assertTrue(first_response.data["reposted"])
+		self.assertEqual(first_response.data["reposts_count"], 1)
+
+		post.refresh_from_db()
+		self.assertEqual(post.reposts_count, 1)
+		self.assertTrue(post.repost_users.filter(id=self.user.id).exists())
+
+		second_response = self.client.post(f"/api/posts/{post.id}/repost/")
+		self.assertEqual(second_response.status_code, status.HTTP_200_OK)
+		self.assertFalse(second_response.data["reposted"])
+		self.assertEqual(second_response.data["reposts_count"], 0)
+
+		post.refresh_from_db()
+		self.assertEqual(post.reposts_count, 0)
+		self.assertFalse(post.repost_users.filter(id=self.user.id).exists())
+
+	def test_delete_post_refreshes_hashtag_counts(self):
+		create_response = self.client.post(
+			"/api/posts/",
+			{"content": "#cleanup #cleanup"},
+			format="json",
+		)
+		self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
+		post = Post.objects.get(id=create_response.data["id"])
+		hashtag = post.hashtags.first()
+		self.assertIsNotNone(hashtag)
+		self.assertEqual(hashtag.posts_count, 1)
+
+		delete_response = self.client.delete(f"/api/posts/{post.id}/")
+		self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
+		self.assertFalse(Post.objects.filter(id=post.id).exists())
+		self.assertFalse(Hashtag.objects.filter(id=hashtag.id).exists())
+
+	def test_trending_hashtags_rank_and_expire_by_activity_window(self):
+		for _ in range(5):
+			self.client.post("/api/posts/", {"content": "#fresh #fresh"}, format="json")
+
+		for _ in range(4):
+			self.client.post("/api/posts/", {"content": "#stale #stale #stale"}, format="json")
+
+		old_hashtag = Hashtag.objects.get(tag="stale")
+		Hashtag.objects.filter(id=old_hashtag.id).update(updated_at=timezone.now() - timedelta(hours=6))
+
+		response = self.client.get("/api/hashtags/trending/?limit=10&min_posts=3&window_hours=4")
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+		self.assertLessEqual(len(response.data), 10)
+		self.assertGreaterEqual(len(response.data), 1)
+		self.assertEqual(response.data[0]["tag"], "fresh")
+		self.assertTrue(all(item["tag"] != "stale" for item in response.data))
 
 	def test_comment_create_and_delete_updates_comment_count(self):
 		post = Post.objects.create(user=self.user, content="comments")

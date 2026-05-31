@@ -2,9 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Link } from "react-router-dom";
 import SharedPostPreview from "./SharedPostPreview";
 import { Reply, Trash2, Trash, Paperclip, X } from "lucide-react";
-
-
-const API_BASE = "http://127.0.0.1:8000";
+import API_BASE from '../config';
 
 const getCleanToken = () => {
     const rawToken = localStorage.getItem("token");
@@ -20,7 +18,49 @@ const getUserImage = (selectedUser) => {
     return image.startsWith("http") ? image : `${API_BASE}${image}`;
 };
 
-function MassangerSection({ selectedUser, selectedConversationId, onConversationChanged, onOpenPost }) {
+const closeSocketSafely = (socket) => {
+    if (!socket) {
+        return;
+    }
+
+    if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CLOSING) {
+        try {
+            socket.close();
+        } catch (error) {
+            // ignore
+        }
+        return;
+    }
+
+    if (socket.readyState === WebSocket.CONNECTING) {
+        socket.onopen = () => {
+            try {
+                socket.close();
+            } catch (error) {
+                // ignore
+            }
+        };
+    }
+};
+
+const dedupeMessagesById = (messagesList) => {
+    const seenIds = new Set();
+    return messagesList.filter((message) => {
+        const messageId = message?.id;
+        if (messageId == null) {
+            return true;
+        }
+
+        if (seenIds.has(messageId)) {
+            return false;
+        }
+
+        seenIds.add(messageId);
+        return true;
+    });
+};
+
+function MassangerSection({ selectedUser, selectedConversationId, onConversationChanged, onOpenPost, compactHeader = false }) {
     const profileImage = getUserImage(selectedUser);
     const displayName = selectedUser?.displayName || selectedUser?.name || selectedUser?.username || "";
     const username = selectedUser?.username || "";
@@ -118,7 +158,7 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
         const token = getCleanToken();
         if (!selectedConversationId || !token) {
             if (wsRef.current) {
-                try { wsRef.current.close(); } catch (e) {}
+                closeSocketSafely(wsRef.current);
                 wsRef.current = null;
             }
             return;
@@ -141,7 +181,7 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
                         setMessages((current) => {
                             // avoid duplicate if message already present
                             if (current.some((m) => m.id === newMsg.id)) return current;
-                            return [...current, newMsg];
+                            return dedupeMessagesById([...current, newMsg]);
                         });
                         if (typeof onConversationChanged === 'function') {
                             onConversationChanged();
@@ -162,7 +202,7 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
 
         return () => {
             if (wsRef.current) {
-                try { wsRef.current.close(); } catch (e) {}
+                closeSocketSafely(wsRef.current);
                 wsRef.current = null;
             }
         };
@@ -226,7 +266,7 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
             }
 
             const createdMessage = await response.json();
-                setMessages((currentMessages) => [...currentMessages, createdMessage]);
+            setMessages((currentMessages) => dedupeMessagesById([...currentMessages, createdMessage]));
             setDraft("");
             setReplyToMessage(null);
             clearAttachment();
@@ -384,10 +424,9 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
     };
 
     return (
-        <main className="w-full p-2 h-full flex flex-col min-h-0">
-           
-            <div className="border border-zinc-800 w-full min-h-20 px-4 py-3 flex items-center justify-between">
-            
+        <main className={`w-full h-full flex flex-col min-h-0 ${compactHeader ? "p-0" : "p-2"}`}>
+            {!compactHeader ? (
+                <div className="border border-zinc-800 w-full min-h-20 px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3 min-w-0">
                         <div className="w-12 h-12 rounded-full overflow-hidden bg-zinc-800 shrink-0">
                             {profileImage ? (
@@ -413,38 +452,39 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
                             )}
                         </div>
                     </div>
-        
-            </div>
+                </div>
+            ) : null}
 
-            <section className="flex-1 min-h-0 border-l border-r border-b border-zinc-800 bg-zinc-950/60 p-4  overflow-y-auto posts-scrollbar">
+            <section className={`flex-1 min-h-0 overflow-y-auto posts-scrollbar ${compactHeader ? "bg-zinc-950/40 px-3 pb-3" : "border-l border-r border-b border-zinc-800 bg-zinc-950/60 p-4"}`}>
                 {selectedUser ? (
                     isLoadingMessages ? (
                         <div className="h-full w-full flex items-center justify-center text-zinc-500 text-sm">
                             Loading messages...
                         </div>
                     ) : messages.length > 0 ? (
-                        <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-2.5">
                             {messages.map((message) => {
                                 const canReply = !message.deleted_for_everyone;
+                                const isOwnLatestMessage = message.is_mine && message.id === lastOwnMessageId;
                                 return (
                                     <div
                                         key={message.id}
-                                        className={`max-w-[82%] px-4 py-2 rounded-2xl text-sm flex flex-col gap-1 ${message.is_mine ? "self-end bg-green-700/70 text-white" : "self-start bg-zinc-800 text-zinc-200"}`}
+                                        className={`max-w-[82%] rounded-3xl border px-4 py-3 text-sm shadow-lg shadow-black/20 transition ${message.is_mine ? "self-end border-emerald-400/20 bg-emerald-500/20 text-white backdrop-blur" : "self-start border-zinc-700/70 bg-zinc-900/95 text-zinc-100"}`}
                                     >
                                         {message.reply_to ? (
-                                            <div className="text-xs opacity-80 border-l-2 border-white/50 pl-2">
+                                            <div className="mb-2 border-l-2 border-white/20 pl-2 text-xs text-zinc-300/90">
                                                 Replying to <Link to={`/profile/${message.reply_to.sender_username}`} className="underline">@{message.reply_to.sender_username}</Link>: {message.reply_to.content}
                                             </div>
                                         ) : null}
 
-                                        <div>{message.content}</div>
+                                        <div className="leading-6 whitespace-pre-wrap break-words">{message.content}</div>
 
                                         {getImageValue(message) ? (
-                                            <img src={getImageValue(message)} alt="Chat attachment" className="rounded-xl mt-1 max-h-72 w-full object-cover" />
+                                            <img src={getImageValue(message)} alt="Chat attachment" className="mt-2 max-h-72 w-full rounded-2xl object-cover" />
                                         ) : null}
 
                                         {getVideoValue(message) ? (
-                                            <video controls className="rounded-xl mt-1 max-h-72 w-full">
+                                            <video controls className="mt-2 max-h-72 w-full rounded-2xl">
                                                 <source src={getVideoValue(message)} />
                                             </video>
                                         ) : null}
@@ -453,29 +493,29 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
                                             <SharedPostPreview post={message.shared_post} onOpenPost={onOpenPost} />
                                         ) : null}
 
-                                        <div className="text-[11px] opacity-70 flex items-center justify-between gap-4">
-                                            <span>
+                                        <div className="mt-1.5 flex items-center justify-between gap-1.5 text-[10px] text-zinc-300/70">
+                                            <span className="shrink-0 tracking-wide">
                                                 {formatTimeHoursMinutes(message.created_at)}
                                             </span>
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-1">
                                                 {canReply ? (
-                                                    <button type="button" onClick={() => setReplyToMessage(message)} className="hover:text-white">
+                                                    <button type="button" onClick={() => setReplyToMessage(message)} className="inline-flex h-5 w-5 items-center justify-center rounded-full p-0.5 hover:bg-white/10 hover:text-white" aria-label="Reply message">
                                                         <Reply size={13} />
                                                     </button>
                                                 ) : null}
-                                                <button type="button" onClick={() => askDeleteForMe(message.id)} className="hover:text-white" title="Delete for me">
+                                                <button type="button" onClick={() => askDeleteForMe(message.id)} className="inline-flex h-5 w-5 items-center justify-center rounded-full p-0.5 hover:bg-white/10 hover:text-white" title="Delete for me" aria-label="Delete for me">
                                                     <Trash2 size={13} />
                                                 </button>
                                                 {message.can_delete_for_everyone ? (
-                                                    <button type="button" onClick={() => askDeleteForEveryone(message.id)} className="hover:text-white" title="Delete for everyone">
+                                                    <button type="button" onClick={() => askDeleteForEveryone(message.id)} className="inline-flex h-5 w-5 items-center justify-center rounded-full p-0.5 hover:bg-white/10 hover:text-white" title="Delete for everyone" aria-label="Delete for everyone">
                                                         <Trash size={13} />
                                                     </button>
                                                 ) : null}
                                             </div>
                                         </div>
 
-                                        {message.is_mine && message.id === lastOwnMessageId ? (
-                                            <div className="text-[11px] text-zinc-300/80 mt-1 text-right">
+                                        {isOwnLatestMessage ? (
+                                            <div className="mt-1 text-right text-[11px] text-zinc-300/85">
                                                 {message.read_at ? "Seen" : "Sent"}
                                             </div>
                                         ) : null}
@@ -495,38 +535,40 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
                 )}
             </section>
 
-            <div className="border-l border-r border-b border-zinc-800 p-3 flex flex-col gap-2">
+            <div className={`bg-zinc-950/90 px-3 py-2.5 backdrop-blur-sm flex flex-col gap-2 ${compactHeader ? "border-t border-zinc-800" : "border-l border-r border-b border-zinc-800"}`}>
                 {replyToMessage ? (
-                    <div className="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-xs text-zinc-300">
+                    <div className="flex items-center justify-between gap-3 rounded-2xl border border-zinc-700/80 bg-zinc-900/80 px-3 py-2 text-xs text-zinc-300">
+                        <div className="min-w-0 truncate">
                         Replying to <Link to={`/profile/${replyToMessage.sender_username}`} className="underline">@{replyToMessage.sender_username}</Link>: {replyToMessage.content || "(media/post)"}
-                        <button type="button" onClick={() => setReplyToMessage(null)} className="ml-2 text-zinc-400 hover:text-white">x</button>
+                        </div>
+                        <button type="button" onClick={() => setReplyToMessage(null)} className="rounded-full px-2 py-1 text-zinc-400 hover:bg-white/10 hover:text-white">x</button>
                     </div>
                 ) : null}
                 {attachmentFile ? (
-                    <div className="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-xs text-zinc-300 flex items-center justify-between gap-3">
+                    <div className="flex items-center justify-between gap-3 rounded-2xl border border-zinc-700/80 bg-zinc-900/80 px-3 py-2 text-xs text-zinc-300">
                         <div className="min-w-0">
                             <p className="truncate">Attachment: {attachmentFile.name}</p>
                             <p className="text-zinc-500">Type: {attachmentType}</p>
                         </div>
-                        <button type="button" onClick={clearAttachment} className="text-zinc-400 hover:text-white">
+                        <button type="button" onClick={clearAttachment} className="rounded-full px-2 py-1 text-zinc-400 hover:bg-white/10 hover:text-white">
                             <X size={14} />
                         </button>
                     </div>
                 ) : null}
                 {attachmentPreviewUrl && attachmentType === "image" ? (
-                    <img src={attachmentPreviewUrl} alt="Attachment preview" className="rounded-lg max-h-44 w-full object-cover" />
+                    <img src={attachmentPreviewUrl} alt="Attachment preview" className="max-h-44 w-full rounded-2xl object-cover" />
                 ) : null}
                 {attachmentPreviewUrl && attachmentType === "video" ? (
-                    <video controls className="rounded-lg max-h-44 w-full">
+                    <video controls className="max-h-44 w-full rounded-2xl">
                         <source src={attachmentPreviewUrl} />
                     </video>
                 ) : null}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5 rounded-3xl bg-black/70 px-2.5 py-2 shadow-inner shadow-black/20">
                 <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={!selectedUser || sending}
-                    className="p-2 rounded-full border border-zinc-800 text-zinc-300 hover:text-white disabled:opacity-60"
+                    className="rounded-full border border-zinc-700/80 p-2 text-zinc-300 transition hover:border-zinc-500 hover:bg-white/5 hover:text-white disabled:opacity-60"
                     title="Attach image or video"
                 >
                     <Paperclip size={16} />
@@ -550,13 +592,13 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
                     }}
                     disabled={!selectedUser}
                     placeholder={selectedUser ? "Type a message" : "Select a user to chat"}
-                    className="flex-1 rounded-full bg-black border border-zinc-800 px-4 py-2 text-sm text-zinc-200 placeholder:text-zinc-500 focus:outline-none disabled:opacity-60"
+                    className="flex-1 rounded-full border border-zinc-800 bg-zinc-950 px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-emerald-400/40 focus:outline-none disabled:opacity-60"
                 />
                 <button
                     type="button"
                     onClick={handleSendMessage}
                     disabled={!canSend || sending}
-                    className="px-4 py-2 rounded-full bg-white text-black text-sm font-semibold disabled:opacity-50"
+                    className="rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:opacity-50"
                 >
                     {sending ? "Sending..." : "Send"}
                 </button>

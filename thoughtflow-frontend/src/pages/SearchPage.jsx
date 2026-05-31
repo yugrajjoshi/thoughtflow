@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Loader, Search } from "lucide-react";
 import PostCard from "../components/PostCard";
+import API_BASE from "../config";
 
-const API_BASE = "http://127.0.0.1:8000";
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 const getCleanToken = () => {

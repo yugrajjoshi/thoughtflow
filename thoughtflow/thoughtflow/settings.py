@@ -103,16 +103,24 @@ WSGI_APPLICATION = 'thoughtflow.wsgi.application'
 # Channels ASGI application
 ASGI_APPLICATION = 'thoughtflow.asgi.application'
 
-# Channel layers (Redis)
-REDIS_URL = os.getenv('REDIS_URL', 'redis://127.0.0.1:6379')
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            'hosts': [REDIS_URL],
+# Channel layers: use in-memory channels for local development unless Redis is configured.
+REDIS_URL = os.getenv('REDIS_URL', '').strip()
+
+if REDIS_URL:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [REDIS_URL],
+            },
         },
-    },
-}
+    }
+else:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        },
+    }
 
 
 # Database
@@ -207,3 +215,10 @@ EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
 # If SMTP credentials are not provided but EMAIL_BACKEND requests SMTP, fall back to console backend
 if 'smtp' in EMAIL_BACKEND.lower() and not EMAIL_HOST:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Trending hashtags configuration
+TRENDING_HASHTAG_WINDOW_HOURS = int(os.getenv('TRENDING_HASHTAG_WINDOW_HOURS', '4') or 4)
+TRENDING_HASHTAG_MIN_POSTS = int(os.getenv('TRENDING_HASHTAG_MIN_POSTS', '3') or 3)
+TRENDING_HASHTAG_LIMIT = int(os.getenv('TRENDING_HASHTAG_LIMIT', '10') or 10)
+
+#$env:PYTHONPATH='D:\vscode\flowthought\thoughtflow'; d:/vscode/flowthought/.venv/Scripts/python.exe -m daphne -b 127.0.0.1 -p 8000 thoughtflow.asgi:application

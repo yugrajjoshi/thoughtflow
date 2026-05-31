@@ -2,8 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Heart, MessageCircle, Bookmark, Share2, Kanban,Repeat2, Ellipsis } from "lucide-react";
 import PostSettingHover from "../hoverelements/postsettinghover";
-
-const API_BASE = "http://127.0.0.1:8000";
+import API_BASE from '../config';
 
 const getCleanToken = () => {
     const rawToken = localStorage.getItem("token");

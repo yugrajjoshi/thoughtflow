@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import Logo from "../components/Logo";
+import API_BASE from '../config';
 
 function Signup(){
 
    const handleSubmit = (e) => {
         e.preventDefault();
-        fetch("http://127.0.0.1:8000/api/register/",{
+        fetch(`${API_BASE}/api/register/`,{
             method: "POST",
             headers: {
                 "Content-Type": "application/json"

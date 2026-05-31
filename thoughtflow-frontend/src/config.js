@@ -1,0 +1,4 @@
+// Centralized API base for frontend. Use Vite env var or fallback to localhost.
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000';
+
+export default API_BASE;
