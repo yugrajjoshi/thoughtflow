@@ -30,7 +30,11 @@ def load_env_file(env_path):
         key, value = line.split('=', 1)
         key = key.strip()
         value = value.strip().strip('"').strip("'")
-        os.environ[key] = value
+        # Only set the environment variable if it's not already provided
+        # by the runtime (e.g., Docker, CI). This prevents local .env
+        # files from clobbering container-supplied variables.
+        if key not in os.environ:
+            os.environ[key] = value
 
 
 load_env_file(BASE_DIR / '.env')
