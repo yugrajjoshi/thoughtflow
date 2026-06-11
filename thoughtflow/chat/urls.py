@@ -9,6 +9,7 @@ urlpatterns = [
     path('chat/messages/<int:message_id>/seen/', views.mark_message_seen, name='chat_mark_message_seen'),
     path('chat/messages/<int:message_id>/delete-for-me/', views.delete_message_for_me, name='chat_delete_for_me'),
     path('chat/messages/<int:message_id>/delete-for-everyone/', views.delete_message_for_everyone, name='chat_delete_for_everyone'),
+    path('chat/messages/<int:message_id>/edit/', views.edit_message, name='chat_edit_message'),
     path('chat/users/search/', views.search_users, name='chat_search_users'),
     path('chat/conversations/<int:conversation_id>/', views.delete_conversation, name='chat_delete_conversation'),
     path('chat/conversations/<int:conversation_id>/mute/', views.toggle_mute_conversation, name='chat_toggle_mute_conversation'),

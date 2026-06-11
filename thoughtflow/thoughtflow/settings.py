@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 import os
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -59,6 +59,7 @@ ALLOWED_HOSTS = [
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'channels',
     'corsheaders',
     'django.contrib.admin',
@@ -139,11 +140,14 @@ if DATABASE_URL:
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': parsed_database_url.path.lstrip('/'),
-            'USER': parsed_database_url.username or '',
-            'PASSWORD': parsed_database_url.password or '',
+            'USER': unquote(parsed_database_url.username or ''),
+            'PASSWORD': unquote(parsed_database_url.password or ''),
             'HOST': parsed_database_url.hostname or '',
             'PORT': str(parsed_database_url.port or ''),
             'CONN_MAX_AGE': int(os.getenv('DATABASE_CONN_MAX_AGE', '600') or 600),
+            'OPTIONS': {
+                'sslmode': 'require',
+            }
         }
     }
 else:

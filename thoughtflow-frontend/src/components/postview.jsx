@@ -42,7 +42,7 @@ function PostView({ post, onBack, currentUsername, currentUserId, currentUserPro
 	};
 
 	return (
-		<main className="w-full h-full flex flex-col gap-4 p-4 pb-24 md:pb-4 text-white">
+		<main className="w-full h-full flex flex-col gap-4 p-4 pb-24 md:pb-4 text-white post-view-container">
 			<div className="flex items-center gap-3 sticky -top-5 z-10 bg-black/95 backdrop-blur border-b border-zinc-800 pb-3">
 				<button
 					type="button"

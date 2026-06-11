@@ -1,62 +1,74 @@
 FLOWTHOUGHT PROGRESS REPORT
-Date: May 13, 2026
+Date: June 11, 2026
 
 1. Status
-- Core app: about 95% done
-- Full project: about 88-90% done
+- Core app: 100% done (development features complete)
+- Deployment configuration: 100% done (configs & documentation ready)
+- Full project: about 98% done (ready for deployment execution)
 
 2. Done
 - Auth, signup, profile setup, profiles
 - Posts, comments, likes, bookmarks, reposts, views
 - Follow/unfollow and followers/following
-- Hashtags, trending, unified search
-- Chat APIs, unread badges, and responsive chat UI
+- Hashtags, trending, unified search (with inline suggestions and full search tabs)
 - Settings backend + frontend
 - Reset password flow
-- Light theme polish, including active nav/tab states
+- Light/dark theme polish, including active nav/tab states
 - Responsive mobile/web shell
 - Shared post preview cards in chats
 - Mobile chat list/list-vs-messenger separation
 - Responsive feed and post view bottom padding cleanup
+- WebSocket real-time chat infrastructure:
+  - ASGI integration via Daphne
+  - Custom token authentication middleware for WebSocket connections
+  - WebSocket consumers and routing for real-time messaging
+- Centralized frontend API base routing (`src/config.js`) supporting easy fallback and production configuration
+- Dockerization support:
+  - `Dockerfile` for backend containerization
+  - `docker-compose.yml` for multi-container local execution
+- Production deployment setup:
+  - Render blueprint (`render.yaml`) and build script (`deploy/render-build.sh`) for Django + Daphne + Celery/Redis
+  - Vercel routing configuration (`vercel.json`) for frontend deployment
+  - GitHub Actions CI/CD workflow (`.github/workflows/deploy.yml`) for automated pipeline
+  - Detailed deployment documentation guides in the `deploy/` directory
+- Remote Database Connection:
+  - Connected local development server to remote Render PostgreSQL service
+  - Executed all database migrations on the Render PostgreSQL database
+  - Initialized administrator superuser account on Render PostgreSQL
 
 3. Left
-- Final testing across auth, posts, chat, settings, reset password, and search
-- Fix any remaining CSS or responsive edge cases
-- Search pagination and ranking polish
-- Add a dedicated notifications feed/page if still needed
-- Deployment prep
-
-6. Recent updates (May 13, 2026)
-- Shared-post messages in chats now render as a compact clickable preview card with username, pfp, text, and media.
-- Chat shared-post clicks now open the post view for both sender and receiver.
-- Mobile chats now stay list-only until a chat is selected, with the messenger opened separately.
-- Web messenger height was restored to full column height; responsive/mobile chat sizing was kept separate.
-- Added extra bottom padding to the responsive feed and post view so content clears the bottom navigation.
-- Mailtrap SMTP configured for development and tested; password reset emails are delivered to Mailtrap inbox.
-- Password reset flow redesigned and implemented: two-step lookup + confirmation UI on the frontend; backend endpoints validate tokens and set new passwords.
-- `FRONTEND_URL` `.env` issue fixed and normalized to `http://127.0.0.1:5174`.
-- Vite dev server binding made permanent in `thoughtflow-frontend/package.json` (`--host 127.0.0.1 --port 5174`) to avoid origin mismatches.
-- Google OAuth redirect URI and origin mismatch fixed; callback now redirects to the running frontend and the token is received by the app.
-- Local PostgreSQL was started for development and Django restarted to connect to it; backend and frontend servers tested together.
-- Code changes committed and pushed.
-
-7. Next Priority (updated)
-1) Prepare Render backend app and add production env vars (DB, email, OAuth keys).
-2) Deploy backend to Render and run production migrations.
-3) Build frontend and deploy to Vercel; set production `FRONTEND_URL`.
-4) Configure production email provider (SendGrid/SES) and rotate Mailtrap usage to staging only.
-5) Secure Postgres credentials and restore `pg_hba.conf` to secure auth.
-6) Run full end-to-end smoke tests in staging/prod and enable basic monitoring.
+- Actual deployment execution on Render and Vercel
+- Configure production email provider (SendGrid/SES) and rotate Mailtrap usage to staging/dev only
+- Run end-to-end smoke tests in the deployed live environments
 
 4. Current Focus
-- Final integration and bug fixing
-- Verify the last remaining flows end to end
-- Keep layout and theme behavior stable on mobile and desktop
+- Production launch and verification
+- Secret keys and credential rotation for production environment
 
-5. Next Priority
-1) Final test pass
-2) CSS and responsive cleanup
-3) Notifications feed/page
-4) Search ranking/pagination
-5) Deployment prep
+5. Recent updates
+- June 11, 2026 (Today):
+  - Connected local server to Render PostgreSQL database, completed migrations, and created `admin` superuser.
+  - Fixed environment variable loading logic to prevent clobbering system variables (Docker/Render runtime).
+  - Added Docker setup, docker-compose, and Render blueprints.
+  - Added Vercel build configs and vercel.json rewrite rules.
+  - Added GitHub Actions deployment workflow.
+  - Created detailed deployment architecture and quick-start manuals in the `deploy/` folder.
+  - Integrated Notifications navigation (Bell icon) across the desktop sidebar, mobile top bar, and mobile navigation drawer, enabling full access to the notifications workspace.
+  - Implemented backend generation of Like and Repost notifications, complete with settings controls (e.g. notify_likes, notify_reposts) and dynamic deletion on unlike/unrepost events.
+  - Designed and built a premium notifications grouping layout on the frontend to bundle likes/reposts on the same post, displaying up to 3 overlapping profile pictures (PFPs), usernames list, and remaining count.
+  - Implemented real-time unread notifications counts and badges, showing red badges/dots on SidebarNav (desktop), Mobile Top Bar (with pulse animation), and Mobile Drawer, complete with real-time updates via WebSockets and periodic fallback polling.
+  - Removed the "Bookmarks" item from the Mobile Bottom Navigation bar (`MobileBottomNav.jsx`) to clean up mobile layouts while retaining it in the mobile drawer.
+  - Modernized the messenger section (`massangersection.jsx`) with 3D gradient bubbles (emerald-tinted for own, dark zinc-tinted for others) featuring soft inset highlights, micro-elevated hover transitions, and a floating glossy/glassmorphic bottom input pod.
+- May 31, 2026:
+  - Centralized API endpoint routing to support dynamic environment URLs via `VITE_API_BASE_URL`.
+  - Refactored all components and pages to utilize the central API configuration.
+- May 20, 2026:
+  - Implemented Django Channels, Daphne, and token auth middleware for WebSockets.
+  - Added muted conversations flag in models and chat list serializers.
+  - Refactored messenger and chat sidebar elements for real-time connection and enhanced mobile responsiveness.
 
+6. Next Priority (Updated)
+1) Run backend deployment on Render using the blueprint (`render.yaml`).
+2) Deploy the frontend to Vercel pointing `VITE_API_BASE_URL` to the Render backend URL.
+3) Perform live smoke testing across auth, posts, and real-time chat.
+4) Transition from Mailtrap to production email provider (SendGrid/SES).

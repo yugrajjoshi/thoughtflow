@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, AlertCircle, CheckCircle, VolumeX, Ban } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import API_BASE from '../config';
 
@@ -31,6 +31,47 @@ function Settings() {
   const [saving, setSaving] = useState(false);
   const [notification, setNotification] = useState({ type: '', message: '' });
   const [activeTab, setActiveTab] = useState('privacy');
+
+  const [mutedUsers, setMutedUsers] = useState([]);
+  const [blockedUsers, setBlockedUsers] = useState([]);
+
+  useEffect(() => {
+    try {
+      const muted = JSON.parse(localStorage.getItem('thoughtflow_muted_users') || '[]');
+      setMutedUsers(Array.isArray(muted) ? muted : []);
+
+      const blocked = JSON.parse(localStorage.getItem('thoughtflow_blocked_users') || '[]');
+      setBlockedUsers(Array.isArray(blocked) ? blocked : []);
+    } catch (error) {
+      console.error('Failed to load muted/blocked users:', error);
+    }
+  }, [activeTab]);
+
+  const handleUnmute = (username) => {
+    try {
+      const updated = mutedUsers.filter(u => u !== username);
+      localStorage.setItem('thoughtflow_muted_users', JSON.stringify(updated));
+      setMutedUsers(updated);
+      window.dispatchEvent(new Event("thoughtflow_relations_changed"));
+      showNotification('success', `Unmuted @${username}`);
+    } catch (error) {
+      console.error('Failed to unmute:', error);
+      showNotification('error', 'Failed to unmute user');
+    }
+  };
+
+  const handleUnblock = (username) => {
+    try {
+      const updated = blockedUsers.filter(u => u !== username);
+      localStorage.setItem('thoughtflow_blocked_users', JSON.stringify(updated));
+      setBlockedUsers(updated);
+      window.dispatchEvent(new Event("thoughtflow_relations_changed"));
+      showNotification('success', `Unblocked @${username}`);
+    } catch (error) {
+      console.error('Failed to unblock:', error);
+      showNotification('error', 'Failed to unblock user');
+    }
+  };
 
   const fetchSettings = useCallback(async () => {
     const token = getCleanToken();
@@ -202,6 +243,16 @@ function Settings() {
             }`}
           >
             Appearance
+          </button>
+          <button
+            onClick={() => setActiveTab('moderation')}
+            className={`px-6 py-3 font-medium transition ${
+              activeTab === 'moderation'
+                ? 'border-b-2 border-blue-500 text-white'
+                : 'text-zinc-500 hover:text-white'
+            }`}
+          >
+            Moderation
           </button>
         </div>
 
@@ -440,6 +491,75 @@ function Settings() {
                     Light
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Moderation Tab */}
+          {activeTab === 'moderation' && (
+            <div className="space-y-8">
+              <div>
+                <h2 className="text-lg font-semibold mb-1 text-zinc-100">Muted Accounts</h2>
+                <p className="text-sm text-zinc-400 mb-4">
+                  Posts from these accounts will be hidden from your feed.
+                </p>
+                {mutedUsers.length === 0 ? (
+                  <div className="p-4 bg-zinc-900/20 border border-zinc-800 rounded-xl text-center text-zinc-500 text-sm">
+                    No muted accounts.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-zinc-850 border border-zinc-800 bg-zinc-900/10 rounded-xl overflow-hidden">
+                    {mutedUsers.map((user) => (
+                      <div key={user} className="flex items-center justify-between p-4 transition hover:bg-zinc-900/30">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-zinc-800/80 flex items-center justify-center text-zinc-400">
+                            <VolumeX size={16} />
+                          </div>
+                          <span className="font-medium text-zinc-200">@{user}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleUnmute(user)}
+                          className="px-3 py-1.5 text-xs font-semibold text-blue-400 border border-blue-500/30 hover:border-blue-500 rounded-lg hover:bg-blue-500/10 transition"
+                        >
+                          Unmute
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <h2 className="text-lg font-semibold mb-1 text-zinc-100">Blocked Accounts</h2>
+                <p className="text-sm text-zinc-400 mb-4">
+                  Posts from these accounts will be hidden from your feed.
+                </p>
+                {blockedUsers.length === 0 ? (
+                  <div className="p-4 bg-zinc-900/20 border border-zinc-800 rounded-xl text-center text-zinc-500 text-sm">
+                    No blocked accounts.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-zinc-850 border border-zinc-800 bg-zinc-900/10 rounded-xl overflow-hidden">
+                    {blockedUsers.map((user) => (
+                      <div key={user} className="flex items-center justify-between p-4 transition hover:bg-zinc-900/30">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-zinc-800/80 flex items-center justify-center text-zinc-400">
+                            <Ban size={16} />
+                          </div>
+                          <span className="font-medium text-zinc-200">@{user}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleUnblock(user)}
+                          className="px-3 py-1.5 text-xs font-semibold text-red-400 border border-red-500/30 hover:border-red-500 rounded-lg hover:bg-red-500/10 transition"
+                        >
+                          Unblock
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

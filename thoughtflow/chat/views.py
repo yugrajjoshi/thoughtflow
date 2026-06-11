@@ -204,7 +204,59 @@ def delete_message_for_everyone(request, message_id):
 		message.deleted_for_everyone_at = timezone.now()
 		message.save(update_fields=['deleted_for_everyone', 'deleted_for_everyone_at'])
 
+		# Broadcast deletion via websocket
+		try:
+			channel_layer = get_channel_layer()
+			serializer = MessageSerializer(message, context={'request': request})
+			async_to_sync(channel_layer.group_send)(
+				f'conversation_{message.conversation_id}',
+				{
+					'type': 'new_message',
+					'payload': serializer.data,
+				}
+			)
+		except Exception:
+			pass
+
 	return response.Response({'deleted_for_everyone': True, 'message_id': message.id})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def edit_message(request, message_id):
+	message = get_object_or_404(Message, id=message_id)
+	if not _user_in_conversation(message.conversation, request.user):
+		return response.Response({'error': 'You are not a participant in this conversation'}, status=status.HTTP_403_FORBIDDEN)
+
+	if message.sender_id != request.user.id:
+		return response.Response({'error': 'Only the sender can edit this message'}, status=status.HTTP_403_FORBIDDEN)
+
+	if message.deleted_for_everyone:
+		return response.Response({'error': 'Cannot edit a deleted message'}, status=status.HTTP_400_BAD_REQUEST)
+
+	content = (request.data.get('content') or '').strip()
+	if not content:
+		return response.Response({'error': 'Message content cannot be empty'}, status=status.HTTP_400_BAD_REQUEST)
+
+	message.content = content
+	message.save(update_fields=['content'])
+
+	serializer = MessageSerializer(message, context={'request': request})
+
+	# Broadcast edit to conversation group
+	try:
+		channel_layer = get_channel_layer()
+		async_to_sync(channel_layer.group_send)(
+			f'conversation_{message.conversation_id}',
+			{
+				'type': 'new_message',
+				'payload': serializer.data,
+			}
+		)
+	except Exception:
+		pass
+
+	return response.Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])

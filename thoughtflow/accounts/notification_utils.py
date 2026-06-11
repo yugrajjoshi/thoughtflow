@@ -23,12 +23,32 @@ def create_notification(user, actor, verb, data=None, setting_field=None):
 	if setting_field and not getattr(_get_settings(user), setting_field, True):
 		return None
 
-	return Notification.objects.create(
+	notification = Notification.objects.create(
 		user=user,
 		actor=actor,
 		verb=verb,
 		data=data or {},
 	)
+
+	try:
+		from asgiref.sync import async_to_sync
+		from channels.layers import get_channel_layer
+		channel_layer = get_channel_layer()
+		if channel_layer:
+			async_to_sync(channel_layer.group_send)(
+				f'user_{user.id}',
+				{
+					'type': 'user_notification',
+					'payload': {
+						'event': 'new_notification',
+						'unread_count': Notification.objects.filter(user=user, unread=True).count()
+					}
+				}
+			)
+	except Exception as e:
+		print("Failed to broadcast notification:", e)
+
+	return notification
 
 
 def create_mention_notifications(content, actor, verb, data_factory=None):

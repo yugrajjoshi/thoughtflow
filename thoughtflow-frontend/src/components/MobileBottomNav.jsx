@@ -1,5 +1,5 @@
 import React from 'react';
-import { House, UserRound, Search, Mail, Bookmark } from 'lucide-react';
+import { House, UserRound, Search, Mail } from 'lucide-react';
 
 const MobileBottomNav = ({ activeButton, onSelect, chatUnreadCount = 0, singleUnread = null }) => {
   const items = [
@@ -7,7 +7,6 @@ const MobileBottomNav = ({ activeButton, onSelect, chatUnreadCount = 0, singleUn
     { key: 'profile', label: 'Profile', icon: UserRound },
     { key: 'search', label: 'Search', icon: Search },
     { key: 'chats', label: 'Chats', icon: Mail },
-    { key: 'bookmarks', label: 'Bookmarks', icon: Bookmark },
   ];
 
   return (

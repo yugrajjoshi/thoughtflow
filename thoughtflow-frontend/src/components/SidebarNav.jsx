@@ -1,8 +1,8 @@
-import { House, UserRound, Search, Mail, LogOut, Bookmark, Settings } from "lucide-react";
+import { House, UserRound, Search, Mail, LogOut, Bookmark, Settings, Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Logo from "./Logo";
 
-function SidebarNav({ activeButton, onSelect, onLogout, chatUnreadCount = 0, chatSingleUnread = null }) {
+function SidebarNav({ activeButton, onSelect, onLogout, chatUnreadCount = 0, chatSingleUnread = null, notificationUnreadCount = 0 }) {
     const navigate = useNavigate();
     
     return (
@@ -71,6 +71,24 @@ function SidebarNav({ activeButton, onSelect, onLogout, chatUnreadCount = 0, cha
                 >
                     <Bookmark className="w-9 h-9" />
                     <span className="hide-mobile">Bookmarks</span>
+                </button>
+
+                <button
+                    onClick={() => navigate("/notifications")}
+                    className={`text-white gap-6 text-2xl font-bold p-3 transition duration-300 ml-6 w-[70%] hover:bg-zinc-800/30 rounded-4xl flex items-center`}
+                    title="Notifications"
+                >
+                    <div className="relative flex items-center justify-center">
+                        <Bell className="w-9 h-9" />
+                        {notificationUnreadCount > 0 ? (
+                            <div className="absolute -top-1 -right-2 flex items-center justify-center">
+                                <div className="w-5 h-5 rounded-full bg-red-600 text-white text-xs font-medium flex items-center justify-center px-1">
+                                    {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
+                                </div>
+                            </div>
+                        ) : null}
+                    </div>
+                    <span className="hide-mobile">Notifications</span>
                 </button>
             </section>
 

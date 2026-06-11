@@ -183,6 +183,7 @@ function Home() {
   const [followingIds, setFollowingIds] = useState([]);
   const [followingUsernames, setFollowingUsernames] = useState([]);
   const [posts, setPosts] = useState([]);
+  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
   const [activeButton, setActiveButton] = useState(() => {
     if (location.pathname.startsWith("/profile")) {
       return "profile";
@@ -469,53 +470,19 @@ function Home() {
     }
   }, [activeButton, loadTrendingHashtags]);
 
-  const handleSelectChatUser = async (person) => {
+  const handleSelectChatUser = (person) => {
     const normalizedPerson = normalizeChatPerson(person);
     if (!normalizedPerson) {
       return;
     }
 
-    if (normalizedPerson.conversationId) {
-      setSelectedConversationId(normalizedPerson.conversationId);
-      setSelectedChatUser(normalizedPerson);
-      return;
-    }
+    setSelectedConversationId(normalizedPerson.conversationId || null);
+    setSelectedChatUser(normalizedPerson);
+  };
 
-    const token = getCleanToken();
-    if (!token) {
-      setDeletePostConfirmId(null);
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_BASE}/api/chat/conversations/start/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Token " + token,
-        },
-        body: JSON.stringify({ username: normalizedPerson.username }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to start conversation: ${response.status}`);
-      }
-
-      const conversationData = await response.json();
-      const normalizedConversation = normalizeConversation(conversationData);
-      if (!normalizedConversation) {
-        return;
-      }
-
-      setSelectedConversationId(normalizedConversation.conversationId);
-      setSelectedChatUser(normalizedConversation);
-      setChatConversations((currentConversations) => {
-        const withoutSelected = currentConversations.filter((item) => item.conversationId !== normalizedConversation.conversationId);
-        return [normalizedConversation, ...withoutSelected];
-      });
-    } catch (error) {
-      console.error("Failed to start conversation:", error);
-    }
+  const handleConversationStarted = (newConvId) => {
+    setSelectedConversationId(newConvId);
+    fetchChatConversations();
   };
 
   const ensureConversationWithUsername = async (username) => {
@@ -747,10 +714,30 @@ function Home() {
     }
   }, [feedTab, goTo]);
 
+  const fetchNotificationUnreadCount = useCallback(async () => {
+    const token = getCleanToken();
+    if (!token) return;
+    try {
+      const response = await fetch(`${API_BASE}/api/notifications/unread-count/`, {
+        headers: { Authorization: "Token " + token },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setNotificationUnreadCount(Number(data.unread_count || 0));
+      }
+    } catch (error) {
+      console.error("Failed to fetch notification unread count:", error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchProfile();
     fetchPosts();
-  }, [fetchProfile, fetchPosts]);
+    fetchNotificationUnreadCount();
+
+    const interval = setInterval(fetchNotificationUnreadCount, 15000);
+    return () => clearInterval(interval);
+  }, [fetchProfile, fetchPosts, fetchNotificationUnreadCount]);
 
   const fetchChatConversations = useCallback(async () => {
     const token = getCleanToken();
@@ -774,15 +761,27 @@ function Home() {
         ? data.map(normalizeConversation).filter(Boolean)
         : [];
 
-      setChatConversations(normalizedConversations);
+      // Deduplicate by username (case-insensitive) to prevent "double chats" for the same person
+      const seenUsernames = new Set();
+      const uniqueConversations = [];
+      for (const conv of normalizedConversations) {
+        if (!conv?.username) continue;
+        const u = conv.username.toLowerCase();
+        if (!seenUsernames.has(u)) {
+          seenUsernames.add(u);
+          uniqueConversations.push(conv);
+        }
+      }
+
+      setChatConversations(uniqueConversations);
       // initialize mutedConversations set from API data
       const mutedSet = new Set();
-      normalizedConversations.forEach((c) => {
+      uniqueConversations.forEach((c) => {
         if (c && c.conversationId && c.muted) mutedSet.add(c.conversationId);
       });
       setMutedConversations(mutedSet);
       setSelectedConversationId((currentId) => {
-        if (currentId && normalizedConversations.some((item) => item.conversationId === currentId)) {
+        if (currentId && uniqueConversations.some((item) => item.conversationId === currentId)) {
           return currentId;
         }
         return null;
@@ -826,6 +825,8 @@ function Home() {
                   return { ...c, unreadCount: currentCount + 1 };
                 });
               });
+            } else if (payload.event === 'new_notification') {
+              setNotificationUnreadCount(Number(payload.unread_count || 0));
             }
           }
             } catch {
@@ -850,9 +851,12 @@ function Home() {
 
   const [mutedConversations, setMutedConversations] = useState(() => new Set());
   const [deleteConversationConfirmId, setDeleteConversationConfirmId] = useState(null);
+  const activeDeletionsRef = useRef(new Set());
 
   const performDeleteConversation = async (conversationId) => {
-    if (!conversationId) return;
+    if (!conversationId || activeDeletionsRef.current.has(conversationId)) return;
+    activeDeletionsRef.current.add(conversationId);
+
     const token = getCleanToken();
     // Optimistic update
     setChatConversations((current) => current.filter((c) => c.conversationId !== conversationId));
@@ -861,7 +865,10 @@ function Home() {
       setSelectedChatUser(null);
     }
     try {
-      if (!token) return;
+      if (!token) {
+        activeDeletionsRef.current.delete(conversationId);
+        return;
+      }
       const response = await fetch(`${API_BASE}/api/chat/conversations/${conversationId}/`, {
         method: 'DELETE',
         headers: { Authorization: 'Token ' + token },
@@ -876,6 +883,8 @@ function Home() {
       showUiNotice('error', 'Could not delete chat');
       // revert fetch
       await fetchChatConversations();
+    } finally {
+      activeDeletionsRef.current.delete(conversationId);
     }
   };
 
@@ -1395,6 +1404,18 @@ function Home() {
 
         <button
           type="button"
+          onClick={() => navigate("/notifications")}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-transparent text-white hover:bg-zinc-900 transition relative"
+          aria-label="Notifications"
+        >
+          <Bell className="h-5 w-5" />
+          {notificationUnreadCount > 0 ? (
+            <span className="absolute top-2.5 right-2.5 flex h-2.5 w-2.5 rounded-full bg-red-600 ring-1 ring-black animate-pulse" />
+          ) : null}
+        </button>
+
+        <button
+          type="button"
           onClick={() => navigate("/settings")}
           className="flex h-11 w-11 items-center justify-center rounded-full bg-transparent text-white hover:bg-zinc-900 transition"
           aria-label="Settings"
@@ -1489,6 +1510,22 @@ function Home() {
 
           <button
             type="button"
+            onClick={() => { setMobileNavOpen(false); navigate("/notifications"); }}
+            className="flex items-center justify-between rounded-2xl border border-zinc-800 px-4 py-3 text-left text-zinc-300 transition hover:bg-zinc-900/70"
+          >
+            <div className="flex items-center gap-3">
+              <Bell className="h-5 w-5" />
+              <span className="font-medium">Notifications</span>
+            </div>
+            {notificationUnreadCount > 0 ? (
+              <span className="flex h-5 items-center justify-center rounded-full bg-red-650 px-1.5 text-xs font-semibold text-white min-w-[20px]">
+                {notificationUnreadCount > 99 ? "99+" : notificationUnreadCount}
+              </span>
+            ) : null}
+          </button>
+
+          <button
+            type="button"
             onClick={handleLogout}
             className="mt-2 flex items-center gap-3 rounded-2xl border border-zinc-800 px-4 py-3 text-left text-zinc-300 transition hover:bg-zinc-900/70"
           >
@@ -1516,7 +1553,14 @@ function Home() {
           {uiNotice.message}
         </div>
       ) : null}
-      <SidebarNav activeButton={activeButton} onSelect={handleButtonClick} onLogout={handleLogout} chatUnreadCount={totalChatUnread} chatSingleUnread={singleUnreadConversation} />
+      <SidebarNav 
+        activeButton={activeButton} 
+        onSelect={handleButtonClick} 
+        onLogout={handleLogout} 
+        chatUnreadCount={totalChatUnread} 
+        chatSingleUnread={singleUnreadConversation} 
+        notificationUnreadCount={notificationUnreadCount}
+      />
 
       {mobileTopBar}
 
@@ -1575,6 +1619,7 @@ function Home() {
                 selectedConversationId={selectedConversationId}
                 currentUserId={currentUserId}
                 onConversationChanged={fetchChatConversations}
+                onConversationStarted={handleConversationStarted}
                 onOpenPost={handleSelectPost}
                 compactHeader
               />
@@ -1635,6 +1680,7 @@ function Home() {
               selectedConversationId={selectedConversationId}
               currentUserId={currentUserId}
               onConversationChanged={fetchChatConversations}
+              onConversationStarted={handleConversationStarted}
               onOpenPost={handleSelectPost}
             />
           </div>

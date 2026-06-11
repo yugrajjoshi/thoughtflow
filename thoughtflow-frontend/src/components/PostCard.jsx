@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Heart, MessageCircle, Bookmark, Share2, Kanban,Repeat2, Ellipsis } from "lucide-react";
 import PostSettingHover from "../hoverelements/postsettinghover";
@@ -68,6 +68,63 @@ function PostCard({ post, onClick, currentUsername, currentUserId, onDeletePost,
     const [bookmarkLoading, setBookmarkLoading] = useState(false);
     const [repostLoading, setRepostLoading] = useState(false);
     const [showSettingsHover, setShowSettingsHover] = useState(false);
+    const settingsRef = useRef(null);
+
+    const [toast, setToast] = useState(null);
+    const toastTimeoutRef = useRef(null);
+    const [isMuted, setIsMuted] = useState(() => {
+        try {
+            const list = JSON.parse(localStorage.getItem("thoughtflow_muted_users") || "[]");
+            return Array.isArray(list) && list.includes((post?.username || "").toLowerCase());
+        } catch {
+            return false;
+        }
+    });
+    const [isBlocked, setIsBlocked] = useState(() => {
+        try {
+            const list = JSON.parse(localStorage.getItem("thoughtflow_blocked_users") || "[]");
+            return Array.isArray(list) && list.includes((post?.username || "").toLowerCase());
+        } catch {
+            return false;
+        }
+    });
+
+    useEffect(() => {
+        const handleRelationsChanged = () => {
+            const targetUser = (post?.username || "").toLowerCase();
+            if (!targetUser) return;
+            try {
+                const mutedList = JSON.parse(localStorage.getItem("thoughtflow_muted_users") || "[]");
+                setIsMuted(Array.isArray(mutedList) && mutedList.includes(targetUser));
+
+                const blockedList = JSON.parse(localStorage.getItem("thoughtflow_blocked_users") || "[]");
+                setIsBlocked(Array.isArray(blockedList) && blockedList.includes(targetUser));
+            } catch (error) {
+                console.error(error);
+            }
+        };
+        window.addEventListener("thoughtflow_relations_changed", handleRelationsChanged);
+        return () => {
+            window.removeEventListener("thoughtflow_relations_changed", handleRelationsChanged);
+            if (toastTimeoutRef.current) {
+                clearTimeout(toastTimeoutRef.current);
+            }
+        };
+    }, [post?.username]);
+
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (settingsRef.current && !settingsRef.current.contains(event.target)) {
+                setShowSettingsHover(false);
+            }
+        }
+        if (showSettingsHover) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [showSettingsHover]);
 
     useEffect(() => {
         setLiked(Boolean(post?.is_liked));
@@ -236,6 +293,121 @@ function PostCard({ post, onClick, currentUsername, currentUserId, onDeletePost,
 
     const canDeletePost = Boolean(currentUsername) && currentUsername === post?.username;
 
+    const showToast = (message, onUndo = null) => {
+        if (toastTimeoutRef.current) {
+            clearTimeout(toastTimeoutRef.current);
+        }
+        setToast({ message, onUndo });
+        toastTimeoutRef.current = setTimeout(() => {
+            setToast(null);
+        }, 5000);
+    };
+
+    const handleUndoMute = () => {
+        const targetUser = (post?.username || "").toLowerCase();
+        if (!targetUser) return;
+        try {
+            const currentMutes = JSON.parse(localStorage.getItem("thoughtflow_muted_users") || "[]");
+            const updated = (Array.isArray(currentMutes) ? currentMutes : []).filter(username => username !== targetUser);
+            localStorage.setItem("thoughtflow_muted_users", JSON.stringify(updated));
+            setIsMuted(false);
+            window.dispatchEvent(new Event("thoughtflow_relations_changed"));
+            showToast(`Unmuted @${post.username}`);
+        } catch (error) {
+            console.error("Failed to unmute user:", error);
+            showToast("Failed to unmute.");
+        }
+    };
+
+    const handleUndoBlock = () => {
+        const targetUser = (post?.username || "").toLowerCase();
+        if (!targetUser) return;
+        try {
+            const currentBlocks = JSON.parse(localStorage.getItem("thoughtflow_blocked_users") || "[]");
+            const updated = (Array.isArray(currentBlocks) ? currentBlocks : []).filter(username => username !== targetUser);
+            localStorage.setItem("thoughtflow_blocked_users", JSON.stringify(updated));
+            setIsBlocked(false);
+            window.dispatchEvent(new Event("thoughtflow_relations_changed"));
+            showToast(`Unblocked @${post.username}`);
+        } catch (error) {
+            console.error("Failed to unblock user:", error);
+            showToast("Failed to unblock.");
+        }
+    };
+
+    const handleCopyLink = (event) => {
+        event.stopPropagation();
+        const shareUrl = `${window.location.origin}/profile/${post?.username || "unknown"}?post=${post?.id || ""}`;
+        navigator.clipboard.writeText(shareUrl)
+            .then(() => {
+                showToast("Link copied to clipboard!");
+            })
+            .catch(() => {
+                showToast("Failed to copy link.");
+            });
+        setShowSettingsHover(false);
+    };
+
+    const handleMuteUser = (event) => {
+        event.stopPropagation();
+        const targetUser = (post?.username || "").toLowerCase();
+        if (!targetUser) return;
+        if (targetUser === (currentUsername || "").toLowerCase()) {
+            showToast("You cannot mute yourself.");
+            setShowSettingsHover(false);
+            return;
+        }
+
+        try {
+            const currentMutes = JSON.parse(localStorage.getItem("thoughtflow_muted_users") || "[]");
+            const updated = Array.isArray(currentMutes) ? currentMutes : [];
+            if (!updated.includes(targetUser)) {
+                updated.push(targetUser);
+                localStorage.setItem("thoughtflow_muted_users", JSON.stringify(updated));
+            }
+            setIsMuted(true);
+            showToast(`Muted @${post.username}`, handleUndoMute);
+            window.dispatchEvent(new Event("thoughtflow_relations_changed"));
+        } catch (error) {
+            console.error("Failed to mute user:", error);
+            showToast("Failed to mute user.");
+        }
+        setShowSettingsHover(false);
+    };
+
+    const handleBlockUser = (event) => {
+        event.stopPropagation();
+        const targetUser = (post?.username || "").toLowerCase();
+        if (!targetUser) return;
+        if (targetUser === (currentUsername || "").toLowerCase()) {
+            showToast("You cannot block yourself.");
+            setShowSettingsHover(false);
+            return;
+        }
+
+        try {
+            const currentBlocks = JSON.parse(localStorage.getItem("thoughtflow_blocked_users") || "[]");
+            const updated = Array.isArray(currentBlocks) ? currentBlocks : [];
+            if (!updated.includes(targetUser)) {
+                updated.push(targetUser);
+                localStorage.setItem("thoughtflow_blocked_users", JSON.stringify(updated));
+            }
+            setIsBlocked(true);
+            showToast(`Blocked @${post.username}`, handleUndoBlock);
+            window.dispatchEvent(new Event("thoughtflow_relations_changed"));
+        } catch (error) {
+            console.error("Failed to block user:", error);
+            showToast("Failed to block user.");
+        }
+        setShowSettingsHover(false);
+    };
+
+    const handleReportPost = (event) => {
+        event.stopPropagation();
+        showToast("Report submitted successfully.");
+        setShowSettingsHover(false);
+    };
+
     const handleDeletePost = (event) => {
         event.stopPropagation();
         if (typeof onDeletePost === "function" && post?.id) {
@@ -250,11 +422,38 @@ function PostCard({ post, onClick, currentUsername, currentUserId, onDeletePost,
         }
     };
 
+    if (isMuted || isBlocked) {
+        if (toast) {
+            return (
+                <div className="fixed bottom-5 right-5 z-[99999] flex items-center justify-between gap-4 px-4 py-3 bg-zinc-950 border border-zinc-800 text-zinc-200 text-sm rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.7)] min-w-[280px]">
+                    <div className="flex items-center gap-2.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-sm font-medium">{toast.message}</span>
+                    </div>
+                    {toast.onUndo && (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                toast.onUndo();
+                            }}
+                            className="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors uppercase tracking-wider pl-2 border-l border-zinc-900"
+                        >
+                            Undo
+                        </button>
+                    )}
+                </div>
+            );
+        }
+        return null;
+    }
+
     return (
-        <section
-            className={`w-full  p-2 h-auto transition-all duration-200 roundeed-lg hover:bg-zinc-950 border-t border-b border-zinc-800 ${onClick ? "cursor-pointer" : ""}`}
-            onClick={handleCardClick}
-        >
+        <>
+            <section
+                className={`w-full  p-2 h-auto transition-all duration-200 rounded-lg border-t border-b border-zinc-800 ${onClick ? "cursor-pointer hover:bg-zinc-950" : ""}`}
+                onClick={handleCardClick}
+            >
             {post?.reposted_by_label ? (
                 <div className="px-3 pt-2 text-zinc-500  font-bold text-sm">
                     <i>{post.reposted_by_label} reposted</i>
@@ -276,23 +475,30 @@ function PostCard({ post, onClick, currentUsername, currentUserId, onDeletePost,
                         <Link to={`/profile/${post?.username}`} className="text-zinc-400 text-sm" onClick={handleStopPropagation}>@{post?.username || "unknown"}</Link>
                         {createdAt && <p className="text-zinc-500 text-xs">{createdAt}</p>}
                         <div    
+                            ref={settingsRef}
                             className="relative ml-auto mr-3"
-                            onMouseEnter={() => setShowSettingsHover(true)}
-                            onMouseLeave={() => setShowSettingsHover(false)}
                         >
                             <button
                                 type="button"
-                                className="p-2 rounded-full transition-all duration-500 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-300"
-                                onClick={handleStopPropagation}
+                                className="p-2 rounded-full transition-all duration-200 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-300"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowSettingsHover(prev => !prev);
+                                }}
                             >
                                 <Ellipsis className=" rotate-90  w-5 h-5  " />
                             </button>
                             {showSettingsHover ? (
                                 <div className="absolute z-20 top-full mt-2 -right-12 sm:right-0 shadow-lg" onClick={handleStopPropagation}>
                                     <PostSettingHover
+                                        username={post?.username || ""}
                                         canDelete={canDeletePost}
                                         onDelete={handleDeletePost}
                                         isDeleting={isDeletingPost}
+                                        onCopyLink={handleCopyLink}
+                                        onMute={handleMuteUser}
+                                        onBlock={handleBlockUser}
+                                        onReport={handleReportPost}
                                     />
                                 </div>
                             ) : null}
@@ -381,6 +587,27 @@ function PostCard({ post, onClick, currentUsername, currentUserId, onDeletePost,
 
             </div>
         </section>
+            {toast ? (
+                <div className="fixed bottom-5 right-5 z-[99999] flex items-center justify-between gap-4 px-4 py-3 bg-zinc-950 border border-zinc-800 text-zinc-200 text-sm rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.7)] min-w-[280px]">
+                    <div className="flex items-center gap-2.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-sm font-medium">{toast.message}</span>
+                    </div>
+                    {toast.onUndo && (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                toast.onUndo();
+                            }}
+                            className="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors uppercase tracking-wider pl-2 border-l border-zinc-900"
+                        >
+                            Undo
+                        </button>
+                    )}
+                </div>
+            ) : null}
+        </>
     );
 }
 

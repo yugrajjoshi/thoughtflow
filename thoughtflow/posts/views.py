@@ -8,7 +8,7 @@ from .serializers import PostSerializer, CommentSerializer, HashtagSerializer
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
-from django.db.models import Q, Count
+from django.db.models import Q, Count, F, ExpressionWrapper, FloatField
 from chat.serializers import UserSummarySerializer
 from django.contrib.auth.models import User
 from accounts.models import Profile
@@ -261,9 +261,30 @@ def like_post(request, post_id):
     if request.user in post.likes.all():
         post.likes.remove(request.user)
         liked = False
+        try:
+            from accounts.models import Notification
+            Notification.objects.filter(
+                user=post.user,
+                actor=request.user,
+                verb='liked your post',
+                data__post_id=post.id
+            ).delete()
+        except Exception as e:
+            print("Failed to delete like notification:", e)
     else:
         post.likes.add(request.user)
         liked = True
+        try:
+            from accounts.notification_utils import create_notification
+            create_notification(
+                user=post.user,
+                actor=request.user,
+                verb='liked your post',
+                data={'post_id': post.id, 'preview': post.content[:100] if post.content else '', 'type': 'like'},
+                setting_field='notify_likes'
+            )
+        except Exception as e:
+            print("Failed to create like notification:", e)
 
     post.likes_count = post.likes.count()
     post.save(update_fields=['likes_count'])
@@ -309,9 +330,30 @@ def repost_post(request, post_id):
     if original_post.repost_users.filter(id=request.user.id).exists():
         original_post.repost_users.remove(request.user)
         reposted = False
+        try:
+            from accounts.models import Notification
+            Notification.objects.filter(
+                user=original_post.user,
+                actor=request.user,
+                verb='reposted your post',
+                data__post_id=original_post.id
+            ).delete()
+        except Exception as e:
+            print("Failed to delete repost notification:", e)
     else:
         original_post.repost_users.add(request.user)
         reposted = True
+        try:
+            from accounts.notification_utils import create_notification
+            create_notification(
+                user=original_post.user,
+                actor=request.user,
+                verb='reposted your post',
+                data={'post_id': original_post.id, 'preview': original_post.content[:100] if original_post.content else '', 'type': 'repost'},
+                setting_field='notify_reposts'
+            )
+        except Exception as e:
+            print("Failed to create repost notification:", e)
 
     original_post.reposts_count = original_post.repost_users.count()
     original_post.save(update_fields=['reposts_count'])
@@ -596,6 +638,7 @@ def get_hashtag_detail(request, hashtag_id):
 def search_content(request):
     query = (request.query_params.get('q') or '').strip()
     limit_param = request.query_params.get('limit')
+    rank_param = request.query_params.get('rank') or 'recency'
 
     try:
         limit = int(limit_param) if limit_param is not None else 500
@@ -609,7 +652,7 @@ def search_content(request):
 
     normalized_query = query.lstrip('#').strip()
 
-    posts = (
+    posts_qs = (
         Post.objects
         .select_related('user', 'user__profile')
         .prefetch_related('likes', 'bookmarks', 'repost_users', 'hashtags')
@@ -620,30 +663,97 @@ def search_content(request):
             | Q(hashtags__tag__icontains=normalized_query)
         )
         .distinct()
-        .order_by('-created_at')[:limit]
     )
 
-    hashtags = (
-        Hashtag.objects
-        .filter(Q(tag__icontains=normalized_query) | Q(tag__icontains=query.lstrip('#')))
-        .order_by('-posts_count', '-updated_at', 'tag')[:limit]
+    posts_qs = posts_qs.annotate(
+        engagement_score=ExpressionWrapper(
+            F('likes_count') * 5.0 +
+            F('reposts_count') * 6.0 +
+            F('bookmarks_count') * 4.0 +
+            F('comments_count') * 3.0 +
+            F('views_counts') * 0.08,
+            output_field=FloatField()
+        )
     )
 
-    profile_user_ids = Profile.objects.filter(name__icontains=normalized_query).values_list('user_id', flat=True)
+    if rank_param == 'engagement':
+        posts_qs = posts_qs.order_by('-engagement_score', '-created_at')
+    else:
+        posts_qs = posts_qs.order_by('-created_at')
 
-    users = (
-        User.objects
-        .select_related('profile')
-        .filter(Q(username__icontains=normalized_query) | Q(id__in=profile_user_ids))
-        .order_by('username')[:limit]
-    )
+    page_param = request.query_params.get('page')
+    page_size_param = request.query_params.get('page_size')
 
-    posts_serializer = PostSerializer(posts, many=True, context={'request': request})
-    hashtags_serializer = HashtagSerializer(hashtags, many=True)
-    users_serializer = UserSummarySerializer(users, many=True, context={'request': request})
+    if page_param is not None:
+        try:
+            page = max(1, int(page_param))
+        except (TypeError, ValueError):
+            page = 1
+        try:
+            page_size = max(1, min(int(page_size_param), 100)) if page_size_param is not None else 20
+        except (TypeError, ValueError):
+            page_size = 20
 
-    return response.Response({
-        'posts': posts_serializer.data,
-        'hashtags': hashtags_serializer.data,
-        'users': users_serializer.data,
-    })
+        start = (page - 1) * page_size
+        end = page * page_size
+
+        posts = posts_qs[start:end]
+        hashtags = (
+            Hashtag.objects
+            .filter(Q(tag__icontains=normalized_query) | Q(tag__icontains=query.lstrip('#')))
+            .order_by('-posts_count', '-updated_at', 'tag')[start:end]
+        )
+
+        profile_user_ids = Profile.objects.filter(name__icontains=normalized_query).values_list('user_id', flat=True)
+        users = (
+            User.objects
+            .select_related('profile')
+            .filter(Q(username__icontains=normalized_query) | Q(id__in=profile_user_ids))
+            .order_by('username')[start:end]
+        )
+
+        total_posts = posts_qs.count()
+        total_hashtags = Hashtag.objects.filter(Q(tag__icontains=normalized_query) | Q(tag__icontains=query.lstrip('#'))).count()
+        total_users = User.objects.filter(Q(username__icontains=normalized_query) | Q(id__in=profile_user_ids)).count()
+
+        posts_serializer = PostSerializer(posts, many=True, context={'request': request})
+        hashtags_serializer = HashtagSerializer(hashtags, many=True)
+        users_serializer = UserSummarySerializer(users, many=True, context={'request': request})
+
+        return response.Response({
+            'posts': posts_serializer.data,
+            'hashtags': hashtags_serializer.data,
+            'users': users_serializer.data,
+            'pagination': {
+                'page': page,
+                'page_size': page_size,
+                'total_posts': total_posts,
+                'total_hashtags': total_hashtags,
+                'total_users': total_users,
+            }
+        })
+    else:
+        posts = posts_qs[:limit]
+        hashtags = (
+            Hashtag.objects
+            .filter(Q(tag__icontains=normalized_query) | Q(tag__icontains=query.lstrip('#')))
+            .order_by('-posts_count', '-updated_at', 'tag')[:limit]
+        )
+
+        profile_user_ids = Profile.objects.filter(name__icontains=normalized_query).values_list('user_id', flat=True)
+        users = (
+            User.objects
+            .select_related('profile')
+            .filter(Q(username__icontains=normalized_query) | Q(id__in=profile_user_ids))
+            .order_by('username')[:limit]
+        )
+
+        posts_serializer = PostSerializer(posts, many=True, context={'request': request})
+        hashtags_serializer = HashtagSerializer(hashtags, many=True)
+        users_serializer = UserSummarySerializer(users, many=True, context={'request': request})
+
+        return response.Response({
+            'posts': posts_serializer.data,
+            'hashtags': hashtags_serializer.data,
+            'users': users_serializer.data,
+        })
