@@ -16,7 +16,13 @@ function Signup(){
         .then(async (response) => {
             const data = await response.json();
             if (!response.ok) {
-                throw new Error(data?.error || "Registration failed");
+                let msg = "";
+                if (data && typeof data === 'object') {
+                    msg = Object.entries(data)
+                        .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(' ') : errors}`)
+                        .join(', ');
+                }
+                throw new Error(msg || "Registration failed");
             }
             return data;
         })
@@ -29,6 +35,7 @@ function Signup(){
         })
         .catch((error) => {
             console.error("Error during registration: ", error);
+            setErrorMessage(error.message || "Registration failed");
         });
     };
 
