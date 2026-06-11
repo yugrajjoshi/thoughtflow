@@ -218,10 +218,10 @@ function SearchPage() {
     )));
   };
 
-  const searchSummary = query ? `Results for “${query}”` : "Search posts";
+  const _searchSummary = query ? `Results for “${query}”` : "Search posts";
 
   const activePosts = activeTab === "latest" ? latestPosts : topPosts;
-  const activeTabLabel = activeTab === "latest" ? "Latest" : "Top search";
+  const _activeTabLabel = activeTab === "latest" ? "Latest" : "Top search";
   const activeTabDescription = activeTab === "latest"
     ? "LATEST POSTS"
     : "TOP SEARCHES";

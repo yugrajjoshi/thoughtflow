@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader } from "lucide-react";
 import PostCard from "../components/PostCard";
@@ -20,13 +20,7 @@ function HashtagPage() {
     const [currentUsername, setCurrentUsername] = useState(null);
     const [deletingPostId, setDeletingPostId] = useState(null);
 
-    useEffect(() => {
-        fetchCurrentUser();
-        fetchHashtagDetails();
-        fetchHashtagPosts();
-    }, [hashtagId]);
-
-    const fetchCurrentUser = async () => {
+    const fetchCurrentUser = useCallback(async () => {
         const token = getCleanToken();
         if (!token) return;
 
@@ -45,9 +39,9 @@ function HashtagPage() {
         } catch (err) {
             console.error("Error fetching current user:", err);
         }
-    };
+    }, []);
 
-    const fetchHashtagDetails = async () => {
+    const fetchHashtagDetails = useCallback(async () => {
         const token = getCleanToken();
         if (!token) return;
 
@@ -68,9 +62,9 @@ function HashtagPage() {
             console.error("Error fetching hashtag details:", err);
             setError(err.message);
         }
-    };
+    }, [hashtagId]);
 
-    const fetchHashtagPosts = async () => {
+    const fetchHashtagPosts = useCallback(async () => {
         const token = getCleanToken();
         if (!token) return;
 
@@ -94,7 +88,13 @@ function HashtagPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [hashtagId]);
+
+    useEffect(() => {
+        fetchCurrentUser();
+        fetchHashtagDetails();
+        fetchHashtagPosts();
+    }, [hashtagId, fetchCurrentUser, fetchHashtagDetails, fetchHashtagPosts]);
 
     const handleDeletePost = async (postId) => {
         const token = getCleanToken();

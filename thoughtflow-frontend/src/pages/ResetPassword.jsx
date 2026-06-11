@@ -46,7 +46,7 @@ function ResetPassword() {
       } else {
         setMessage(data.error || data.detail || 'Failed to reset password');
       }
-    } catch (err) {
+    } catch {
       setMessage('Request failed');
     } finally {
       setLoading(false);

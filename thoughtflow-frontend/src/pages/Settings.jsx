@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import API_BASE from '../config';
@@ -32,16 +32,7 @@ function Settings() {
   const [notification, setNotification] = useState({ type: '', message: '' });
   const [activeTab, setActiveTab] = useState('privacy');
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = settings.theme || 'dark';
-    document.body.dataset.theme = settings.theme || 'dark';
-  }, [settings.theme]);
-
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     const token = getCleanToken();
     if (!token) {
       navigate('/');
@@ -70,7 +61,17 @@ function Settings() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = settings.theme || 'dark';
+    document.body.dataset.theme = settings.theme || 'dark';
+  }, [settings.theme]);
+
 
   const showNotification = (type, message) => {
     setNotification({ type, message });

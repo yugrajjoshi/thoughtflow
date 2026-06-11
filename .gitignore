@@ -15,6 +15,7 @@ thoughtflow/media/
 # Local environment files (ignore real .env, but keep .env.example as template)
 .env
 thoughtflow/.env
+thoughtflow/.env*
 
 # Tooling and test caches
 .pytest_cache/
@@ -35,3 +36,4 @@ database-shift-procedure.md
 # OS files
 .DS_Store
 Thumbs.db
+build.log

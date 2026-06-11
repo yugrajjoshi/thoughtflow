@@ -252,7 +252,7 @@ function PostCard({ post, onClick, currentUsername, currentUserId, onDeletePost,
 
     return (
         <section
-            className={`w-full  p-2 h-auto transition-all duration-200 roundeed-lg hover:bg-zinc-950 border-t border-l border-r border-b border-zinc-800 ${onClick ? "cursor-pointer" : ""}`}
+            className={`w-full  p-2 h-auto transition-all duration-200 roundeed-lg hover:bg-zinc-950 border-t border-b border-zinc-800 ${onClick ? "cursor-pointer" : ""}`}
             onClick={handleCardClick}
         >
             {post?.reposted_by_label ? (
@@ -285,7 +285,7 @@ function PostCard({ post, onClick, currentUsername, currentUserId, onDeletePost,
                                 className="p-2 rounded-full transition-all duration-500 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-300"
                                 onClick={handleStopPropagation}
                             >
-                                <Ellipsis className=" rotate-90  w-7 h-7 ml-9 " />
+                                <Ellipsis className=" rotate-90  w-5 h-5  " />
                             </button>
                             {showSettingsHover ? (
                                 <div className="absolute z-20 top-full mt-2 -right-12 sm:right-0 shadow-lg" onClick={handleStopPropagation}>

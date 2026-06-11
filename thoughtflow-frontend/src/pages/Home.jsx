@@ -151,20 +151,20 @@ const closeSocketSafely = (socket) => {
     return;
   }
 
-  if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CLOSING) {
-    try {
-      socket.close();
-    } catch (error) {
-      // ignore
-    }
+    if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CLOSING) {
+      try {
+        socket.close();
+      } catch {
+        // ignore
+      }
     return;
   }
 
-  if (socket.readyState === WebSocket.CONNECTING) {
+    if (socket.readyState === WebSocket.CONNECTING) {
     socket.onopen = () => {
       try {
         socket.close();
-      } catch (error) {
+      } catch {
         // ignore
       }
     };
@@ -250,8 +250,8 @@ function Home() {
   const [recentSearches, setRecentSearches] = useState(() => getRecentSearches());
   const [searchTab, setSearchTab] = useState("top");
   const [searchPerformed, setSearchPerformed] = useState(false);
-  const [trendingHashtags, setTrendingHashtags] = useState([]);
-  const [trendingLoading, setTrendingLoading] = useState(false);
+  const [_trendingHashtags, setTrendingHashtags] = useState([]);
+  const [_trendingLoading, setTrendingLoading] = useState(false);
   const [uiNotice, setUiNotice] = useState({ type: "", message: "" });
   const [deletePostConfirmId, setDeletePostConfirmId] = useState(null);
   const [sharePickerState, setSharePickerState] = useState({ open: false, post: null, query: "" });
@@ -813,7 +813,7 @@ function Home() {
             const payload = data.payload;
             if (payload.event === 'new_message') {
               const convId = Number(payload.conversation_id || payload.conversationId);
-              const senderId = payload?.message?.sender || payload?.message?.sender_id || null;
+              // senderId not required here
               setChatConversations((current) => {
                 return current.map((c) => {
                   if (!c || !c.conversationId) return c;
@@ -828,7 +828,7 @@ function Home() {
               });
             }
           }
-        } catch (err) {
+            } catch {
           // ignore
         }
       };
@@ -849,8 +849,9 @@ function Home() {
   }, [selectedConversationId]);
 
   const [mutedConversations, setMutedConversations] = useState(() => new Set());
+  const [deleteConversationConfirmId, setDeleteConversationConfirmId] = useState(null);
 
-  const handleDeleteConversation = async (conversationId) => {
+  const performDeleteConversation = async (conversationId) => {
     if (!conversationId) return;
     const token = getCleanToken();
     // Optimistic update
@@ -876,6 +877,12 @@ function Home() {
       // revert fetch
       await fetchChatConversations();
     }
+  };
+
+  const handleDeleteConversation = (conversationId) => {
+    // ask for confirmation first
+    if (!conversationId) return;
+    setDeleteConversationConfirmId(conversationId);
   };
 
   const handleToggleMuteConversation = async (conversationId) => {
@@ -1066,7 +1073,7 @@ function Home() {
   const isBookmarksView = activeButton === "bookmarks";
   const isMassangerView = activeButton === "chats";
   const isProfileView = activeButton === "profile";
-  const isSearchView = activeButton === "search";
+  const _isSearchView = activeButton === "search";
   const isFeedView = !isMassangerView && !isProfileView;
   const normalizedChatSearchQuery = chatSearchQuery.trim().toLowerCase();
   const filteredChatConversations = chatConversations.filter((person) => {
@@ -1160,7 +1167,7 @@ function Home() {
       })
       : filteredPosts;
 
-  const renderChatPersonRow = (person, { keyPrefix = "conversation", showUnread = true } = {}) => {
+  const _renderChatPersonRow = (person, { keyPrefix = "conversation", showUnread = true } = {}) => {
     const isSelected = selectedChatUser?.username === person.username;
     const imageSrc = person.profileImage
       ? (person.profileImage.startsWith("http") ? person.profileImage : `${API_BASE}${person.profileImage}`)
@@ -2309,6 +2316,35 @@ function Home() {
               <button
                 type="button"
                 onClick={handleConfirmDeletePost}
+                className="px-4 py-2 rounded-lg bg-white text-black font-semibold"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {deleteConversationConfirmId ? (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-950 p-5">
+            <h3 className="text-lg font-semibold text-white">Delete Chat</h3>
+            <p className="mt-2 text-sm text-zinc-400">Delete this conversation? This will remove it from your list.</p>
+            <div className="mt-5 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteConversationConfirmId(null)}
+                className="px-4 py-2 rounded-lg border border-zinc-700 text-zinc-300 hover:bg-zinc-900"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const id = deleteConversationConfirmId;
+                  setDeleteConversationConfirmId(null);
+                  await performDeleteConversation(id);
+                }}
                 className="px-4 py-2 rounded-lg bg-white text-black font-semibold"
               >
                 Delete

@@ -1,0 +1,52 @@
+services:
+  - type: web
+    name: flowthought-backend
+    runtime: python
+    pythonVersion: 3.12
+    
+    buildCommand: |
+      pip install -r thoughtflow/requirements.txt && \
+      cd thoughtflow && \
+      python manage.py collectstatic --noinput --clear
+    
+    startCommand: |
+      cd thoughtflow && \
+      daphne -b 0.0.0.0 -p $PORT thoughtflow.asgi:application
+    
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: 1
+      - key: PYTHONDONTWRITEBYTECODE
+        value: 1
+      - key: DJANGO_DEBUG
+        value: false
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_ALLOWED_HOSTS
+        value: flowthought-backend.onrender.com
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://flowthought.vercel.app
+      - key: REDIS_URL
+        fromDatabase:
+          name: redis
+          property: connectionString
+      - key: DATABASE_URL
+        fromDatabase:
+          name: postgres-db
+          property: connectionString
+    
+    region: oregon  # Change to closest region
+    healthCheckPath: /api/
+
+  - type: pserv
+    name: postgres-db
+    ipAllowList: []
+    plan: free
+    postgresVersion: 16
+    region: oregon
+
+  - type: redis
+    name: redis
+    ipAllowList: []
+    plan: free
+    region: oregon

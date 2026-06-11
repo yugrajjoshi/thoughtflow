@@ -12,14 +12,14 @@ FlowThought is a social media platform prototype — React frontend with a Djang
 Backend (Django)
 
 1. Create and activate a Python virtual environment.
-2. Install backend requirements:
+1. Install backend requirements:
 
 ```bash
 cd thoughtflow
 python -m pip install -r requirements.txt
 ```
 
-3. Run migrations and start the dev server:
+1. Run migrations and start the dev server:
 
 ```bash
 python manage.py migrate

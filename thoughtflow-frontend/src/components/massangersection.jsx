@@ -26,7 +26,7 @@ const closeSocketSafely = (socket) => {
     if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CLOSING) {
         try {
             socket.close();
-        } catch (error) {
+        } catch {
             // ignore
         }
         return;
@@ -36,7 +36,7 @@ const closeSocketSafely = (socket) => {
         socket.onopen = () => {
             try {
                 socket.close();
-            } catch (error) {
+            } catch {
                 // ignore
             }
         };
@@ -74,7 +74,7 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
     const [attachmentFile, setAttachmentFile] = useState(null);
     const [attachmentPreviewUrl, setAttachmentPreviewUrl] = useState("");
     const [attachmentType, setAttachmentType] = useState("");
-    const [notice, setNotice] = useState({ type: "", message: "" });
+    const [_notice, setNotice] = useState({ type: "", message: "" });
     const [confirmDialog, setConfirmDialog] = useState({ open: false, title: "", message: "", action: null });
     const fileInputRef = useRef(null);
 
@@ -187,7 +187,7 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
                             onConversationChanged();
                         }
                     }
-                } catch (err) {
+                } catch {
                     // ignore parse errors
                 }
             };
@@ -477,7 +477,7 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
                                             </div>
                                         ) : null}
 
-                                        <div className="leading-6 whitespace-pre-wrap break-words">{message.content}</div>
+                                        <div className="leading-6 whitespace-pre-wrap wrap-break-word">{message.content}</div>
 
                                         {getImageValue(message) ? (
                                             <img src={getImageValue(message)} alt="Chat attachment" className="mt-2 max-h-72 w-full rounded-2xl object-cover" />

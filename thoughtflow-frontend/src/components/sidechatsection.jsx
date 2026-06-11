@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from 'react-dom';
 import { Search, X, MoreHorizontal } from "lucide-react";
 import API_BASE from '../config';
 
@@ -14,14 +15,17 @@ function SideChatsection({
   onDeleteConversation = () => {},
   onToggleMuteConversation = () => {},
 }) {
-  const [openMenuFor, setOpenMenuFor] = useState(null);
+  // openMenuInfo: { id, rect }
+  const [openMenuInfo, setOpenMenuInfo] = useState(null);
   const containerRef = React.useRef(null);
   React.useEffect(() => {
     function handleDocClick(e) {
       if (!containerRef.current) return;
-      if (!containerRef.current.contains(e.target)) {
-        setOpenMenuFor(null);
-      }
+      // close if click is outside the list AND not inside portal menu
+      const portalNode = document.querySelector('.sidechat-portal-menu');
+      if (containerRef.current.contains(e.target)) return;
+      if (portalNode && portalNode.contains(e.target)) return;
+      setOpenMenuInfo(null);
     }
     document.addEventListener('mousedown', handleDocClick);
     return () => document.removeEventListener('mousedown', handleDocClick);
@@ -50,6 +54,7 @@ function SideChatsection({
   };
 
   return (
+    <>
     <div ref={containerRef} className="w-full h-full flex flex-col bg-black text-white">
       {/* Search Bar */}
       <div className="shrink-0 p-4 border-b border-zinc-700">
@@ -120,31 +125,21 @@ function SideChatsection({
                       <div className="relative">
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); setOpenMenuFor(openMenuFor === person.conversationId ? null : person.conversationId); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const id = person.conversationId;
+                            if (openMenuInfo && openMenuInfo.id === id) {
+                              setOpenMenuInfo(null);
+                              return;
+                            }
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setOpenMenuInfo({ id, rect, muted: person.muted });
+                          }}
                           className="p-2 rounded-full hover:bg-zinc-800/60"
                           aria-label="Conversation options"
                         >
                           <MoreHorizontal className="w-4 h-4 text-zinc-400" />
                         </button>
-
-                        {openMenuFor === person.conversationId ? (
-                          <div className="absolute z-50 top-full mt-2 left-0 sm:right-0 sm:left-auto w-44 sm:w-40 rounded-lg border border-zinc-800 bg-black p-2 flex flex-col gap-1 shadow-lg">
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); setOpenMenuFor(null); onToggleMuteConversation(person.conversationId); }}
-                              className="text-sm text-zinc-200 text-left px-3 py-2 hover:bg-zinc-900/80 rounded transition-colors"
-                            >
-                              {person.muted ? '✓ Unmute' : 'Mute'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); setOpenMenuFor(null); onDeleteConversation(person.conversationId); }}
-                              className="text-sm text-red-400 text-left px-3 py-2 hover:bg-zinc-900/80 rounded transition-colors"
-                            >
-                              Delete Chat
-                            </button>
-                          </div>
-                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -202,7 +197,63 @@ function SideChatsection({
         )}
       </div>
     </div>
+    <ConversationMenuPortal
+      info={openMenuInfo}
+      onClose={() => setOpenMenuInfo(null)}
+      onToggleMuteConversation={onToggleMuteConversation}
+      onDeleteConversation={onDeleteConversation}
+    />
+    </>
   );
 }
 
 export default SideChatsection;
+
+// Hook up global portal menu via window-level state bridging.
+(function attachPortalSupport() {
+  // Nothing to do here; the portal component is self-contained and will be mounted
+})();
+
+// Portal menu renderer (outside component) - using createPortal
+function ConversationMenuPortal({ info, onClose, onToggleMuteConversation, onDeleteConversation }) {
+  if (!info) return null;
+  const { rect, id, muted } = info;
+  const menuWidth = 176; // approx w-44
+  const menuHeight = 110; // estimated
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  let left = rect.left;
+  if (left + menuWidth > vw) {
+    left = Math.max(8, rect.right - menuWidth);
+  }
+
+  let top = rect.bottom + 8;
+  if (top + menuHeight > vh) {
+    // place above
+    top = Math.max(8, rect.top - menuHeight - 8);
+  }
+
+  const menu = (
+    <div className="sidechat-portal-menu fixed z-9999" style={{ left: Math.round(left), top: Math.round(top), width: menuWidth }}>
+      <div className="rounded-lg border border-zinc-800 bg-black p-2 flex flex-col gap-1 shadow-lg">
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onClose(); onToggleMuteConversation(id); }}
+          className="text-sm text-zinc-200 text-left px-3 py-2 hover:bg-zinc-900/80 rounded transition-colors"
+        >
+          {muted ? '✓ Unmute' : 'Mute'}
+        </button>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onClose(); onDeleteConversation(id); }}
+          className="text-sm text-red-400 text-left px-3 py-2 hover:bg-zinc-900/80 rounded transition-colors"
+        >
+          Delete Chat
+        </button>
+      </div>
+    </div>
+  );
+
+  return createPortal(menu, document.body);
+}

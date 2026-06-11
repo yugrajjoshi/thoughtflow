@@ -46,7 +46,7 @@ function ResetRequest() {
       setAccount(data);
       setLookupState('found');
       setMessage(`Account found: ${data.username}${data.email_hint ? ` (${data.email_hint})` : ''}`);
-    } catch (error) {
+    } catch {
       setLookupState('idle');
       setMessage('Lookup failed. Please try again.');
     }
@@ -70,7 +70,7 @@ function ResetRequest() {
       }
 
       setMessage(data.detail || 'If that account exists, a reset link was sent to the email on file.');
-    } catch (error) {
+    } catch {
       setMessage('Failed to send reset link.');
     } finally {
       setSending(false);
