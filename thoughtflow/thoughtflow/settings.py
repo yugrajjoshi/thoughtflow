@@ -55,6 +55,10 @@ ALLOWED_HOSTS = [
     if host.strip()
 ] + ['localhost', '127.0.0.1', '.onrender.com']
 
+# Trust the X-Forwarded-Proto header from Render's proxy to detect HTTPS
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+
 
 # Application definition
 
