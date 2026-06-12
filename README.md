@@ -67,24 +67,36 @@ TRENDING_HASHTAG_LIMIT=10
 - Backend: `python manage.py runserver`
 - Frontend: `npm run dev` (inside `thoughtflow-frontend`)
 
-## Recent updates (till 2026-05-04)
+## Production Deployment & Stability (Render)
 
-- UI: Messenger header now hides the `@username` and profile link in the user-selection state, but keeps them when a conversation is open.
-- Search (May 4): Desktop now renders inline web search results in the Home middle column (Top/Latest/Users tabs appear after pressing Enter). While typing, live user suggestions appear inline as before. Mobile full-screen search and the dedicated `/search` page remain available for small screens.
-- Fixes (May 4): Added `topPosts`/`latestPosts` ranking helpers and `useMemo` derivations to avoid runtime ReferenceErrors. Restored the desktop search input and fixed responsive spacing and header heights.
-- Mobile layout: Fixed overlay positioning and added bottom padding so search/chat overlays no longer show feed content behind the bottom nav. Centered the floating create-post (`+`) button over the nav and adjusted its positioning so it appears solid and not transparent.
+The application is fully configured to be deployed on **Render** (or similar PaaS environments). Below are the crucial production configurations implemented for reliability:
 
-## How to quickly verify the new search behavior
+### 1. Database Connection Stability (`CONN_MAX_AGE = 0`)
+To prevent persistent connection timeouts (which manifest as `django.db.utils.OperationalError: SSL SYSCALL error: EOF detected`), Django is configured to use `CONN_MAX_AGE = 0` in production settings. This forces Django to close database connections after each request, avoiding severed connection errors caused by Render's proxy router.
 
-1. Start backend and frontend dev servers (see Quick start). Frontend expects backend at `http://127.0.0.1:8000`.
-2. Open the app on desktop and click the search input in the top bar — typing should show live user suggestions in the middle column; press Enter to perform a full search and reveal the Top/Latest/Users tabs.
-3. On a small-width viewport or mobile device, activating search should open the full-screen mobile search overlay (unchanged).
+### 2. HTTPS & CORS Compliance
+* **`SECURE_PROXY_SSL_HEADER`**: Configured to `('HTTP_X_FORWARDED_PROTO', 'https')` to allow Django to correctly detect secure HTTPS requests through Render's load balancers.
+* **`CSRF_TRUSTED_ORIGINS`**: Automatically trusts the `.onrender.com` subdomain for cross-site request security.
 
-If you want, I can add a short automated smoke test script (Playwright) that verifies typing shows users and Enter shows tabs.
+### 3. Ephemeral Media Storage
+* Serves media files directly in production via `re_path(r'^media/...')` routes.
+* **Note**: Render's free tier has an ephemeral disk. For permanent image/avatar storage, migrating to AWS S3 or Cloudinary is recommended.
 
-## Notes
+### 4. WebSocket Notification Layer
+* Runs on **Daphne** (ASGI) for real-time notifications and chat transmission.
+* Falls back to Django's in-memory channel layer `channels.layers.InMemoryChannelLayer` when `REDIS_URL` is empty, avoiding dependency overhead.
 
-- Tailwind is used for styling; some mobile offsets are applied inline in `thoughtflow-frontend/src/pages/Home.jsx` to match the mobile nav height (70px). These can be converted to Tailwind arbitrary classes if you prefer.
-- If you run into environment or dependency issues, ensure `python -m ensurepip --upgrade` and then reinstall packages in the virtualenv.
+### 5. Email & Password Reset
+To enable live password resets, configure the following environment variables in the Render Dashboard:
+* `FRONTEND_URL`: Set to your frontend domain (e.g. `https://thoughtfow.onrender.com`).
+* `EMAIL_BACKEND`: `django.core.mail.backends.smtp.EmailBackend`
+* `EMAIL_HOST` / `EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD`: Your SMTP provider credentials.
 
-If you'd like, I can convert inline styles to Tailwind classes, run the frontend and capture screenshots, or update this README further with contribution guidelines and API docs.
+---
+
+## Recent Updates (June 2026)
+
+* **Chat Panel Stabilization**: Resolved a React state race condition in `Home.jsx` where selecting a new chat user would instantly reset the active selection to `null` before the conversation was created.
+* **Backend Conversation Optimization**: Fixed the query lookup in `start_conversation` view using an intersection-based query. This resolves duplicate conversation creations and avoids PostgreSQL `GROUP BY` syntax errors.
+* **Database Fixes**: Set `CONN_MAX_AGE = 0` to stabilize PostgreSQL connections and prevent system-wide database disconnections on ASGI workers.
+
