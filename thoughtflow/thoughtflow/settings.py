@@ -148,7 +148,7 @@ if DATABASE_URL:
             'PASSWORD': unquote(parsed_database_url.password or ''),
             'HOST': parsed_database_url.hostname or '',
             'PORT': str(parsed_database_url.port or ''),
-            'CONN_MAX_AGE': int(os.getenv('DATABASE_CONN_MAX_AGE', '600') or 600),
+            'CONN_MAX_AGE': int(os.getenv('DATABASE_CONN_MAX_AGE', '0') or 0),
             'OPTIONS': {
                 'sslmode': 'require',
             }
