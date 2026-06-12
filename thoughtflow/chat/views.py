@@ -43,11 +43,15 @@ def start_conversation(request):
 	if target_user.id == request.user.id:
 		return response.Response({'error': 'Cannot start conversation with yourself'}, status=status.HTTP_400_BAD_REQUEST)
 
+	# Find conversations that request.user and target_user have in common
+	user_convs = ConversationParticipant.objects.filter(user=request.user).values_list('conversation_id', flat=True)
+	target_convs = ConversationParticipant.objects.filter(user=target_user).values_list('conversation_id', flat=True)
+	common_conv_ids = set(user_convs).intersection(set(target_convs))
+
 	conversation = (
 		Conversation.objects
-		.filter(participants__user=request.user)
-		.filter(participants__user=target_user)
-		.annotate(participant_count=Count('participants', distinct=True))
+		.filter(id__in=common_conv_ids)
+		.annotate(participant_count=Count('participants'))
 		.filter(participant_count=2)
 		.first()
 	)
