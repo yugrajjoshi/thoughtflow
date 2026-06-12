@@ -8,9 +8,13 @@ from django.contrib.auth import get_user_model
 
 def create_admin():
     User = get_user_model()
-    username = os.getenv('DJANGO_SUPERUSER_USERNAME', 'yuvi')
-    email = os.getenv('DJANGO_SUPERUSER_EMAIL', 'yugrajjoshi37@gmail.com')
-    password = os.getenv('DJANGO_SUPERUSER_PASSWORD', '4660533')
+    username = os.getenv('DJANGO_SUPERUSER_USERNAME')
+    email = os.getenv('DJANGO_SUPERUSER_EMAIL', 'admin@example.com')
+    password = os.getenv('DJANGO_SUPERUSER_PASSWORD')
+
+    if not username or not password:
+        print("DJANGO_SUPERUSER_USERNAME and DJANGO_SUPERUSER_PASSWORD must be set in environment variables. Skipping.")
+        return
 
     user, created = User.objects.get_or_create(username=username, defaults={'email': email})
     user.email = email
