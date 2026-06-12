@@ -460,8 +460,13 @@ def google_oauth_callback(request):
         counter += 1
         username = f"{username_base}{counter}"
 
-    user, created = User.objects.get_or_create(email=email, defaults={'username': username})
-    if created:
+    user = User.objects.filter(email=email).first()
+    if user:
+        created = False
+        Profile.objects.get_or_create(user=user, defaults={'name': name})
+    else:
+        user = User.objects.create(username=username, email=email)
+        created = True
         user.set_unusable_password()
         user.save()
         Profile.objects.get_or_create(user=user, defaults={'name': name})
