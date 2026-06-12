@@ -1,6 +1,8 @@
 # FlowThought
 
-FlowThought is a social media platform  — React frontend with a Django REST Framework backend.
+###  Live Demo: [https://thoughtfow.onrender.com](https://thoughtfow.onrender.com)
+
+FlowThought is a social media platform — React frontend with a Django REST Framework backend.
 
 ## Workspace layout
 
