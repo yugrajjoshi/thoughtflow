@@ -11,6 +11,7 @@ services:
     
     startCommand: |
       cd thoughtflow && \
+      python create_admin.py && \
       daphne -b 0.0.0.0 -p $PORT thoughtflow.asgi:application
     
     envVars:
