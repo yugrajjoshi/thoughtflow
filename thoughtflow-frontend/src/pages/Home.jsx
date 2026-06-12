@@ -987,8 +987,21 @@ function Home() {
   }, [activeButton, chatSearchQuery, fetchChatPeople]);
 
   useEffect(() => {
-    const selectedConversation = chatConversations.find((conversation) => conversation.conversationId === selectedConversationId) || null;
-    setSelectedChatUser(selectedConversation);
+    if (!selectedConversationId) {
+      return;
+    }
+
+    const selectedConversation = chatConversations.find((conversation) => conversation.conversationId === selectedConversationId);
+    if (selectedConversation) {
+      setSelectedChatUser(selectedConversation);
+    } else {
+      setSelectedChatUser((current) => {
+        if (current && current.conversationId && current.conversationId !== selectedConversationId) {
+          return null;
+        }
+        return current;
+      });
+    }
   }, [chatConversations, selectedConversationId]);
 
   const handleButtonClick = (buttonName) => {
