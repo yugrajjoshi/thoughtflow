@@ -6,11 +6,14 @@ from rest_framework import response, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 
-from .models import Conversation, ConversationParticipant, Message
-from .serializers import ConversationSerializer, MessageSerializer, UserSummarySerializer
+from .models import Conversation, ConversationParticipant, Message, AIChatMessage
+from .serializers import ConversationSerializer, MessageSerializer, UserSummarySerializer, AIChatMessageSerializer
 from posts.models import Post
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+import os
+from google import genai
+from google.genai import types
 
 
 def _user_in_conversation(conversation, user):
@@ -314,3 +317,85 @@ def toggle_mute_conversation(request, conversation_id):
 
 	participant.save(update_fields=['muted'])
 	return response.Response({'conversation_id': conversation_id, 'muted': participant.muted}, status=status.HTTP_200_OK)
+
+#Aichat apis
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_ai_history(request):
+	messages = AIChatMessage.objects.filter(user=request.user).order_by('created_at')
+	serializer = AIChatMessageSerializer(messages, many=True)
+	return response.Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def send_ai_message(request):
+	content = (request.data.get('content') or '').strip()
+	if not content:
+		return response.Response({'error': 'Message content cannot be empty'}, status=status.HTTP_400_BAD_REQUEST)
+
+	# Save user message
+	user_msg = AIChatMessage.objects.create(
+		user=request.user,
+		role='user',
+		content=content
+	)
+
+	# Fetch last 15 messages for history context
+	history_msgs = AIChatMessage.objects.filter(user=request.user).order_by('created_at')
+	history_msgs_count = history_msgs.count()
+	if history_msgs_count > 15:
+		# Slice history to last 15 messages
+		history_msgs = history_msgs[history_msgs_count-15:]
+
+	# Prepare chat history for Gemini
+	gemini_history = []
+	for msg in history_msgs:
+		if msg.id == user_msg.id:
+			continue
+		gemini_history.append(
+			types.Content(
+				role=msg.role,
+				parts=[types.Part.from_text(text=msg.content)]
+			)
+		)
+
+	# Call Gemini API
+	api_key = os.getenv("GEMINI_API_KEY")
+	if not api_key:
+		ai_msg = AIChatMessage.objects.create(
+			user=request.user,
+			role='model',
+			content="Gemini API Key is not configured. Please add GEMINI_API_KEY to your .env file."
+		)
+		return response.Response({
+			'user_message': AIChatMessageSerializer(user_msg).data,
+			'ai_message': AIChatMessageSerializer(ai_msg).data
+		}, status=status.HTTP_201_CREATED)
+
+	try:
+		client = genai.Client(api_key=api_key)
+		chat = client.chats.create(model="gemini-2.5-flash", history=gemini_history)
+		gemini_response = chat.send_message(content)
+		ai_text = gemini_response.text
+	except Exception as e:
+		ai_text = f"An error occurred while communicating with Gemini API: {str(e)}"
+
+	# Save AI response
+	ai_msg = AIChatMessage.objects.create(
+		user=request.user,
+		role='model',
+		content=ai_text
+	)
+
+	return response.Response({
+		'user_message': AIChatMessageSerializer(user_msg).data,
+		'ai_message': AIChatMessageSerializer(ai_msg).data
+	}, status=status.HTTP_201_CREATED)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def clear_ai_history(request):
+	AIChatMessage.objects.filter(user=request.user).delete()
+	return response.Response({'success': True}, status=status.HTTP_200_OK)

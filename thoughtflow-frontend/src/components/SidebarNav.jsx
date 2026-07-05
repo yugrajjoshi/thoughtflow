@@ -1,4 +1,4 @@
-import { House, UserRound, Search, Mail, LogOut, Bookmark, Settings, Bell } from "lucide-react";
+import { House, UserRound, Search, Mail, LogOut, Bookmark, Settings, Bell, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Logo from "./Logo";
 
@@ -62,6 +62,15 @@ function SidebarNav({ activeButton, onSelect, onLogout, chatUnreadCount = 0, cha
                         ) : null}
                     </div>
                     <span className="hide-mobile">Chats</span>
+                </button>
+
+                <button
+                    className={`text-white gap-6 text-2xl font-bold p-3 transition duration-300 ml-6 w-[70%] ${activeButton === "ai-chat" ? "bg-zinc-800/30" : "hover:bg-zinc-800/30"} rounded-4xl flex items-center`}
+                    onClick={() => onSelect("ai-chat")}
+                    title="AI Assistant"
+                >
+                    <Sparkles className="w-9 h-9 text-blue-400" />
+                    <span className="hide-mobile">AI Assistant</span>
                 </button>
 
                 <button
