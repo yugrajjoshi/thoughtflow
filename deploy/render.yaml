@@ -9,6 +9,10 @@ services:
       cd thoughtflow && \
       python manage.py collectstatic --noinput --clear
     
+    releaseCommand: |
+      cd thoughtflow && \
+      python manage.py migrate --noinput
+    
     startCommand: |
       cd thoughtflow && \
       python create_admin.py && \
