@@ -94,10 +94,18 @@ To enable live password resets, configure the following environment variables in
 * `EMAIL_BACKEND`: `django.core.mail.backends.smtp.EmailBackend`
 * `EMAIL_HOST` / `EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD`: Your SMTP provider credentials.
 
+### 6. AI Assistant Setup
+To enable the glassmorphic AI Assistant in development or production:
+* **`GEMINI_API_KEY`**: Obtain an API key from [Google AI Studio](https://aistudio.google.com/) and set it as an environment variable. Ensure the key is active (linked to an active Google Cloud billing/free trial project inside AI Studio).
+
 ---
 
-## Recent Updates (June 2026)
+## Recent Updates (June/July 2026)
 
+* **Gemini-Powered AI Chat Assistant**: Integrated an interactive AI companion in the sidebar navigation powered by Google Gemini and the new `google-genai` SDK.
+  * **Contextual History**: Automatically saves chat history to the database (`AIChatMessage` model) and supplies history context to the Gemini API for continuous conversation.
+  * **Sleek UI & Custom Formatting**: Built a glassmorphic chat section with suggestion cards, loading state micro-animations, history clearing, and a custom lightweight markdown parser (supporting code blocks with a copy-code utility).
+  * **Environment Configuration**: Added support for the `GEMINI_API_KEY` environment variable in development and production environments.
 * **Chat Panel Stabilization**: Resolved a React state race condition in `Home.jsx` where selecting a new chat user would instantly reset the active selection to `null` before the conversation was created.
 * **Backend Conversation Optimization**: Fixed the query lookup in `start_conversation` view using an intersection-based query. This resolves duplicate conversation creations and avoids PostgreSQL `GROUP BY` syntax errors.
 * **Database Fixes**: Set `CONN_MAX_AGE = 0` to stabilize PostgreSQL connections and prevent system-wide database disconnections on ASGI workers.
