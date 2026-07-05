@@ -13,4 +13,7 @@ urlpatterns = [
     path('chat/users/search/', views.search_users, name='chat_search_users'),
     path('chat/conversations/<int:conversation_id>/', views.delete_conversation, name='chat_delete_conversation'),
     path('chat/conversations/<int:conversation_id>/mute/', views.toggle_mute_conversation, name='chat_toggle_mute_conversation'),
+    path('chat/ai/history/', views.get_ai_history, name='ai_chat_history'),
+    path('chat/ai/send/', views.send_ai_message, name='ai_chat_send'),
+    path('chat/ai/clear/', views.clear_ai_history, name='ai_chat_clear'),
 ]

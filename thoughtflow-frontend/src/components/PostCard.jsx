@@ -425,7 +425,7 @@ function PostCard({ post, onClick, currentUsername, currentUserId, onDeletePost,
     if (isMuted || isBlocked) {
         if (toast) {
             return (
-                <div className="fixed bottom-5 right-5 z-[99999] flex items-center justify-between gap-4 px-4 py-3 bg-zinc-950 border border-zinc-800 text-zinc-200 text-sm rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.7)] min-w-[280px]">
+                <div className="fixed bottom-5 right-5 z-9999 flex items-center justify-between gap-4 px-4 py-3 bg-zinc-950 border border-zinc-800 text-zinc-200 text-sm rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.7)] min-w-[280px]">
                     <div className="flex items-center gap-2.5">
                         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                         <span className="text-sm font-medium">{toast.message}</span>
@@ -588,7 +588,7 @@ function PostCard({ post, onClick, currentUsername, currentUserId, onDeletePost,
             </div>
         </section>
             {toast ? (
-                <div className="fixed bottom-5 right-5 z-[99999] flex items-center justify-between gap-4 px-4 py-3 bg-zinc-950 border border-zinc-800 text-zinc-200 text-sm rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.7)] min-w-[280px]">
+                <div className="fixed bottom-5 right-5 z-9999 flex items-center justify-between gap-4 px-4 py-3 bg-zinc-950 border border-zinc-800 text-zinc-200 text-sm rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.7)] min-w-[280px]">
                     <div className="flex items-center gap-2.5">
                         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                         <span className="text-sm font-medium">{toast.message}</span>

@@ -597,7 +597,7 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
                                             )}
 
                                             <div
-                                                className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm transition-all duration-200 hover:scale-[1.015] ${isOwn ? "self-end border-emerald-500/30 bg-gradient-to-br from-emerald-500/30 to-emerald-00/20 text-white" : "self-start border-zinc-700/60 bg-gradient-to-br from-zinc-800/90 to-zinc-900/95 text-zinc-100"}`}
+                                                className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm transition-all duration-200 hover:scale-[1.015] ${isOwn ? "self-end border-emerald-500/30 bg-linear-to-br from-emerald-500/30 to-emerald-00/20 text-white" : "self-start border-zinc-700/60 bg-linear-to-br from-zinc-800/90 to-zinc-900/95 text-zinc-100"}`}
                                                 onTouchStart={(e) => handleTouchStart(e, message)}
                                                 onTouchEnd={handleTouchEnd}
                                                 onTouchMove={handleTouchEnd}
@@ -743,7 +743,7 @@ function MassangerSection({ selectedUser, selectedConversationId, onConversation
                     type="button"
                     onClick={handleSendMessage}
                     disabled={!canSend || sending}
-                    className="rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 disabled:from-zinc-800 disabled:to-zinc-900 shadow-[0_3px_8px_rgba(16,185,129,0.25),inset_0_1px_0_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95 cursor-pointer shrink-0"
+                    className="rounded-full bg-linear-to-r from-emerald-500 to-teal-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 disabled:from-zinc-800 disabled:to-zinc-900 shadow-[0_3px_8px_rgba(16,185,129,0.25),inset_0_1px_0_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95 cursor-pointer shrink-0"
                 >
                     {sending ? "Sending..." : editingMessage ? "Update" : "Send"}
                 </button>

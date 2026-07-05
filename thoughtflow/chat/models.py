@@ -79,4 +79,18 @@ class Message(models.Model):
     def __str__(self):
         return f"Message {self.id} in Conversation {self.conversation.id} by {self.sender.username}"
     
-#commit code
+# AI chat Model 
+class AIChatMessage(models.Model):
+    ROLE_CHOICES = [
+        ('user','User'),('model','AI')
+    ]
+    user = models.ForeignKey(User, on_delete = models.CASCADE, related_name = 'ai_chat_messages')
+    role = models.CharField(max_length=10,choices = ROLE_CHOICES)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add = True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.user.username}-{self.role}-{self.created_at}"

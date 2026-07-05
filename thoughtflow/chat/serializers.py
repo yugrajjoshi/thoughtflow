@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
 
-from .models import Conversation, Message
+from .models import Conversation, Message, AIChatMessage
 
 
 def _build_profile_image_url(user, request):
@@ -202,3 +202,8 @@ class ConversationSerializer(serializers.ModelSerializer):
         if not participant:
             return False
         return bool(participant.muted)
+#AI chat seriealiser
+class AIChatMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AIChatMessage
+        fields = ['id','role','content','created_at']

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react';
-import { Bookmark, House, LogOut, Mail, Plus, Search, Settings2, UserRound, X, Bell, ArrowLeft, MoreHorizontal } from "lucide-react";
+import { Bookmark, House, LogOut, Mail, Plus, Search, Settings2, UserRound, X, Bell, ArrowLeft, MoreHorizontal, Sparkles } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import CreatePost from "../components/Createpost";
 import API_BASE from "../config";
@@ -12,6 +12,7 @@ import TrendingHashtags from "../components/TrendingHashtags";
 import Logo from "../components/Logo";
 import SideChatsection from '../components/sidechatsection';
 import MobileChatView from '../components/MobileChatView';
+import AIAssistantSection from "../components/AIAssistantSection";
 
 const HOME_UI_STATE_KEY = "thoughtflow_home_ui_state";
 
@@ -1094,9 +1095,10 @@ function Home() {
   const isFollowingView = feedTab === "Following";
   const isBookmarksView = activeButton === "bookmarks";
   const isMassangerView = activeButton === "chats";
+  const isAiChatView = activeButton === "ai-chat";
   const isProfileView = activeButton === "profile";
   const _isSearchView = activeButton === "search";
-  const isFeedView = !isMassangerView && !isProfileView;
+  const isFeedView = !isMassangerView && !isProfileView && !isAiChatView;
   const normalizedChatSearchQuery = chatSearchQuery.trim().toLowerCase();
   const filteredChatConversations = chatConversations.filter((person) => {
     const username = (person?.username || "").toLowerCase();
@@ -1444,6 +1446,7 @@ function Home() {
     { key: "profile", label: "Profile", icon: UserRound },
     { key: "search", label: "Search", icon: Search },
     { key: "chats", label: "Chats", icon: Mail },
+    { key: "ai-chat", label: "AI Assistant", icon: Sparkles },
     { key: "bookmarks", label: "Bookmarks", icon: Bookmark },
   ];
 
@@ -1686,7 +1689,11 @@ function Home() {
       {!(isMobileView && activeButton === "chats") ? (
       <section className={`responsive-main-section ml-[20%] flex h-full min-h-0 w-[80%] overflow-hidden ${isProfileView ? "profile-view-section" : ""}`} style={isProfileView ? { marginTop: 0 } : {}}>
         <article className="responsive-feed flex min-h-0 h-full w-[60%] flex-col text-white border-zinc-900 border-l border-r overflow-y-auto posts-scrollbar">
-        {isMassangerView ? (
+        {isAiChatView ? (
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <AIAssistantSection />
+          </div>
+        ) : isMassangerView ? (
           <div className="flex-1 min-h-0 overflow-hidden">
             <MassangerSection
               selectedUser={selectedChatUser}
