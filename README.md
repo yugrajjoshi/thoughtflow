@@ -110,3 +110,67 @@ To enable the glassmorphic AI Assistant in development or production:
 * **Backend Conversation Optimization**: Fixed the query lookup in `start_conversation` view using an intersection-based query. This resolves duplicate conversation creations and avoids PostgreSQL `GROUP BY` syntax errors.
 * **Database Fixes**: Set `CONN_MAX_AGE = 0` to stabilize PostgreSQL connections and prevent system-wide database disconnections on ASGI workers.
 
+---
+
+## Interview Flow (TCS Prime Style)
+
+Use this sequence to explain the project in 3–4 minutes:
+
+1. **Project one-liner (20 sec)**  
+   ThoughtFlow is a full-stack social media platform with real-time chat and notifications, built using React (frontend) and Django REST + Django Channels (backend).
+
+2. **Problem statement (20–30 sec)**  
+   Users need one app for content sharing, engagement, and instant communication: posts, comments, likes, chat, and alerts.
+
+3. **Your role (30 sec)**  
+   Highlight your ownership:
+   - Frontend pages and user flow
+   - Backend APIs for accounts/posts/chat
+   - Real-time WebSocket integration
+   - Deployment stability improvements
+
+4. **Architecture (45 sec)**  
+   - Frontend: React + Vite, route-based pages (auth, home, profile, search, notifications, settings)
+   - Backend: Django + DRF token authentication
+   - Core modules: `accounts`, `posts`, `chat`
+   - Real-time: Django Channels + ASGI/Daphne with user/conversation socket groups
+   - Database: SQLite in local development, PostgreSQL in production
+
+5. **Feature walkthrough (1 min)**  
+   - Authentication and profile setup
+   - Post creation (text/image/video), hashtags, comments, likes, reposts, bookmarks
+   - Real-time 1:1 messaging (send/edit/delete/seen)
+   - Notification system (social activity + chat alerts)
+   - Gemini-based AI assistant chat with persistent chat history
+
+6. **Technical challenges and fixes (45 sec)**  
+   - Fixed duplicate conversation creation using better intersection-based conversation query logic
+   - Fixed chat panel race condition in `Home.jsx` where active chat selection reset unexpectedly
+   - Improved production database stability on Render by setting `CONN_MAX_AGE = 0`
+
+7. **Impact (30 sec)**  
+   Emphasize outcomes: smoother chat UX, fewer runtime failures, more stable production behavior, and better overall user engagement flow.
+
+8. **Future scope (20 sec)**  
+   Next improvements:
+   - Redis channel layer for horizontal scale
+   - Durable media storage via S3/Cloudinary
+   - Better recommendation and search intelligence
+
+### Suggested 3–4 Minute Speaking Script
+
+I built ThoughtFlow as a full-stack social media platform focused on both engagement and real-time communication.  
+The problem I solved was that users typically switch between apps for posting and direct interaction, so I designed one system where users can create content, engage with others, and chat instantly.
+
+On the frontend, I used React with Vite and route-based pages for authentication, home feed, profile, search, notifications, and settings.  
+On the backend, I used Django REST Framework with token authentication and organized features into three core apps: accounts, posts, and chat.
+
+For engagement features, users can create posts with text, images, or video; add hashtags; like, comment, repost, and bookmark content.  
+For communication, I implemented 1:1 chat with real-time updates using Django Channels and ASGI/Daphne. Notifications are also real-time, so users immediately see social and message events.
+
+One important challenge was duplicate conversation creation in chat. I fixed that by improving the conversation query logic to correctly identify existing shared conversations before creating new ones.  
+Another issue was a frontend race condition in the chat panel where selected users could reset unexpectedly; I stabilized the state flow to prevent that.  
+In production, I also improved reliability on Render by setting database connection behavior with `CONN_MAX_AGE = 0`, which reduced connection-drop failures.
+
+The impact was a smoother messaging experience, fewer runtime issues, and a more stable deployment overall.  
+If I extend this further, I would add Redis for scaling WebSocket traffic, move media to S3 or Cloudinary for durability, and build smarter recommendation/search features.
